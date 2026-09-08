@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f4f7f5">
+  <title>PHC-THC Community Health Portal</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">PHC-THC · COMMUNITY HEALTH PORTAL</p>
+        <h1>ศูนย์ข้อมูลสุขภาพชุมชน ตำบลพระบาท</h1>
+        <p class="sub">ศูนย์บริการสาธารณสุขบ้านโทกหัวช้าง · เทศบาลเมืองเขลางค์นคร</p>
+      </div>
+      <button id="logout" class="secondary" hidden>ออกจากระบบ</button>
+    </header>
+
+    <section id="login-card" class="card auth-card">
+      <div>
+        <p class="eyebrow">SECURE ACCESS</p>
+        <h2>เข้าสู่ระบบ</h2>
+        <p>ใช้บัญชี Supabase Auth ที่ได้รับอนุญาต ข้อมูลทุกตารางถูกควบคุมด้วย Row Level Security</p>
+      </div>
+      <form id="login-form">
+        <label>อีเมล<input name="email" type="email" autocomplete="email" required></label>
+        <label>รหัสผ่าน<input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="primary">เข้าสู่ระบบ</button>
+        <p id="login-error" class="error"></p>
+      </form>
+    </section>
+
+    <section id="blocked" class="card" hidden>
+      <p class="eyebrow">ACCESS PENDING</p>
+      <h2>บัญชียังไม่ได้รับสิทธิ์</h2>
+      <p>บัญชี Supabase Auth มีอยู่แล้ว แต่ยังไม่มี Profile ที่ active หรือยังไม่ได้กำหนดบทบาท/ชุมชน</p>
+    </section>
+
+    <section id="portal" hidden>
+      <div class="welcome card">
+        <div>
+          <p class="eyebrow">SIGNED IN</p>
+          <h2 id="welcome-name">ภาพรวมพื้นที่</h2>
+          <p id="scope-label" class="muted"></p>
+        </div>
+        <span id="role-badge" class="badge"></span>
+      </div>
+
+      <div id="stats" class="stats"></div>
+
+      <section class="card">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">COMMUNITY OVERVIEW</p>
+            <h2>ภาพรวมรายชุมชน</h2>
+          </div>
+          <span id="community-count" class="badge"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ชุมชน</th><th>หมู่</th><th>บ้าน</th><th>มอบหมาย อสม.</th><th>ต้องตรวจ</th><th>นอก ต.พระบาท</th></tr></thead>
+            <tbody id="community-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">VOLUNTEER WORKLOAD</p>
+            <h2>อสม. และภาระงาน</h2>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>อสม.</th><th>ชุมชน</th><th>Anchor</th><th>บ้านรับผิดชอบ</th><th>ต้องตรวจ</th><th>ข้ามชุมชน</th></tr></thead>
+            <tbody id="volunteer-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <aside class="privacy-note">
+        <strong>Privacy by design:</strong> Cloud schema ไม่เก็บเลขบัตรประชาชน 13 หลัก และใช้ <code>source_pcucode + source_pid</code> สำหรับการเชื่อมบุคคล
+      </aside>
+    </section>
+  </main>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
