@@ -8,9 +8,27 @@ const $ = s => document.querySelector(s);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, x => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
 const num = v => Number(v || 0).toLocaleString('th-TH');
 let passwordChangeForced = false;
+let currentProfile = null;
 
 function show(el, visible=true){ el.hidden = !visible; }
-function roleLabel(role){ return ({admin:'ผู้ดูแลระบบ',coordinator:'ผู้ประสานงาน',viewer:'ผู้ดูรายงาน',volunteer:'อสม.'})[role] || role || 'ไม่ระบุ'; }
+function roleLabel(role){ return ({admin:'ผู้ดูแลระบบ',staff:'เจ้าหน้าที่',user:'อสม.'})[role] || role || 'ไม่ระบุ'; }
+
+function normalizePhone(value){
+  let d=String(value||'').replace(/\D/g,'');
+  if(d.startsWith('66')&&d.length===11)d='0'+d.slice(2);
+  if(d.length===9&&['6','8','9'].includes(d[0]))d='0'+d;
+  return d.length===10&&d.startsWith('0')?d:'';
+}
+async function loginAlias(login){
+  login=String(login||'').trim().toLowerCase();
+  if(login.includes('@'))return login;
+  const phone=normalizePhone(login);
+  if(!phone)throw new Error('อสม. กรุณากรอกเบอร์โทรศัพท์ 10 หลัก');
+  const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(phone));
+  const hex=[...new Uint8Array(bytes)].map(b=>b.toString(16).padStart(2,'0')).join('');
+  return `u-${hex.slice(0,48)}@phc-thc.local`;
+}
+
 function anchorLabel(status){ return ({confirmed:'ยืนยัน',community_review:'ตรวจชุมชน',outside_tambon:'นอกตำบล',missing:'ไม่มีพิกัด'})[status] || status || '—'; }
 
 async function getProfile(userId){
@@ -21,6 +39,7 @@ async function getProfile(userId){
 
 async function loadPortal(session){
   const profile = await getProfile(session.user.id);
+  currentProfile = profile;
   if(!profile || !profile.active){
     show($('#login-card'), false); show($('#portal'), false); show($('#blocked'), true); show($('#logout'), true); return;
   }
@@ -52,7 +71,7 @@ async function loadPortal(session){
   }),{houses:0,assigned:0,review:0,outside:0,missing:0});
 
   $('#welcome-name').textContent = profile.display_name || session.user.email || 'ภาพรวมพื้นที่';
-  $('#scope-label').textContent = profile.role === 'admin' ? 'ทุกชุมชนที่อยู่ในระบบ' : (profile.community ? `ขอบเขตสิทธิ์: ${profile.community}` : 'ตามสิทธิ์ที่กำหนด');
+  $('#scope-label').textContent = ['admin','staff'].includes(profile.role) ? 'ทุก 16 ชุมชนในระบบ' : `บ้านในความรับผิดชอบของคุณ · PID ${profile.volunteer_pid??'—'}`;
   $('#role-badge').textContent = roleLabel(profile.role);
   $('#community-count').textContent = `${num(rows.length)} ชุมชน`;
   $('#stats').innerHTML = [
@@ -81,15 +100,18 @@ $('#login-form').addEventListener('submit', async e => {
   e.preventDefault();
   $('#login-error').textContent = '';
   const f = new FormData(e.target);
-  const { error } = await supabase.auth.signInWithPassword({ email:f.get('email'), password:f.get('password') });
-  if(error){ $('#login-error').textContent = error.message; return; }
+  let email;
+  try{ email = await loginAlias(f.get('login')); }
+  catch(error){ $('#login-error').textContent = error.message; return; }
+  const { error } = await supabase.auth.signInWithPassword({ email, password:f.get('password') });
+  if(error){ $('#login-error').textContent = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'; return; }
   e.target.reset(); await refreshAuth();
 });
 
 $('#change-password').addEventListener('click', ()=>{
   passwordChangeForced = false;
   $('#password-title').textContent = 'เปลี่ยนรหัสผ่าน';
-  $('#password-help').textContent = 'กำหนดรหัสผ่านใหม่อย่างน้อย 12 ตัวอักษร';
+  $('#password-help').textContent = currentProfile?.role==='user' ? 'กำหนด PIN ตัวเลข 6–12 หลัก' : 'กำหนดรหัสผ่านใหม่อย่างน้อย 12 ตัวอักษร';
   $('#password-error').textContent = '';
   show($('#portal'), false); show($('#password-card'), true); show($('#change-password'), false); show($('#cancel-password'), true);
 });
@@ -98,7 +120,7 @@ $('#password-form').addEventListener('submit', async e => {
   e.preventDefault();
   const f = new FormData(e.target), password = String(f.get('password') || ''), confirmPassword = String(f.get('confirm_password') || '');
   $('#password-error').textContent = '';
-  if(password.length < 12){ $('#password-error').textContent = 'รหัสผ่านต้องมีอย่างน้อย 12 ตัวอักษร'; return; }
+  if(currentProfile?.role==='user'){ if(!/^\d{6,12}$/.test(password)){ $('#password-error').textContent='PIN ต้องเป็นตัวเลข 6–12 หลัก'; return; } } else if(password.length < 12){ $('#password-error').textContent='รหัสผ่านต้องมีอย่างน้อย 12 ตัวอักษร'; return; }
   if(password !== confirmPassword){ $('#password-error').textContent = 'ยืนยันรหัสผ่านไม่ตรงกัน'; return; }
   const { error } = await supabase.auth.updateUser({ password });
   if(error){ $('#password-error').textContent = error.message; return; }

@@ -25,10 +25,10 @@
       <div>
         <p class="eyebrow">SECURE ACCESS</p>
         <h2>เข้าสู่ระบบ</h2>
-        <p>ใช้บัญชี Supabase Auth ที่ได้รับอนุญาต ข้อมูลทุกตารางถูกควบคุมด้วย Row Level Security</p>
+        <p>อสม.ใช้เบอร์โทรศัพท์และ PIN ตามระบบเดิม · admin/staff ใช้อีเมล ข้อมูลถูกจำกัดด้วย PID และ Row Level Security</p>
       </div>
       <form id="login-form">
-        <label>อีเมล<input name="email" type="email" autocomplete="email" required></label>
+        <label>ชื่อผู้ใช้<input name="login" type="text" autocomplete="username" placeholder="อสม.ใช้เบอร์โทร · เจ้าหน้าที่ใช้อีเมล" required></label>
         <label>รหัสผ่าน<input name="password" type="password" autocomplete="current-password" required></label>
         <button class="primary">เข้าสู่ระบบ</button>
         <p id="login-error" class="error"></p>
@@ -48,8 +48,8 @@
         <p id="password-help">กำหนดรหัสผ่านใหม่อย่างน้อย 12 ตัวอักษร</p>
       </div>
       <form id="password-form">
-        <label>รหัสผ่านใหม่<input name="password" type="password" minlength="12" autocomplete="new-password" required></label>
-        <label>ยืนยันรหัสผ่าน<input name="confirm_password" type="password" minlength="12" autocomplete="new-password" required></label>
+        <label>รหัสผ่านใหม่<input name="password" type="password" minlength="6" autocomplete="new-password" required></label>
+        <label>ยืนยันรหัสผ่าน<input name="confirm_password" type="password" minlength="6" autocomplete="new-password" required></label>
         <div class="form-actions"><button id="cancel-password" type="button" class="secondary">ยกเลิก</button><button class="primary">บันทึกรหัสผ่านใหม่</button></div>
         <p id="password-error" class="error"></p>
       </form>
