@@ -65,9 +65,16 @@
         <span id="role-badge" class="badge"></span>
       </div>
 
-      <div id="stats" class="stats"></div>
+      <nav id="portal-nav" class="portal-nav" aria-label="เมนูข้อมูล">
+        <button type="button" data-portal-view="overview" data-roles="admin staff user" class="active">ภาพรวม</button>
+        <button type="button" data-portal-view="communities" data-roles="admin staff">ชุมชน</button>
+        <button type="button" data-portal-view="volunteers" data-roles="admin staff">อสม.</button>
+        <button type="button" data-portal-view="houses" data-roles="user">บ้านของฉัน</button>
+      </nav>
 
-      <section class="card">
+      <div id="stats" class="stats" data-portal-panel="overview"></div>
+
+      <section class="card" data-portal-panel="communities" hidden>
         <div class="section-head">
           <div>
             <p class="eyebrow">COMMUNITY OVERVIEW</p>
@@ -83,7 +90,7 @@
         </div>
       </section>
 
-      <section class="card">
+      <section class="card" data-portal-panel="volunteers" hidden>
         <div class="section-head">
           <div>
             <p class="eyebrow">VOLUNTEER WORKLOAD</p>
@@ -94,6 +101,22 @@
           <table>
             <thead><tr><th>อสม.</th><th>ชุมชน</th><th>Anchor</th><th>บ้านรับผิดชอบ</th><th>ต้องตรวจ</th><th>ข้ามชุมชน</th></tr></thead>
             <tbody id="volunteer-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" data-portal-panel="houses" hidden>
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">MY HOUSEHOLDS</p>
+            <h2>บ้านในความรับผิดชอบของฉัน</h2>
+          </div>
+          <span id="my-house-count" class="badge"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>บ้านเลขที่</th><th>หมู่</th><th>ชุมชน</th><th>สถานะ</th><th>พิกัด</th><th>ตรวจซ้ำ</th></tr></thead>
+            <tbody id="my-house-body"></tbody>
           </table>
         </div>
       </section>
