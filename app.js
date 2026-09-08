@@ -7,13 +7,14 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
 const $ = s => document.querySelector(s);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, x => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
 const num = v => Number(v || 0).toLocaleString('th-TH');
+let passwordChangeForced = false;
 
 function show(el, visible=true){ el.hidden = !visible; }
 function roleLabel(role){ return ({admin:'ผู้ดูแลระบบ',coordinator:'ผู้ประสานงาน',viewer:'ผู้ดูรายงาน',volunteer:'อสม.'})[role] || role || 'ไม่ระบุ'; }
 function anchorLabel(status){ return ({confirmed:'ยืนยัน',community_review:'ตรวจชุมชน',outside_tambon:'นอกตำบล',missing:'ไม่มีพิกัด'})[status] || status || '—'; }
 
 async function getProfile(userId){
-  const { data, error } = await supabase.from('profiles').select('user_id,display_name,role,community,volunteer_pid,active').eq('user_id', userId).maybeSingle();
+  const { data, error } = await supabase.from('profiles').select('user_id,display_name,role,community,volunteer_pid,active,must_change_password').eq('user_id', userId).maybeSingle();
   if(error) throw error;
   return data;
 }
@@ -22,6 +23,12 @@ async function loadPortal(session){
   const profile = await getProfile(session.user.id);
   if(!profile || !profile.active){
     show($('#login-card'), false); show($('#portal'), false); show($('#blocked'), true); show($('#logout'), true); return;
+  }
+  if(profile.must_change_password){
+    passwordChangeForced = true;
+    $('#password-title').textContent = 'ต้องเปลี่ยนรหัสผ่านก่อนใช้งาน';
+    $('#password-help').textContent = 'บัญชีนี้ใช้รหัสชั่วคราว กรุณากำหนดรหัสผ่านใหม่อย่างน้อย 12 ตัวอักษรก่อนเข้าถึงข้อมูล';
+    show($('#login-card'), false); show($('#portal'), false); show($('#blocked'), false); show($('#password-card'), true); show($('#change-password'), false); show($('#logout'), true); show($('#cancel-password'), false); return;
   }
   const [{data: master, error: mErr}, {data: communities, error: cErr}, {data: workload, error: wErr}] = await Promise.all([
     supabase.from('communities').select('name,moo,active').eq('active', true).order('moo').order('name'),
@@ -60,12 +67,12 @@ async function loadPortal(session){
   $('#community-body').innerHTML = rows.map(r=>`<tr><td><strong>${esc(r.community||'ไม่ระบุ')}</strong></td><td>${esc(r.moo||'—')}</td><td>${num(r.houses)}</td><td>${num(r.assigned_houses)}</td><td class="${Number(r.review_houses)>0?'warn':'good'}">${num(r.review_houses)}</td><td class="${Number(r.outside_tambon)>0?'bad':'good'}">${num(r.outside_tambon)}</td></tr>`).join('') || '<tr><td colspan="6">ไม่พบข้อมูลตามสิทธิ์</td></tr>';
   $('#volunteer-body').innerHTML = vols.map(v=>`<tr><td><strong>${esc(v.display_name||'ไม่ระบุ')}</strong></td><td>${esc(v.community||'—')}</td><td>${esc(anchorLabel(v.anchor_status))}</td><td>${num(v.house_count)}</td><td class="${Number(v.review_count)>0?'warn':'good'}">${num(v.review_count)}</td><td>${num(v.cross_community_count)}</td></tr>`).join('') || '<tr><td colspan="6">ไม่พบข้อมูล อสม. ตามสิทธิ์</td></tr>';
 
-  show($('#login-card'), false); show($('#blocked'), false); show($('#portal'), true); show($('#logout'), true);
+  show($('#login-card'), false); show($('#blocked'), false); show($('#password-card'), false); show($('#portal'), true); show($('#change-password'), true); show($('#logout'), true);
 }
 
 async function refreshAuth(){
   const { data: { session } } = await supabase.auth.getSession();
-  if(!session){ show($('#login-card'), true); show($('#portal'), false); show($('#blocked'), false); show($('#logout'), false); return; }
+  if(!session){ show($('#login-card'), true); show($('#portal'), false); show($('#blocked'), false); show($('#password-card'), false); show($('#change-password'), false); show($('#logout'), false); return; }
   try{ await loadPortal(session); }
   catch(error){ show($('#portal'), false); show($('#blocked'), true); $('#blocked').innerHTML = `<p class="eyebrow">ACCESS ERROR</p><h2>ไม่สามารถอ่านข้อมูลได้</h2><p>${esc(error.message)}</p>`; show($('#logout'), true); }
 }
@@ -78,6 +85,28 @@ $('#login-form').addEventListener('submit', async e => {
   if(error){ $('#login-error').textContent = error.message; return; }
   e.target.reset(); await refreshAuth();
 });
+
+$('#change-password').addEventListener('click', ()=>{
+  passwordChangeForced = false;
+  $('#password-title').textContent = 'เปลี่ยนรหัสผ่าน';
+  $('#password-help').textContent = 'กำหนดรหัสผ่านใหม่อย่างน้อย 12 ตัวอักษร';
+  $('#password-error').textContent = '';
+  show($('#portal'), false); show($('#password-card'), true); show($('#change-password'), false); show($('#cancel-password'), true);
+});
+$('#cancel-password').addEventListener('click', ()=>{ if(!passwordChangeForced) refreshAuth(); });
+$('#password-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = new FormData(e.target), password = String(f.get('password') || ''), confirmPassword = String(f.get('confirm_password') || '');
+  $('#password-error').textContent = '';
+  if(password.length < 12){ $('#password-error').textContent = 'รหัสผ่านต้องมีอย่างน้อย 12 ตัวอักษร'; return; }
+  if(password !== confirmPassword){ $('#password-error').textContent = 'ยืนยันรหัสผ่านไม่ตรงกัน'; return; }
+  const { error } = await supabase.auth.updateUser({ password });
+  if(error){ $('#password-error').textContent = error.message; return; }
+  const { error: rpcError } = await supabase.rpc('complete_password_change');
+  if(rpcError){ $('#password-error').textContent = rpcError.message; return; }
+  e.target.reset(); passwordChangeForced = false; await refreshAuth();
+});
+
 $('#logout').addEventListener('click', async ()=>{ await supabase.auth.signOut(); await refreshAuth(); });
 supabase.auth.onAuthStateChange(()=>refreshAuth());
 refreshAuth();
