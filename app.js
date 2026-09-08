@@ -23,13 +23,18 @@ async function loadPortal(session){
   if(!profile || !profile.active){
     show($('#login-card'), false); show($('#portal'), false); show($('#blocked'), true); show($('#logout'), true); return;
   }
-  const [{data: communities, error: cErr}, {data: workload, error: wErr}] = await Promise.all([
+  const [{data: master, error: mErr}, {data: communities, error: cErr}, {data: workload, error: wErr}] = await Promise.all([
+    supabase.from('communities').select('name,moo,active').eq('active', true).order('moo').order('name'),
     supabase.from('community_report_summary').select('*').order('community'),
     supabase.from('volunteer_workload').select('*').order('community').order('display_name')
   ]);
-  if(cErr) throw cErr; if(wErr) throw wErr;
+  if(mErr) throw mErr; if(cErr) throw cErr; if(wErr) throw wErr;
 
-  const rows = communities || [];
+  const activeNames = new Set((master || []).map(x => x.name));
+  const allSummary = communities || [];
+  const rows = allSummary.filter(r => activeNames.has(r.community));
+  const unknownRows = allSummary.filter(r => !activeNames.has(r.community));
+  const unknownHouses = unknownRows.reduce((s,r)=>s+Number(r.houses||0),0);
   const vols = workload || [];
   const totals = rows.reduce((a,r)=>({
     houses:a.houses+Number(r.houses||0),
@@ -49,7 +54,8 @@ async function loadPortal(session){
     [vols.length,'อสม. ในขอบเขต'],
     [totals.review,'ต้องตรวจ'],
     [totals.outside,'นอก ต.พระบาท'],
-    [totals.missing,'ไม่มีพิกัด']
+    [totals.missing,'ไม่มีพิกัด'],
+    [unknownHouses,'บ้านไม่ระบุ/นอก 16 ชุมชน']
   ].map(([v,l])=>`<article class="stat"><small>${esc(l)}</small><strong>${num(v)}</strong></article>`).join('');
   $('#community-body').innerHTML = rows.map(r=>`<tr><td><strong>${esc(r.community||'ไม่ระบุ')}</strong></td><td>${esc(r.moo||'—')}</td><td>${num(r.houses)}</td><td>${num(r.assigned_houses)}</td><td class="${Number(r.review_houses)>0?'warn':'good'}">${num(r.review_houses)}</td><td class="${Number(r.outside_tambon)>0?'bad':'good'}">${num(r.outside_tambon)}</td></tr>`).join('') || '<tr><td colspan="6">ไม่พบข้อมูลตามสิทธิ์</td></tr>';
   $('#volunteer-body').innerHTML = vols.map(v=>`<tr><td><strong>${esc(v.display_name||'ไม่ระบุ')}</strong></td><td>${esc(v.community||'—')}</td><td>${esc(anchorLabel(v.anchor_status))}</td><td>${num(v.house_count)}</td><td class="${Number(v.review_count)>0?'warn':'good'}">${num(v.review_count)}</td><td>${num(v.cross_community_count)}</td></tr>`).join('') || '<tr><td colspan="6">ไม่พบข้อมูล อสม. ตามสิทธิ์</td></tr>';
