@@ -15,7 +15,10 @@
         <h1>ศูนย์ข้อมูลสุขภาพชุมชน ตำบลพระบาท</h1>
         <p class="sub">ศูนย์บริการสาธารณสุขบ้านโทกหัวช้าง · เทศบาลเมืองเขลางค์นคร</p>
       </div>
-      <button id="logout" class="secondary" hidden>ออกจากระบบ</button>
+      <div class="top-actions">
+        <button id="change-password" class="secondary" hidden>เปลี่ยนรหัสผ่าน</button>
+        <button id="logout" class="secondary" hidden>ออกจากระบบ</button>
+      </div>
     </header>
 
     <section id="login-card" class="card auth-card">
@@ -36,6 +39,20 @@
       <p class="eyebrow">ACCESS PENDING</p>
       <h2>บัญชียังไม่ได้รับสิทธิ์</h2>
       <p>บัญชี Supabase Auth มีอยู่แล้ว แต่ยังไม่มี Profile ที่ active หรือยังไม่ได้กำหนดบทบาท/ชุมชน</p>
+    </section>
+
+    <section id="password-card" class="card auth-card" hidden>
+      <div>
+        <p class="eyebrow">PASSWORD SECURITY</p>
+        <h2 id="password-title">เปลี่ยนรหัสผ่าน</h2>
+        <p id="password-help">กำหนดรหัสผ่านใหม่อย่างน้อย 12 ตัวอักษร</p>
+      </div>
+      <form id="password-form">
+        <label>รหัสผ่านใหม่<input name="password" type="password" minlength="12" autocomplete="new-password" required></label>
+        <label>ยืนยันรหัสผ่าน<input name="confirm_password" type="password" minlength="12" autocomplete="new-password" required></label>
+        <div class="form-actions"><button id="cancel-password" type="button" class="secondary">ยกเลิก</button><button class="primary">บันทึกรหัสผ่านใหม่</button></div>
+        <p id="password-error" class="error"></p>
+      </form>
     </section>
 
     <section id="portal" hidden>
