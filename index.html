@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>อสม. พลัส | งานสุขภาพชุมชน</title>
-  <link rel="stylesheet" href="./style.css?v=1.8.9">
+  <link rel="stylesheet" href="./style.css?v=1.8.10">
 </head>
 <body>
   <main class="shell">
@@ -24,18 +24,19 @@
       </div>
     </header>
 
-    <section id="login-card" class="card auth-card">
-      <div>
+    <section id="login-card" class="card auth-card login-card">
+      <div class="login-intro">
         <p class="eyebrow">SECURE ACCESS</p>
         <h2>เข้าสู่ระบบ อสม. พลัส</h2>
         <p>อสม.ใช้เบอร์โทรศัพท์และ PIN ตามระบบเดิม · admin/staff ใช้อีเมล ข้อมูลถูกจำกัดด้วย PID และ Row Level Security</p>
       </div>
       <form id="login-form">
         <label>ชื่อผู้ใช้<input name="login" type="text" autocomplete="username" placeholder="อสม.ใช้เบอร์โทร · เจ้าหน้าที่ใช้อีเมล" required></label>
-        <label>รหัสผ่าน<input name="password" type="password" autocomplete="current-password" required></label>
-        <button class="primary">เข้าสู่ระบบ</button>
+        <label>รหัสผ่าน<div class="password-field"><input id="login-password" name="password" type="password" autocomplete="current-password" required><button id="toggle-login-password" type="button" class="password-toggle" aria-label="แสดงรหัสผ่าน" aria-pressed="false" title="แสดงรหัสผ่าน"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.2 12s3.5-6 9.8-6 9.8 6 9.8 6-3.5 6-9.8 6-9.8-6-9.8-6Z"/><circle cx="12" cy="12" r="2.8"/><path class="eye-slash" d="m4 4 16 16"/></svg></button></div></label>
+        <button class="primary login-submit">เข้าสู่ระบบ</button>
         <p id="login-error" class="error"></p>
       </form>
+      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v1.8.10</footer>
     </section>
 
     <section id="blocked" class="card" hidden>
@@ -234,6 +235,6 @@
     </section>
   </main>
 
-  <script type="module" src="./app.js?v=1.8.9"></script>
+  <script type="module" src="./app.js?v=1.8.10"></script>
 </body>
 </html>

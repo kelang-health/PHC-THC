@@ -1,6 +1,6 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.9';
-import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.9';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.10';
+import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.10';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
@@ -296,6 +296,15 @@ async function refreshAuth(){
   await applyAuthSession(session);
 }
 
+function setLoginPasswordVisibility(visible){
+  const input=$('#login-password'),button=$('#toggle-login-password');if(!input||!button)return;
+  input.type=visible?'text':'password';button.setAttribute('aria-pressed',String(visible));
+  const label=visible?'ซ่อนรหัสผ่าน':'แสดงรหัสผ่าน';button.setAttribute('aria-label',label);button.title=label;
+}
+const loginPasswordToggle=$('#toggle-login-password');
+loginPasswordToggle.addEventListener('click',()=>setLoginPasswordVisibility($('#login-password').type==='password'));
+loginPasswordToggle.dataset.ready='true';
+
 $('#login-form').addEventListener('submit', async e => {
   e.preventDefault();
   $('#login-error').textContent = '';
@@ -305,7 +314,7 @@ $('#login-form').addEventListener('submit', async e => {
   catch(error){ $('#login-error').textContent = error.message; return; }
   const { data, error } = await supabase.auth.signInWithPassword({ email, password:f.get('password') });
   if(error){ $('#login-error').textContent = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'; return; }
-  e.target.reset(); await applyAuthSession(data.session);
+  e.target.reset(); setLoginPasswordVisibility(false); await applyAuthSession(data.session);
 });
 
 $('#change-password').addEventListener('click', ()=>{
