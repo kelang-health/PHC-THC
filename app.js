@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.6';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.6.1';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
@@ -15,12 +15,24 @@ let selectedHealthPerson = null;
 let healthLoaded = false;
 let healthSearchTimer = null;
 let passwordPanelOpen = false;
+let authRequestId = 0;
+let authView = 'login';
 
 function show(el, visible=true){ if(el) el.hidden = !visible; }
+function renderAuthView(view){
+  authView = view;
+  document.documentElement.dataset.authView = view;
+  show($('#login-card'), view === 'login');
+  show($('#portal'), view === 'portal');
+  show($('#blocked'), view === 'blocked');
+  show($('#password-card'), view === 'password');
+  show($('#change-password'), view === 'portal');
+  show($('#logout'), view === 'portal' || view === 'blocked');
+}
 function renderLoggedOut(){
+  authRequestId += 1;
   currentProfile=null; passwordChangeForced=false; passwordPanelOpen=false;
-  show($('#login-card'),true); show($('#portal'),false); show($('#blocked'),false); show($('#password-card'),false);
-  show($('#change-password'),false); show($('#logout'),false);
+  renderAuthView('login');
 }
 function roleLabel(role){ return ({admin:'ผู้ดูแลระบบ',staff:'เจ้าหน้าที่',user:'อสม.'})[role] || role || 'ไม่ระบุ'; }
 function setPortalView(next){const allowed=[...document.querySelectorAll('#portal-nav [data-portal-view]')].filter(b=>!b.hidden).map(b=>b.dataset.portalView);portalView=allowed.includes(next)?next:'overview';document.querySelectorAll('[data-portal-panel]').forEach(x=>x.hidden=x.dataset.portalPanel!==portalView);document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>b.classList.toggle('active',b.dataset.portalView===portalView));if(window.innerWidth<640)window.scrollTo({top:0,behavior:'smooth'});}
@@ -165,27 +177,30 @@ async function getProfile(userId){
   return data;
 }
 
-async function loadPortal(session){
+async function loadPortal(session, requestId){
   const profile = await getProfile(session.user.id);
+  if(requestId !== authRequestId || passwordPanelOpen) return;
   currentProfile = profile;
   if(!profile || !profile.active){
-    show($('#login-card'), false); show($('#portal'), false); show($('#blocked'), true); show($('#logout'), true); return;
+    renderAuthView('blocked'); return;
   }
   if(profile.must_change_password){
     passwordChangeForced = true;
     passwordPanelOpen = true;
     $('#password-title').textContent = 'ต้องเปลี่ยนรหัสผ่านก่อนใช้งาน';
-    $('#password-help').textContent = 'บัญชีนี้ใช้รหัสชั่วคราว กรุณากำหนดรหัสผ่านใหม่อย่างน้อย 12 ตัวอักษรก่อนเข้าถึงข้อมูล';
-    show($('#login-card'), false); show($('#portal'), false); show($('#blocked'), false); show($('#password-card'), true); show($('#change-password'), false); show($('#logout'), true); show($('#cancel-password'), false); return;
+    $('#password-help').textContent = profile.role==='user' ? 'บัญชีนี้ใช้ PIN ชั่วคราว กรุณากำหนด PIN ตัวเลข 6–12 หลักก่อนเข้าถึงข้อมูล' : 'บัญชีนี้ใช้รหัสชั่วคราว กรุณากำหนดรหัสผ่านใหม่อย่างน้อย 12 ตัวอักษรก่อนเข้าถึงข้อมูล';
+    renderAuthView('password'); show($('#cancel-password'), false); return;
   }
   const [{data: master, error: mErr}, {data: communities, error: cErr}, {data: workload, error: wErr}] = await Promise.all([
     supabase.from('communities').select('name,moo,active').eq('active', true).order('moo').order('name'),
     supabase.from('community_report_summary').select('*').order('community'),
     supabase.from('volunteer_workload').select('*').order('community').order('display_name')
   ]);
+  if(requestId !== authRequestId || passwordPanelOpen) return;
   if(mErr) throw mErr; if(cErr) throw cErr; if(wErr) throw wErr;
   let myHouses=[];
   if(profile.role==='user'){const {data,error}=await supabase.from('houses').select('house_no,moo,community,record_status,coordinate_status,review_required').order('house_no');if(error)throw error;myHouses=data||[];}
+  if(requestId !== authRequestId || passwordPanelOpen) return;
 
   const activeNames = new Set((master || []).map(x => x.name));
   const allSummary = communities || [];
@@ -218,18 +233,24 @@ async function loadPortal(session){
   $('#volunteer-body').innerHTML = vols.map(v=>`<tr><td><strong>${esc(v.display_name||'ไม่ระบุ')}</strong></td><td>${esc(v.community||'—')}</td><td>${esc(anchorLabel(v.anchor_status))}</td><td>${num(v.house_count)}</td><td class="${Number(v.review_count)>0?'warn':'good'}">${num(v.review_count)}</td><td>${num(v.cross_community_count)}</td></tr>`).join('') || '<tr><td colspan="6">ไม่พบข้อมูล อสม. ตามสิทธิ์</td></tr>';
   $('#my-house-count').textContent=`${num(myHouses.length)} หลัง`;
   $('#my-house-body').innerHTML=myHouses.map(h=>`<tr><td><strong>${esc(h.house_no||'ไม่ระบุ')}</strong></td><td>${esc(h.moo||'—')}</td><td>${esc(h.community||'—')}</td><td>${esc(h.record_status||'—')}</td><td>${esc(h.coordinate_status||'—')}</td><td class="${h.review_required?'warn':'good'}">${h.review_required?'ต้องตรวจ':'ปกติ'}</td></tr>`).join('')||'<tr><td colspan="6">ยังไม่มีบ้านในความรับผิดชอบ</td></tr>';
-  passwordPanelOpen=false;
   healthLoaded=false; selectedHealthPerson=null; healthPeople=[];
   configurePortalNav(profile.role);
 
-  show($('#login-card'), false); show($('#blocked'), false); show($('#password-card'), false); show($('#portal'), true); show($('#change-password'), true); show($('#logout'), true);
+  if(requestId !== authRequestId || passwordPanelOpen) return;
+  renderAuthView('portal');
 }
 
 async function applyAuthSession(session){
   if(!session){ renderLoggedOut(); return; }
-  if(passwordPanelOpen && !passwordChangeForced) return;
-  try{ await loadPortal(session); }
-  catch(error){ show($('#login-card'),false); show($('#portal'),false); show($('#password-card'),false); show($('#blocked'),true); $('#blocked').innerHTML = `<p class="eyebrow">ACCESS ERROR</p><h2>ไม่สามารถอ่านข้อมูลได้</h2><p>${esc(error.message)}</p>`; show($('#change-password'),false); show($('#logout'),true); }
+  if(passwordPanelOpen) return;
+  const requestId = ++authRequestId;
+  try{ await loadPortal(session, requestId); }
+  catch(error){
+    if(requestId !== authRequestId || passwordPanelOpen) return;
+    currentProfile = null;
+    $('#blocked').innerHTML = `<p class="eyebrow">ACCESS ERROR</p><h2>ไม่สามารถอ่านข้อมูลได้</h2><p>${esc(error.message)}</p>`;
+    renderAuthView('blocked');
+  }
 }
 async function refreshAuth(){
   const { data: { session } } = await supabase.auth.getSession();
@@ -243,18 +264,19 @@ $('#login-form').addEventListener('submit', async e => {
   let email;
   try{ email = await loginAlias(f.get('login')); }
   catch(error){ $('#login-error').textContent = error.message; return; }
-  const { error } = await supabase.auth.signInWithPassword({ email, password:f.get('password') });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password:f.get('password') });
   if(error){ $('#login-error').textContent = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'; return; }
-  e.target.reset(); await refreshAuth();
+  e.target.reset(); await applyAuthSession(data.session);
 });
 
 $('#change-password').addEventListener('click', ()=>{
   passwordChangeForced = false;
   passwordPanelOpen = true;
+  authRequestId += 1;
   $('#password-title').textContent = 'เปลี่ยนรหัสผ่าน';
   $('#password-help').textContent = currentProfile?.role==='user' ? 'กำหนด PIN ตัวเลข 6–12 หลัก' : 'กำหนดรหัสผ่านใหม่อย่างน้อย 12 ตัวอักษร';
   $('#password-error').textContent = '';
-  show($('#portal'), false); show($('#password-card'), true); show($('#change-password'), false); show($('#cancel-password'), true);
+  renderAuthView('password'); show($('#cancel-password'), true);
 });
 $('#cancel-password').addEventListener('click', ()=>{ if(!passwordChangeForced){ passwordPanelOpen=false; refreshAuth(); } });
 $('#password-form').addEventListener('submit', async e => {
@@ -277,6 +299,8 @@ $('#logout').addEventListener('click', async ()=>{
 supabase.auth.onAuthStateChange((event,session)=>{
   if(event==='SIGNED_OUT'){ renderLoggedOut(); return; }
   if(passwordPanelOpen) return;
-  if(session) setTimeout(()=>applyAuthSession(session),0);
+  if((event==='INITIAL_SESSION' || event==='SIGNED_IN') && session){
+    setTimeout(()=>applyAuthSession(session),0);
+  }
 });
 refreshAuth();
