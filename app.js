@@ -1,6 +1,6 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.12';
-import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.12';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.13';
+import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.13';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
@@ -21,6 +21,7 @@ let portalCommunityRows = [];
 let portalVolunteerRows = [];
 let communityRequestId = 0;
 let healthCommunityFocus = '';
+const PORTAL_NAV_STORAGE = 'phc.portal.nav-collapsed';
 
 function show(el, visible=true){ if(el) el.hidden = !visible; }
 function renderAuthView(view){
@@ -39,7 +40,14 @@ function renderLoggedOut(){
   renderAuthView('login');
 }
 function roleLabel(role){ return ({admin:'เจ้าหน้าที่',staff:'ประธาน อสม.',user:'อสม.'})[role] || role || 'ไม่ระบุ'; }
-function setPortalView(next){const allowed=[...document.querySelectorAll('#portal-nav [data-portal-view]')].filter(b=>!b.hidden).map(b=>b.dataset.portalView);portalView=allowed.includes(next)?next:'overview';document.querySelectorAll('[data-portal-panel]').forEach(x=>x.hidden=x.dataset.portalPanel!==portalView);document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>b.classList.toggle('active',b.dataset.portalView===portalView));if(window.innerWidth<640)window.scrollTo({top:0,behavior:'smooth'});}
+function setPortalNavCollapsed(collapsed,persist=true){
+  const portal=$('#portal'),toggle=$('#portal-nav-toggle'),isCollapsed=Boolean(collapsed);if(!portal||!toggle)return;
+  portal.classList.toggle('nav-collapsed',isCollapsed);toggle.setAttribute('aria-expanded',String(!isCollapsed));toggle.setAttribute('aria-label',isCollapsed?'ขยายเมนู':'ย่อเมนู');
+  const text=toggle.querySelector('.portal-nav-toggle-text');if(text)text.textContent=isCollapsed?'ขยายเมนู':'ย่อเมนู';
+  if(persist){try{localStorage.setItem(PORTAL_NAV_STORAGE,isCollapsed?'1':'0');}catch{}}
+}
+function restorePortalNavPreference(){let collapsed=false;try{collapsed=localStorage.getItem(PORTAL_NAV_STORAGE)==='1';}catch{}setPortalNavCollapsed(collapsed,false);}
+function setPortalView(next){const allowed=[...document.querySelectorAll('#portal-nav [data-portal-view]')].filter(b=>!b.hidden).map(b=>b.dataset.portalView);portalView=allowed.includes(next)?next:'overview';document.querySelectorAll('[data-portal-panel]').forEach(x=>x.hidden=x.dataset.portalPanel!==portalView);document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>b.classList.toggle('active',b.dataset.portalView===portalView));if(window.innerWidth<=900)window.scrollTo({top:0,behavior:'smooth'});}
 function configurePortalNav(role){
   const labels={admin:{communities:'ชุมชนทั้งหมด',volunteers:'ทะเบียน อสม.'},staff:{communities:'ชุมชนที่ดูแล',volunteers:'อสม. ในชุมชน'},user:{communities:'ชุมชนของฉัน',houses:'บ้านของฉัน'}};
   document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>{
@@ -408,4 +416,6 @@ supabase.auth.onAuthStateChange((event,session)=>{
     setTimeout(()=>applyAuthSession(session),0);
   }
 });
+$('#portal-nav-toggle').addEventListener('click',()=>setPortalNavCollapsed(!$('#portal').classList.contains('nav-collapsed')));
+restorePortalNavPreference();
 refreshAuth();
