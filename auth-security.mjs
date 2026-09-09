@@ -1,8 +1,8 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.15';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.16';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+  auth: { persistSession: true, autoRefreshToken: false, detectSessionInUrl: false }
 });
 
 const IDLE_TIMEOUT_MS = 10 * 60 * 1000;
@@ -40,7 +40,7 @@ function startLockCountdown(seconds){
   const error = loginError();
   const render = () => {
     if(button){ button.disabled = true; button.textContent = `ลองใหม่ ${formatRemaining(remaining)}`; }
-    if(error) error.textContent = `กรอกรหัสผ่านไม่ถูกต้องครบ 5 ครั้ง บัญชีถูกระงับชั่วคราว กรุณาลองใหม่ใน ${formatRemaining(remaining)} นาที`;
+    if(error) error.textContent = `กรอกรหัสผ่านไม่ถูกต้องครบ 5 ครั้ง บัญชีถูกระงับชั่วคราว กรุณาลองใหม่ใน ${formatRemaining(remaining)}`;
     if(remaining <= 0){
       stopLockCountdown();
       if(error) error.textContent = 'ครบเวลาระงับแล้ว สามารถลองเข้าสู่ระบบใหม่ได้';
@@ -193,10 +193,25 @@ if(loginForm){
   }, true);
 }
 
+const logoutButton = $('#logout');
+if(logoutButton){
+  logoutButton.addEventListener('click',()=>stopIdleWatch(true),true);
+}
+
 ['pointerdown','touchstart','keydown','scroll','click'].forEach(type => {
   window.addEventListener(type,markActivity,{passive:true,capture:true});
 });
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') checkIdleTimeout(); });
 window.addEventListener('pageshow',()=>checkIdleTimeout());
+
+supabase.auth.onAuthStateChange((event,session)=>{
+  if(event==='SIGNED_OUT'){
+    stopIdleWatch(true);
+    return;
+  }
+  if((event==='INITIAL_SESSION' || event==='SIGNED_IN') && session && !idleWatchActive){
+    startIdleWatch();
+  }
+});
 
 initializeSessionSecurity();
