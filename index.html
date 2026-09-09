@@ -139,26 +139,72 @@
         </div>
         <p id="health-list-note" class="muted"></p>
 
-        <section id="ncd-screen-card" class="nested-card" hidden>
-          <div class="section-head"><div><p class="eyebrow">SMART NCD CARE</p><h3>คัดกรอง NCD</h3><div id="ncd-person-summary" class="person-summary"></div></div><button id="ncd-close" type="button" class="secondary">ปิด</button></div>
-          <form id="ncd-form" class="form-grid">
-            <label>วันที่ตรวจ<input name="screened_on" type="date" required></label>
-            <label>น้ำหนัก (กก.)<input name="weight_kg" type="number" min="10" max="400" step="0.1" required></label>
-            <label>ส่วนสูง (ซม.)<input name="height_cm" type="number" min="80" max="250" step="0.1" required></label>
-            <label>รอบเอว (ซม.)<input name="waist_cm" type="number" min="30" max="250" step="0.1" required></label>
-            <label>ความดันบน<input name="sbp" type="number" min="70" max="260" required></label>
-            <label>ความดันล่าง<input name="dbp" type="number" min="40" max="180" required></label>
-            <label>น้ำตาล (mg/dL)<input name="glucose_mg_dl" type="number" min="20" max="700" required></label>
-            <label>สถานะอดอาหาร<select name="glucose_type" required><option value="fasting">อดอาหาร</option><option value="random">ไม่อดอาหาร</option><option value="unknown">ไม่ทราบ</option></select></label>
-            <label class="check-label"><input name="danger_symptoms" type="checkbox"> มีอาการอันตราย</label>
-            <label class="check-label"><input name="smoker" type="checkbox"> สูบบุหรี่</label>
-            <label class="check-label"><input name="alcohol_risk" type="checkbox"> ดื่มแอลกอฮอล์เสี่ยง</label>
-            <label class="check-label"><input name="exercise_sufficient" type="checkbox"> ออกกำลังกายเพียงพอ</label>
-            <label class="full">หมายเหตุ<input name="note" maxlength="1000" placeholder="ไม่ใส่ข้อมูลที่ไม่จำเป็น"></label>
-            <div class="form-actions full"><button id="ncd-submit" class="primary">บันทึกผลคัดกรอง</button><p id="ncd-error" class="error"></p></div>
+        <section id="ncd-screen-card" class="nested-card ncd-mobile-card" hidden>
+          <div class="section-head ncd-person-head">
+            <div>
+              <p class="eyebrow">SMART NCD CARE</p>
+              <h3>คัดกรอง NCD</h3>
+              <div id="ncd-person-summary" class="person-summary"></div>
+            </div>
+            <button id="ncd-close" type="button" class="secondary">ปิด</button>
+          </div>
+
+          <div id="ncd-history-banner" class="ncd-history-banner"></div>
+          <div id="ncd-previous-values" class="previous-values-grid"></div>
+
+          <form id="ncd-form" class="ncd-form-mobile">
+            <section class="screen-section">
+              <h4>1. วันที่และเงื่อนไขการตรวจ</h4>
+              <div class="screen-grid two">
+                <label>วันที่ตรวจ<input name="screened_on" type="date" required></label>
+                <label>สถานะก่อนตรวจน้ำตาล<select name="glucose_type" required><option value="fasting">อดอาหาร ≥ 8 ชม.</option><option value="random">ไม่ได้อดอาหาร</option><option value="unknown">ไม่ทราบ</option></select></label>
+              </div>
+              <label class="danger-toggle"><input name="danger_symptoms" type="checkbox"> มีอาการอันตราย เช่น เจ็บหน้าอก หอบ อ่อนแรง พูดไม่ชัด ซึม/หมดสติ</label>
+            </section>
+
+            <section class="screen-section">
+              <h4>2. วัดร่างกายและสัญญาณชีพ</h4>
+              <div class="measurement-grid">
+                <label><span>น้ำหนัก</span><div class="measure-input"><input name="weight_kg" type="number" min="10" max="400" step="0.1" inputmode="decimal" required><b>กก.</b></div></label>
+                <label><span>ส่วนสูง</span><div class="measure-input"><input name="height_cm" type="number" min="80" max="250" step="0.1" inputmode="decimal" required><b>ซม.</b></div></label>
+                <label><span>รอบเอว</span><div class="measure-input"><input name="waist_cm" type="number" min="30" max="250" step="0.1" inputmode="decimal" required><b>ซม.</b></div></label>
+                <label><span>ความดันบน</span><div class="measure-input"><input name="sbp" type="number" min="70" max="260" inputmode="numeric" required><b>SYS</b></div></label>
+                <label><span>ความดันล่าง</span><div class="measure-input"><input name="dbp" type="number" min="40" max="180" inputmode="numeric" required><b>DIA</b></div></label>
+                <label><span>น้ำตาลปลายนิ้ว</span><div class="measure-input"><input name="glucose_mg_dl" type="number" min="20" max="700" inputmode="numeric" required><b>mg/dL</b></div></label>
+              </div>
+            </section>
+
+            <section class="screen-section">
+              <h4>3. พฤติกรรมสุขภาพ</h4>
+              <div class="behavior-card" data-behavior="smoke">
+                <div class="behavior-title"><strong>การสูบบุหรี่</strong><small id="prev-smoking"></small></div>
+                <div class="segmented"><label><input type="radio" name="smoke_status" value="no" checked><span>ไม่สูบ</span></label><label><input type="radio" name="smoke_status" value="yes"><span>สูบ</span></label></div>
+                <label class="frequency-panel" id="smoke-frequency" hidden>จำนวนต่อวัน<select name="smoking_frequency"><option>1-5 มวนต่อวัน</option><option>6-10 มวนต่อวัน</option><option>มากกว่า 10 มวนต่อวัน</option></select></label>
+              </div>
+
+              <div class="behavior-card" data-behavior="alcohol">
+                <div class="behavior-title"><strong>การดื่มสุรา</strong><small id="prev-alcohol"></small></div>
+                <div class="segmented"><label><input type="radio" name="alcohol_status" value="no" checked><span>ไม่ดื่ม</span></label><label><input type="radio" name="alcohol_status" value="yes"><span>ดื่ม</span></label></div>
+                <label class="frequency-panel" id="alcohol-frequency" hidden>ความถี่<select name="alcohol_frequency"><option>1-2 ครั้งต่อสัปดาห์</option><option>3-5 ครั้งต่อสัปดาห์</option><option>ทุกวัน</option></select></label>
+              </div>
+
+              <div class="behavior-card" data-behavior="exercise">
+                <div class="behavior-title"><strong>การออกกำลังกาย</strong><small id="prev-exercise"></small></div>
+                <div class="segmented"><label><input type="radio" name="exercise_status" value="ok" checked><span>เพียงพอ</span></label><label><input type="radio" name="exercise_status" value="low"><span>ไม่เพียงพอ</span></label></div>
+                <label class="frequency-panel" id="exercise-frequency" hidden>ความถี่<select name="exercise_frequency"><option>1-2 ครั้งต่อสัปดาห์</option><option>ไม่ได้ออกกำลังกาย</option></select></label>
+              </div>
+            </section>
+
+            <section class="screen-section live-preview-section">
+              <h4>4. ผลประเมินเบื้องต้นขณะกรอก</h4>
+              <div id="ncd-live-preview" class="live-preview-grid"><div><span>BMI</span><strong>—</strong></div><div><span>ความดัน</span><strong>รอข้อมูล</strong></div><div><span>น้ำตาล</span><strong>รอข้อมูล</strong></div></div>
+              <p class="clinical-note">ผลบนหน้าจอช่วยตรวจความครบถ้วนเท่านั้น ผลที่บันทึกจริงคำนวณซ้ำที่ฐานข้อมูล ไม่ใช่การวินิจฉัย</p>
+            </section>
+
+            <label class="screen-section note-field">หมายเหตุ<input name="note" maxlength="1000" placeholder="ระบุเฉพาะข้อมูลที่จำเป็น"></label>
+            <div class="ncd-submit-bar"><button id="ncd-submit" class="primary">บันทึกผลคัดกรอง</button><p id="ncd-error" class="error"></p></div>
           </form>
           <div id="ncd-result" class="notice" hidden></div>
-          <p class="clinical-note">ผลนี้เป็นการคัดกรองเบื้องต้น ไม่ใช่การวินิจฉัยหรือคำสั่งรักษา กรณีสีแดงให้ประสานเจ้าหน้าที่สาธารณสุขตามแนวทางหน่วยบริการ</p>
         </section>
 
         <section class="nested-card">
