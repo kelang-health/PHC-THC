@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.5';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.6';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
@@ -14,8 +14,14 @@ let healthPeople = [];
 let selectedHealthPerson = null;
 let healthLoaded = false;
 let healthSearchTimer = null;
+let passwordPanelOpen = false;
 
-function show(el, visible=true){ el.hidden = !visible; }
+function show(el, visible=true){ if(el) el.hidden = !visible; }
+function renderLoggedOut(){
+  currentProfile=null; passwordChangeForced=false; passwordPanelOpen=false;
+  show($('#login-card'),true); show($('#portal'),false); show($('#blocked'),false); show($('#password-card'),false);
+  show($('#change-password'),false); show($('#logout'),false);
+}
 function roleLabel(role){ return ({admin:'ผู้ดูแลระบบ',staff:'เจ้าหน้าที่',user:'อสม.'})[role] || role || 'ไม่ระบุ'; }
 function setPortalView(next){const allowed=[...document.querySelectorAll('#portal-nav [data-portal-view]')].filter(b=>!b.hidden).map(b=>b.dataset.portalView);portalView=allowed.includes(next)?next:'overview';document.querySelectorAll('[data-portal-panel]').forEach(x=>x.hidden=x.dataset.portalPanel!==portalView);document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>b.classList.toggle('active',b.dataset.portalView===portalView));if(window.innerWidth<640)window.scrollTo({top:0,behavior:'smooth'});}
 function configurePortalNav(role){document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>{b.hidden=!(b.dataset.roles||'').split(/\s+/).includes(role);b.onclick=async()=>{setPortalView(b.dataset.portalView);if(b.dataset.portalView==='health'&&!healthLoaded){try{await loadHealthModule();}catch(e){$('#health-person-body').innerHTML=`<tr><td colspan="5">${esc(e.message)}</td></tr>`;}}};});setPortalView('overview');}
@@ -167,6 +173,7 @@ async function loadPortal(session){
   }
   if(profile.must_change_password){
     passwordChangeForced = true;
+    passwordPanelOpen = true;
     $('#password-title').textContent = 'ต้องเปลี่ยนรหัสผ่านก่อนใช้งาน';
     $('#password-help').textContent = 'บัญชีนี้ใช้รหัสชั่วคราว กรุณากำหนดรหัสผ่านใหม่อย่างน้อย 12 ตัวอักษรก่อนเข้าถึงข้อมูล';
     show($('#login-card'), false); show($('#portal'), false); show($('#blocked'), false); show($('#password-card'), true); show($('#change-password'), false); show($('#logout'), true); show($('#cancel-password'), false); return;
@@ -211,17 +218,22 @@ async function loadPortal(session){
   $('#volunteer-body').innerHTML = vols.map(v=>`<tr><td><strong>${esc(v.display_name||'ไม่ระบุ')}</strong></td><td>${esc(v.community||'—')}</td><td>${esc(anchorLabel(v.anchor_status))}</td><td>${num(v.house_count)}</td><td class="${Number(v.review_count)>0?'warn':'good'}">${num(v.review_count)}</td><td>${num(v.cross_community_count)}</td></tr>`).join('') || '<tr><td colspan="6">ไม่พบข้อมูล อสม. ตามสิทธิ์</td></tr>';
   $('#my-house-count').textContent=`${num(myHouses.length)} หลัง`;
   $('#my-house-body').innerHTML=myHouses.map(h=>`<tr><td><strong>${esc(h.house_no||'ไม่ระบุ')}</strong></td><td>${esc(h.moo||'—')}</td><td>${esc(h.community||'—')}</td><td>${esc(h.record_status||'—')}</td><td>${esc(h.coordinate_status||'—')}</td><td class="${h.review_required?'warn':'good'}">${h.review_required?'ต้องตรวจ':'ปกติ'}</td></tr>`).join('')||'<tr><td colspan="6">ยังไม่มีบ้านในความรับผิดชอบ</td></tr>';
+  passwordPanelOpen=false;
   healthLoaded=false; selectedHealthPerson=null; healthPeople=[];
   configurePortalNav(profile.role);
 
   show($('#login-card'), false); show($('#blocked'), false); show($('#password-card'), false); show($('#portal'), true); show($('#change-password'), true); show($('#logout'), true);
 }
 
+async function applyAuthSession(session){
+  if(!session){ renderLoggedOut(); return; }
+  if(passwordPanelOpen && !passwordChangeForced) return;
+  try{ await loadPortal(session); }
+  catch(error){ show($('#login-card'),false); show($('#portal'),false); show($('#password-card'),false); show($('#blocked'),true); $('#blocked').innerHTML = `<p class="eyebrow">ACCESS ERROR</p><h2>ไม่สามารถอ่านข้อมูลได้</h2><p>${esc(error.message)}</p>`; show($('#change-password'),false); show($('#logout'),true); }
+}
 async function refreshAuth(){
   const { data: { session } } = await supabase.auth.getSession();
-  if(!session){ show($('#login-card'), true); show($('#portal'), false); show($('#blocked'), false); show($('#password-card'), false); show($('#change-password'), false); show($('#logout'), false); return; }
-  try{ await loadPortal(session); }
-  catch(error){ show($('#portal'), false); show($('#blocked'), true); $('#blocked').innerHTML = `<p class="eyebrow">ACCESS ERROR</p><h2>ไม่สามารถอ่านข้อมูลได้</h2><p>${esc(error.message)}</p>`; show($('#logout'), true); }
+  await applyAuthSession(session);
 }
 
 $('#login-form').addEventListener('submit', async e => {
@@ -238,12 +250,13 @@ $('#login-form').addEventListener('submit', async e => {
 
 $('#change-password').addEventListener('click', ()=>{
   passwordChangeForced = false;
+  passwordPanelOpen = true;
   $('#password-title').textContent = 'เปลี่ยนรหัสผ่าน';
   $('#password-help').textContent = currentProfile?.role==='user' ? 'กำหนด PIN ตัวเลข 6–12 หลัก' : 'กำหนดรหัสผ่านใหม่อย่างน้อย 12 ตัวอักษร';
   $('#password-error').textContent = '';
   show($('#portal'), false); show($('#password-card'), true); show($('#change-password'), false); show($('#cancel-password'), true);
 });
-$('#cancel-password').addEventListener('click', ()=>{ if(!passwordChangeForced) refreshAuth(); });
+$('#cancel-password').addEventListener('click', ()=>{ if(!passwordChangeForced){ passwordPanelOpen=false; refreshAuth(); } });
 $('#password-form').addEventListener('submit', async e => {
   e.preventDefault();
   const f = new FormData(e.target), password = String(f.get('password') || ''), confirmPassword = String(f.get('confirm_password') || '');
@@ -254,9 +267,16 @@ $('#password-form').addEventListener('submit', async e => {
   if(error){ $('#password-error').textContent = error.message; return; }
   const { error: rpcError } = await supabase.rpc('complete_password_change');
   if(rpcError){ $('#password-error').textContent = rpcError.message; return; }
-  e.target.reset(); passwordChangeForced = false; await refreshAuth();
+  e.target.reset(); passwordChangeForced = false; passwordPanelOpen=false; await refreshAuth();
 });
 
-$('#logout').addEventListener('click', async ()=>{ await supabase.auth.signOut(); await refreshAuth(); });
-supabase.auth.onAuthStateChange(()=>refreshAuth());
+$('#logout').addEventListener('click', async ()=>{
+  passwordPanelOpen=false; passwordChangeForced=false; renderLoggedOut();
+  await supabase.auth.signOut();
+});
+supabase.auth.onAuthStateChange((event,session)=>{
+  if(event==='SIGNED_OUT'){ renderLoggedOut(); return; }
+  if(passwordPanelOpen) return;
+  if(session) setTimeout(()=>applyAuthSession(session),0);
+});
 refreshAuth();
