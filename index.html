@@ -70,6 +70,7 @@
         <button type="button" data-portal-view="communities" data-roles="admin staff">ชุมชน</button>
         <button type="button" data-portal-view="volunteers" data-roles="admin staff">อสม.</button>
         <button type="button" data-portal-view="houses" data-roles="user">บ้านของฉัน</button>
+        <button type="button" data-portal-view="health" data-roles="admin staff user">งานสุขภาพ</button>
       </nav>
 
       <div id="stats" class="stats" data-portal-panel="overview"></div>
@@ -119,6 +120,51 @@
             <tbody id="my-house-body"></tbody>
           </table>
         </div>
+      </section>
+
+      <section class="card health-center" data-portal-panel="health" hidden>
+        <div class="section-head">
+          <div><p class="eyebrow">HEALTH WORK CENTER</p><h2>งานสุขภาพของพื้นที่</h2><p class="muted">ฐานเดียวกับ อสม. พลัส · เลือกประชาชนจากบ้านที่ได้รับสิทธิ์ ไม่ต้องกรอก PID เอง</p></div>
+          <button id="health-refresh" type="button" class="secondary">รีเฟรชงาน</button>
+        </div>
+        <div id="health-stats" class="stats compact-stats"></div>
+        <div id="life-stage-stats" class="life-stage-grid"></div>
+        <div class="health-toolbar">
+          <label>งานที่ต้องดู<select id="health-filter"><option value="due">NCD 35+ ยังไม่คัดกรองปีงบฯ นี้</option><option value="targets">เป้าหมาย NCD 35+</option><option value="known">ผู้มี DM/HT เดิม</option><option value="all">ประชาชนทั้งหมดในสิทธิ์</option></select></label>
+          <label>กลุ่มวัย<select id="health-stage"><option value="">ทุกกลุ่มวัย</option><option>เด็กปฐมวัย</option><option>เด็กวัยเรียน</option><option>วัยรุ่นและเยาวชน</option><option>วัยทำงาน</option><option>ผู้สูงอายุ</option></select></label>
+          <label class="health-search">ค้นหาชื่อ<input id="health-search" type="search" placeholder="พิมพ์ชื่อประชาชน"></label>
+        </div>
+        <div class="table-wrap">
+          <table class="health-table"><thead><tr><th>ประชาชน</th><th>อายุ/กลุ่มวัย</th><th>บ้าน</th><th>สถานะ NCD</th><th>งาน</th></tr></thead><tbody id="health-person-body"></tbody></table>
+        </div>
+        <p id="health-list-note" class="muted"></p>
+
+        <section id="ncd-screen-card" class="nested-card" hidden>
+          <div class="section-head"><div><p class="eyebrow">SMART NCD CARE</p><h3>คัดกรอง NCD</h3><div id="ncd-person-summary" class="person-summary"></div></div><button id="ncd-close" type="button" class="secondary">ปิด</button></div>
+          <form id="ncd-form" class="form-grid">
+            <label>วันที่ตรวจ<input name="screened_on" type="date" required></label>
+            <label>น้ำหนัก (กก.)<input name="weight_kg" type="number" min="10" max="400" step="0.1" required></label>
+            <label>ส่วนสูง (ซม.)<input name="height_cm" type="number" min="80" max="250" step="0.1" required></label>
+            <label>รอบเอว (ซม.)<input name="waist_cm" type="number" min="30" max="250" step="0.1" required></label>
+            <label>ความดันบน<input name="sbp" type="number" min="70" max="260" required></label>
+            <label>ความดันล่าง<input name="dbp" type="number" min="40" max="180" required></label>
+            <label>น้ำตาล (mg/dL)<input name="glucose_mg_dl" type="number" min="20" max="700" required></label>
+            <label>สถานะอดอาหาร<select name="glucose_type" required><option value="fasting">อดอาหาร</option><option value="random">ไม่อดอาหาร</option><option value="unknown">ไม่ทราบ</option></select></label>
+            <label class="check-label"><input name="danger_symptoms" type="checkbox"> มีอาการอันตราย</label>
+            <label class="check-label"><input name="smoker" type="checkbox"> สูบบุหรี่</label>
+            <label class="check-label"><input name="alcohol_risk" type="checkbox"> ดื่มแอลกอฮอล์เสี่ยง</label>
+            <label class="check-label"><input name="exercise_sufficient" type="checkbox"> ออกกำลังกายเพียงพอ</label>
+            <label class="full">หมายเหตุ<input name="note" maxlength="1000" placeholder="ไม่ใส่ข้อมูลที่ไม่จำเป็น"></label>
+            <div class="form-actions full"><button id="ncd-submit" class="primary">บันทึกผลคัดกรอง</button><p id="ncd-error" class="error"></p></div>
+          </form>
+          <div id="ncd-result" class="notice" hidden></div>
+          <p class="clinical-note">ผลนี้เป็นการคัดกรองเบื้องต้น ไม่ใช่การวินิจฉัยหรือคำสั่งรักษา กรณีสีแดงให้ประสานเจ้าหน้าที่สาธารณสุขตามแนวทางหน่วยบริการ</p>
+        </section>
+
+        <section class="nested-card">
+          <div class="section-head"><div><p class="eyebrow">RECENT SCREENINGS</p><h3>ผลคัดกรองล่าสุดในขอบเขตสิทธิ์</h3></div></div>
+          <div class="table-wrap"><table><thead><tr><th>วันที่</th><th>ประชาชน</th><th>บ้าน</th><th>ผล</th></tr></thead><tbody id="ncd-history-body"></tbody></table></div>
+        </section>
       </section>
 
       <aside class="privacy-note">
