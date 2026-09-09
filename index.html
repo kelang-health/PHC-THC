@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>อสม. พลัส | งานสุขภาพชุมชน</title>
-  <link rel="stylesheet" href="./style.css?v=1.8.6.1">
+  <link rel="stylesheet" href="./style.css?v=1.8.7">
 </head>
 <body>
   <main class="shell">
@@ -172,15 +172,16 @@
 
           <form id="ncd-form" class="ncd-mobile-form">
             <section class="ncd-form-section">
-              <div class="ncd-section-title"><span>1</span><div><strong>ค่าที่วัดวันนี้</strong><small>กรอกค่าที่วัดใหม่ ไม่ดึง BP/น้ำตาลเดิมมาบันทึกอัตโนมัติ</small></div></div>
+              <div class="ncd-section-title"><span>1</span><div><strong>ค่าที่วัดวันนี้</strong><small>แตะตัวเลขเพื่อพิมพ์ กด −/+ หรือเลื่อนแถบได้ · ไม่ดึง BP/น้ำตาลเดิมมาบันทึกอัตโนมัติ</small></div></div>
               <label class="screen-date">วันที่ตรวจ<input name="screened_on" type="date" required></label>
+              <button id="ncd-use-previous-body" type="button" class="previous-fill" hidden>ใช้ส่วนสูง น้ำหนัก และรอบเอวครั้งก่อน</button>
               <div class="measure-grid">
-                <label class="measure-card"><span>น้ำหนัก <small>กก.</small></span><input name="weight_kg" type="number" inputmode="decimal" min="10" max="400" step="0.1" placeholder="0.0" required><small id="hint-weight" class="old-hint"></small></label>
-                <label class="measure-card"><span>ส่วนสูง <small>ซม.</small></span><input name="height_cm" type="number" inputmode="decimal" min="80" max="250" step="0.1" placeholder="0.0" required><small id="hint-height" class="old-hint"></small></label>
-                <label class="measure-card"><span>รอบเอว <small>ซม.</small></span><input name="waist_cm" type="number" inputmode="decimal" min="30" max="250" step="0.1" placeholder="0.0" required><small id="hint-waist" class="old-hint"></small></label>
-                <label class="measure-card bp-card"><span>ความดันบน <small>SYS</small></span><input name="sbp" type="number" inputmode="numeric" min="70" max="260" placeholder="120" required><small id="hint-sbp" class="old-hint"></small></label>
-                <label class="measure-card bp-card"><span>ความดันล่าง <small>DIA</small></span><input name="dbp" type="number" inputmode="numeric" min="40" max="180" placeholder="80" required><small id="hint-dbp" class="old-hint"></small></label>
-                <label class="measure-card glucose-card"><span>น้ำตาล <small>mg/dL</small></span><input name="glucose_mg_dl" type="number" inputmode="numeric" min="20" max="700" placeholder="100" required><small id="hint-glucose" class="old-hint"></small></label>
+                <div class="measure-card"><label for="ncd-weight">น้ำหนัก <small>กก.</small></label><div class="measure-control"><button type="button" data-step-for="weight_kg" data-delta="-0.1" aria-label="ลดน้ำหนัก 0.1 กิโลกรัม">−</button><input id="ncd-weight" name="weight_kg" type="number" inputmode="decimal" min="10" max="400" step="0.1" placeholder="0.0" required><button type="button" data-step-for="weight_kg" data-delta="0.1" aria-label="เพิ่มน้ำหนัก 0.1 กิโลกรัม">+</button></div><input class="measure-range" data-range-for="weight_kg" type="range" min="10" max="200" step="0.5" value="60" aria-label="เลื่อนค่าน้ำหนัก"><small id="hint-weight" class="old-hint"></small></div>
+                <div class="measure-card"><label for="ncd-height">ส่วนสูง <small>ซม.</small></label><div class="measure-control"><button type="button" data-step-for="height_cm" data-delta="-0.1" aria-label="ลดส่วนสูง 0.1 เซนติเมตร">−</button><input id="ncd-height" name="height_cm" type="number" inputmode="decimal" min="80" max="250" step="0.1" placeholder="0.0" required><button type="button" data-step-for="height_cm" data-delta="0.1" aria-label="เพิ่มส่วนสูง 0.1 เซนติเมตร">+</button></div><input class="measure-range" data-range-for="height_cm" type="range" min="80" max="220" step="0.5" value="160" aria-label="เลื่อนค่าส่วนสูง"><small id="hint-height" class="old-hint"></small></div>
+                <div class="measure-card"><label for="ncd-waist">รอบเอว <small>ซม.</small></label><div class="measure-control"><button type="button" data-step-for="waist_cm" data-delta="-0.1" aria-label="ลดรอบเอว 0.1 เซนติเมตร">−</button><input id="ncd-waist" name="waist_cm" type="number" inputmode="decimal" min="30" max="250" step="0.1" placeholder="0.0" required><button type="button" data-step-for="waist_cm" data-delta="0.1" aria-label="เพิ่มรอบเอว 0.1 เซนติเมตร">+</button></div><input class="measure-range" data-range-for="waist_cm" type="range" min="30" max="180" step="0.5" value="80" aria-label="เลื่อนค่ารอบเอว"><small id="hint-waist" class="old-hint"></small></div>
+                <div class="measure-card bp-card"><label for="ncd-sbp">ความดันบน <small>SYS</small></label><div class="measure-control"><button type="button" data-step-for="sbp" data-delta="-1" aria-label="ลดความดันตัวบน">−</button><input id="ncd-sbp" name="sbp" type="number" inputmode="numeric" min="70" max="260" step="1" placeholder="120" required><button type="button" data-step-for="sbp" data-delta="1" aria-label="เพิ่มความดันตัวบน">+</button></div><input class="measure-range" data-range-for="sbp" type="range" min="70" max="260" step="1" value="120" aria-label="เลื่อนค่าความดันตัวบน"><small id="hint-sbp" class="old-hint"></small></div>
+                <div class="measure-card bp-card"><label for="ncd-dbp">ความดันล่าง <small>DIA</small></label><div class="measure-control"><button type="button" data-step-for="dbp" data-delta="-1" aria-label="ลดความดันตัวล่าง">−</button><input id="ncd-dbp" name="dbp" type="number" inputmode="numeric" min="40" max="180" step="1" placeholder="80" required><button type="button" data-step-for="dbp" data-delta="1" aria-label="เพิ่มความดันตัวล่าง">+</button></div><input class="measure-range" data-range-for="dbp" type="range" min="40" max="180" step="1" value="80" aria-label="เลื่อนค่าความดันตัวล่าง"><small id="hint-dbp" class="old-hint"></small></div>
+                <div class="measure-card glucose-card"><label for="ncd-glucose">น้ำตาล <small>mg/dL</small></label><div class="measure-control"><button type="button" data-step-for="glucose_mg_dl" data-delta="-1" aria-label="ลดค่าน้ำตาล">−</button><input id="ncd-glucose" name="glucose_mg_dl" type="number" inputmode="numeric" min="20" max="700" step="1" placeholder="100" required><button type="button" data-step-for="glucose_mg_dl" data-delta="1" aria-label="เพิ่มค่าน้ำตาล">+</button></div><input class="measure-range" data-range-for="glucose_mg_dl" type="range" min="20" max="400" step="1" value="100" aria-label="เลื่อนค่าน้ำตาล"><small id="hint-glucose" class="old-hint"></small></div>
               </div>
               <label>สถานะก่อนตรวจน้ำตาล<select name="glucose_type"><option value="unknown">ไม่ทราบ/ไม่ได้ถาม</option><option value="fasting">อดอาหารอย่างน้อย 8 ชั่วโมง</option><option value="random">ไม่ได้อดอาหาร</option></select></label>
             </section>
@@ -221,6 +222,6 @@
     </section>
   </main>
 
-  <script type="module" src="./app.js?v=1.8.6.1"></script>
+  <script type="module" src="./app.js?v=1.8.7"></script>
 </body>
 </html>

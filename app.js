@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.6.1';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.7';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
@@ -113,6 +113,26 @@ function renderNcdPreview(){
   const limit=selectedHealthPerson.gender==='ชาย'?90:selectedHealthPerson.gender==='หญิง'?80:null;
   $('#preview-waist').textContent=!waist?'รอกรอก':limit===null?'ตรวจข้อมูลเพศ':waist>=limit?'เกินเกณฑ์':'ไม่เกินเกณฑ์';
 }
+function setMeasurementValue(form,name,value){
+  const input=form.elements[name],range=form.querySelector(`[data-range-for="${name}"]`);if(!input)return;
+  const min=Number(input.min),max=Number(input.max),step=Number(input.step||1),n=Math.min(max,Math.max(min,Number(value)));
+  if(!Number.isFinite(n))return;
+  const decimals=(String(step).split('.')[1]||'').length;input.value=n.toFixed(decimals);
+  if(range)range.value=String(Math.min(Number(range.max),Math.max(Number(range.min),n)));
+  renderNcdPreview();
+}
+function bindMeasurementControls(form){
+  if(form.dataset.measurementsBound==='1')return;form.dataset.measurementsBound='1';
+  form.querySelectorAll('[data-range-for]').forEach(range=>range.addEventListener('input',()=>setMeasurementValue(form,range.dataset.rangeFor,range.value)));
+  form.querySelectorAll('[data-step-for]').forEach(button=>button.addEventListener('click',()=>{
+    const input=form.elements[button.dataset.stepFor],delta=Number(button.dataset.delta),start=Number(input.value||form.querySelector(`[data-range-for="${button.dataset.stepFor}"]`)?.value||input.min);
+    setMeasurementValue(form,button.dataset.stepFor,start+delta);
+    input.focus({preventScroll:true});
+  }));
+  ['weight_kg','height_cm','waist_cm','sbp','dbp','glucose_mg_dl'].forEach(name=>form.elements[name].addEventListener('input',()=>{
+    const n=Number(form.elements[name].value),range=form.querySelector(`[data-range-for="${name}"]`);if(range&&Number.isFinite(n)&&form.elements[name].value!=='')range.value=String(Math.min(Number(range.max),Math.max(Number(range.min),n)));
+  }));
+}
 function selectHealthPerson(index){
   const p=healthPeople[index]; if(!p)return; selectedHealthPerson=p;
   $('#ncd-person-summary').innerHTML=`<strong>${esc(p.display_name)}</strong> · ${esc(p.age_years??'—')} ปี · ${esc(p.gender)}<br>บ้าน ${esc(p.house_no||p.hcode)} · ${esc(p.community||'—')}`;
@@ -122,6 +142,10 @@ function selectHealthPerson(index){
   renderPreviousPanel(p);
   form.elements.height_cm.value=p.previous_height_cm||'';
   setPreviousText('#hint-weight',previousHint(p.previous_weight_kg,'กก.'));setPreviousText('#hint-height',previousHint(p.previous_height_cm,'ซม.'));setPreviousText('#hint-waist',previousHint(p.previous_waist_cm,'ซม.'));setPreviousText('#hint-sbp',previousHint(p.previous_sbp));setPreviousText('#hint-dbp',previousHint(p.previous_dbp));setPreviousText('#hint-glucose',previousHint(p.previous_glucose_mg_dl,'mg/dL'));
+  bindMeasurementControls(form);
+  form.querySelectorAll('[data-range-for]').forEach(range=>{const input=form.elements[range.dataset.rangeFor];if(input?.value)range.value=String(Math.min(Number(range.max),Math.max(Number(range.min),Number(input.value))));});
+  const previousBody=$('#ncd-use-previous-body'),hasPreviousBody=[p.previous_weight_kg,p.previous_height_cm,p.previous_waist_cm].some(v=>v!==null&&v!==undefined&&v!=='');
+  previousBody.hidden=!hasPreviousBody;previousBody.onclick=()=>{[['weight_kg',p.previous_weight_kg],['height_cm',p.previous_height_cm],['waist_cm',p.previous_waist_cm]].forEach(([name,value])=>{if(value!==null&&value!==undefined&&value!=='')setMeasurementValue(form,name,value);});};
   syncBehaviorPanels(form);renderNcdPreview();
   form.querySelectorAll('input,select').forEach(el=>{el.oninput=renderNcdPreview;el.onchange=()=>{syncBehaviorPanels(form);renderNcdPreview();};});
   card.scrollIntoView({behavior:'smooth',block:'start'});
