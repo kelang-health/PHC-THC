@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>อสม. พลัส | งานสุขภาพชุมชน</title>
-  <link rel="stylesheet" href="./style.css?v=1.8.4">
+  <link rel="stylesheet" href="./style.css?v=1.8.5">
 </head>
 <body>
   <main class="shell">
@@ -130,6 +130,7 @@
           <div><p class="eyebrow">HEALTH WORK CENTER</p><h2>งานสุขภาพของพื้นที่</h2><p class="muted">ฐานเดียวกับ อสม. พลัส · เลือกประชาชนจากบ้านที่ได้รับสิทธิ์ ไม่ต้องกรอก PID เอง</p></div>
           <button id="health-refresh" type="button" class="secondary">รีเฟรชงาน</button>
         </div>
+        <div class="notice go-live-note"><strong>ช่วงทดสอบก่อนเปิดใช้จริง:</strong> ผลคัดกรองก่อนวันที่ 1 ตุลาคม 2569 จะถูกบันทึกเป็นข้อมูลทดสอบและไม่นับเป็นผลงานปีงบประมาณ 2570</div>
         <div id="health-stats" class="stats compact-stats"></div>
         <div id="life-stage-stats" class="life-stage-grid"></div>
         <div class="health-toolbar">
@@ -215,11 +216,11 @@
       </section>
 
       <aside class="privacy-note">
-        <strong>Privacy by design:</strong> Cloud schema ไม่เก็บเลขบัตรประชาชน 13 หลัก และใช้ <code>source_pcucode + source_pid</code> สำหรับการเชื่อมบุคคล · ประวัติ Smart NCD Care เดิมผ่าน quality check ก่อนนำมาใช้เป็นค่าครั้งก่อน
+        <strong>Privacy by design:</strong> Cloud schema ไม่เก็บเลขบัตรประชาชน 13 หลัก และใช้ <code>source_pcucode + source_pid</code> สำหรับการเชื่อมบุคคล · ข้อมูลคัดกรอง Smart NCD Care D เดิมถูกเก็บเป็น field-test archive เท่านั้น และไม่ถูกนำมานับผลงานหรือใช้เป็นค่าครั้งก่อนในการปฏิบัติงานจริง
       </aside>
     </section>
   </main>
 
-  <script type="module" src="./app.js?v=1.8.4"></script>
+  <script type="module" src="./app.js?v=1.8.5"></script>
 </body>
 </html>
