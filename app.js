@@ -1,6 +1,6 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.11';
-import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.11';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.12';
+import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.12';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
@@ -171,7 +171,7 @@ function selectHealthPerson(index){
   $('#ncd-person-summary').innerHTML=`<strong>${esc(p.display_name)}</strong> · ${esc(p.age_years??'—')} ปี · ${esc(p.gender)}<br>บ้าน ${esc(p.house_no||p.hcode)} · ${esc(p.community||'—')}`;
   const conditions=[];if(p.has_ht)conditions.push('<span class="condition-badge disease">มีประวัติ HT</span>');if(p.has_dm)conditions.push('<span class="condition-badge disease">มีประวัติ DM</span>');if(!p.known_ncd)conditions.push('<span class="condition-badge clear">ยังไม่พบ DM/HT ใน JHCIS</span>');$('#ncd-condition-badges').innerHTML=conditions.join('');
   const card=$('#ncd-screen-card'); card.hidden=!(Number(p.age_years)>=18); if(card.hidden){return;}
-  const form=$('#ncd-form'); form.reset(); form.elements.screened_on.value=localDate(); form.dataset.requestId=requestId(); $('#ncd-result').hidden=true; $('#ncd-error').textContent='';
+  const form=$('#ncd-form'); form.reset(); form.elements.screened_on.value=localDate(); form.dataset.requestId=requestId(); $('#ncd-result').hidden=true; closeNcdSaveConfirmation(false); $('#ncd-error').textContent='';
   renderPreviousPanel(p);
   form.elements.height_cm.value=p.previous_height_cm||'';
   setPreviousText('#hint-weight',previousHint(p.previous_weight_kg,'กก.'));setPreviousText('#hint-height',previousHint(p.previous_height_cm,'ซม.'));setPreviousText('#hint-waist',previousHint(p.previous_waist_cm,'ซม.'));setPreviousText('#hint-sbp',previousHint(p.previous_sbp));setPreviousText('#hint-dbp',previousHint(p.previous_dbp));setPreviousText('#hint-glucose',previousHint(p.previous_glucose_mg_dl,'mg/dL'));
@@ -182,6 +182,12 @@ function selectHealthPerson(index){
   syncBehaviorPanels(form);renderNcdPreview();renderMental2QPreview();
   form.querySelectorAll('input,select').forEach(el=>{el.oninput=()=>{renderNcdPreview();renderMental2QPreview();};el.onchange=()=>{syncBehaviorPanels(form);renderNcdPreview();renderMental2QPreview();};});
   card.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function closeNcdSaveConfirmation(restoreFocus=true){
+  const dialog=$('#ncd-save-confirmation');if(!dialog)return;dialog.hidden=true;if(restoreFocus)$('#ncd-submit')?.focus();
+}
+function showNcdSaveConfirmation(){
+  const dialog=$('#ncd-save-confirmation');if(!dialog)return;dialog.hidden=false;$('#ncd-save-confirmation-ok')?.focus();
 }
 async function saveHealthScreening(event){
   event.preventDefault(); const form=event.currentTarget,error=$('#ncd-error'),result=$('#ncd-result'),button=$('#ncd-submit');
@@ -198,7 +204,7 @@ async function saveHealthScreening(event){
   button.disabled=true;
   try{
     const {data:saved,error:saveError}=await supabase.rpc('save_health_ncd_screening_v3',payload); if(saveError)throw saveError;
-    result.innerHTML=`<strong>${esc(saved.ncd_status)}</strong><br>${esc(saved.bp_status)} · ${esc(saved.glucose_status)}<br><span class="mental-result">2Q: ${esc(mental2QLabel(saved.mental_2q_status,saved.mental_2q_result))}</span><br>${esc(saved.advice||'')}`; result.hidden=false; form.dataset.requestId=requestId();
+    result.innerHTML=`<strong>${esc(saved.ncd_status)}</strong><br>${esc(saved.bp_status)} · ${esc(saved.glucose_status)}<br><span class="mental-result">2Q: ${esc(mental2QLabel(saved.mental_2q_status,saved.mental_2q_result))}</span><br>${esc(saved.advice||'')}`; result.hidden=false; form.dataset.requestId=requestId(); showNcdSaveConfirmation();
     const key=personKey(p); await Promise.all([loadHealthSummary(),loadHealthPeople()]); await loadHealthHistory(); const refreshed=healthPeople.find(x=>personKey(x)===key); if(refreshed){selectedHealthPerson=refreshed;renderPreviousPanel(refreshed);}
     result.scrollIntoView({behavior:'smooth',block:'nearest'});
   }catch(e){error.textContent=e.message;}finally{button.disabled=false;}
@@ -206,8 +212,9 @@ async function saveHealthScreening(event){
 async function loadHealthModule(){
   const focus=$('#health-community-focus');focus.hidden=!healthCommunityFocus;focus.querySelector('strong').textContent=healthCommunityFocus||'';
   await loadHealthSummary(); await loadHealthPeople(); await loadHealthHistory(); healthLoaded=true;
-  $('#ncd-form').onsubmit=saveHealthScreening; $('#ncd-close').onclick=()=>{$('#ncd-screen-card').hidden=true;selectedHealthPerson=null;};
+  $('#ncd-form').onsubmit=saveHealthScreening; $('#ncd-close').onclick=()=>{closeNcdSaveConfirmation(false);$('#ncd-screen-card').hidden=true;selectedHealthPerson=null;};
   $('#ncd-clear-2q').onclick=()=>{$('#ncd-form').querySelectorAll('[name^="mental_2q_"]').forEach(el=>{el.checked=false;});renderMental2QPreview();};
+  const saveConfirmation=$('#ncd-save-confirmation');$('#ncd-save-confirmation-ok').onclick=()=>closeNcdSaveConfirmation();saveConfirmation.onclick=e=>{if(e.target===saveConfirmation)closeNcdSaveConfirmation();};saveConfirmation.onkeydown=e=>{if(e.key==='Escape')closeNcdSaveConfirmation();};
   $('#health-refresh').onclick=async()=>{healthLoaded=false;await loadHealthModule();};
   $('#health-clear-community').onclick=async()=>{healthCommunityFocus='';focus.hidden=true;await loadHealthPeople();};
   $('#health-filter').onchange=loadHealthPeople; $('#health-stage').onchange=loadHealthPeople;

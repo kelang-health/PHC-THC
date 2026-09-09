@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>อสม. พลัส | งานสุขภาพชุมชน</title>
-  <link rel="stylesheet" href="./style.css?v=1.8.11">
+  <link rel="stylesheet" href="./style.css?v=1.8.12">
 </head>
 <body>
   <main class="shell">
@@ -36,7 +36,7 @@
         <button class="primary login-submit">เข้าสู่ระบบ</button>
         <p id="login-error" class="error"></p>
       </form>
-      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v1.8.11</footer>
+      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v1.8.12</footer>
     </section>
 
     <section id="blocked" class="card" hidden>
@@ -195,22 +195,22 @@
             </section>
 
             <section class="ncd-form-section">
-              <div class="ncd-section-title"><span>2</span><div><strong>อาการที่ต้องระวัง</strong><small>ให้เลือกทุกครั้งก่อนบันทึก</small></div></div>
+              <div class="ncd-section-title"><span>2</span><div><strong>สุขภาพจิต 2Q</strong><small>ไม่บังคับตอบ · เว้นว่างได้ และจะไม่ถูกนับว่าประเมินแล้ว</small></div></div>
+              <fieldset class="mental-2q-question"><legend>1. ใน 2 สัปดาห์ที่ผ่านมา รวมวันนี้ รู้สึกหดหู่ เศร้า หรือท้อแท้สิ้นหวังหรือไม่</legend><div class="choice-pills"><label><input type="radio" name="mental_2q_q1" value="no"><span>ไม่ใช่</span></label><label><input type="radio" name="mental_2q_q1" value="yes"><span>ใช่</span></label></div></fieldset>
+              <fieldset class="mental-2q-question"><legend>2. ใน 2 สัปดาห์ที่ผ่านมา รวมวันนี้ รู้สึกเบื่อ ทำอะไรก็ไม่เพลิดเพลินหรือไม่</legend><div class="choice-pills"><label><input type="radio" name="mental_2q_q2" value="no"><span>ไม่ใช่</span></label><label><input type="radio" name="mental_2q_q2" value="yes"><span>ใช่</span></label></div></fieldset>
+              <div class="mental-2q-footer"><span id="mental-2q-preview" class="mental-2q-status not_assessed" data-status="not_assessed">ไม่ได้ประเมิน</span><button id="ncd-clear-2q" type="button" class="secondary compact-button">ล้างคำตอบ 2Q</button></div>
+            </section>
+
+            <section class="ncd-form-section">
+              <div class="ncd-section-title"><span>3</span><div><strong>อาการที่ต้องระวัง</strong><small>ให้เลือกทุกครั้งก่อนบันทึก</small></div></div>
               <fieldset class="choice-field"><legend>มีเจ็บหน้าอก หอบ อ่อนแรง พูดไม่ชัด ซึม หรือหมดสติหรือไม่</legend><div class="choice-pills danger-choice"><label><input type="radio" name="danger_symptoms" value="no" required><span>ไม่มี</span></label><label><input type="radio" name="danger_symptoms" value="yes"><span>มีอาการ</span></label></div></fieldset>
             </section>
 
             <section class="ncd-form-section">
-              <div class="ncd-section-title"><span>3</span><div><strong>พฤติกรรมสุขภาพ</strong><small>เลือกสถานะและความถี่ ไม่ใช้ checkbox แบบเดิม</small></div></div>
+              <div class="ncd-section-title"><span>4</span><div><strong>พฤติกรรมสุขภาพ</strong><small>เลือกสถานะและความถี่ ไม่ใช้ checkbox แบบเดิม</small></div></div>
               <fieldset class="behavior-card"><legend>การสูบบุหรี่</legend><div class="choice-pills"><label><input type="radio" name="smoking_state" value="no" required><span>ไม่สูบ</span></label><label><input type="radio" name="smoking_state" value="yes"><span>สูบ</span></label></div><label id="smoking-frequency-wrap" class="frequency-wrap" hidden>จำนวนที่สูบ<select name="smoking_frequency"><option value="">เลือกความถี่</option><option value="1-5 มวนต่อวัน">1–5 มวน/วัน</option><option value="6-10 มวนต่อวัน">6–10 มวน/วัน</option><option value="มากกว่า 10 มวนต่อวัน">มากกว่า 10 มวน/วัน</option></select></label></fieldset>
               <fieldset class="behavior-card"><legend>การดื่มแอลกอฮอล์</legend><div class="choice-pills"><label><input type="radio" name="alcohol_state" value="no" required><span>ไม่ดื่ม</span></label><label><input type="radio" name="alcohol_state" value="yes"><span>ดื่ม</span></label></div><label id="alcohol-frequency-wrap" class="frequency-wrap" hidden>ความถี่<select name="alcohol_frequency"><option value="">เลือกความถี่</option><option value="1-2 ครั้งต่อสัปดาห์">1–2 ครั้ง/สัปดาห์</option><option value="3-5 ครั้งต่อสัปดาห์">3–5 ครั้ง/สัปดาห์</option><option value="ทุกวัน">ทุกวัน</option></select></label></fieldset>
               <label class="behavior-card exercise-card">การออกกำลังกาย<select name="exercise_frequency" required><option value="">เลือกความถี่</option><option value="เพียงพอ">อย่างน้อย 3 ครั้ง/สัปดาห์</option><option value="1-2 ครั้งต่อสัปดาห์">1–2 ครั้ง/สัปดาห์</option><option value="ไม่ได้ออกกำลังกาย">ไม่ได้ออกกำลังกาย</option></select></label>
-            </section>
-
-            <section class="ncd-form-section">
-              <div class="ncd-section-title"><span>4</span><div><strong>สุขภาพจิต 2Q</strong><small>ไม่บังคับตอบ · เว้นว่างได้ และจะไม่ถูกนับว่าประเมินแล้ว</small></div></div>
-              <fieldset class="mental-2q-question"><legend>1. ใน 2 สัปดาห์ที่ผ่านมา รวมวันนี้ รู้สึกหดหู่ เศร้า หรือท้อแท้สิ้นหวังหรือไม่</legend><div class="choice-pills"><label><input type="radio" name="mental_2q_q1" value="no"><span>ไม่ใช่</span></label><label><input type="radio" name="mental_2q_q1" value="yes"><span>ใช่</span></label></div></fieldset>
-              <fieldset class="mental-2q-question"><legend>2. ใน 2 สัปดาห์ที่ผ่านมา รวมวันนี้ รู้สึกเบื่อ ทำอะไรก็ไม่เพลิดเพลินหรือไม่</legend><div class="choice-pills"><label><input type="radio" name="mental_2q_q2" value="no"><span>ไม่ใช่</span></label><label><input type="radio" name="mental_2q_q2" value="yes"><span>ใช่</span></label></div></fieldset>
-              <div class="mental-2q-footer"><span id="mental-2q-preview" class="mental-2q-status not_assessed" data-status="not_assessed">ไม่ได้ประเมิน</span><button id="ncd-clear-2q" type="button" class="secondary compact-button">ล้างคำตอบ 2Q</button></div>
             </section>
 
             <section class="ncd-form-section">
@@ -222,6 +222,14 @@
             <div class="ncd-save-bar"><button id="ncd-submit" class="primary">บันทึกผลคัดกรอง</button><p id="ncd-error" class="error"></p></div>
           </form>
           <div id="ncd-result" class="notice" hidden></div>
+          <div id="ncd-save-confirmation" class="save-confirmation" role="dialog" aria-modal="true" aria-labelledby="ncd-save-confirmation-title" hidden>
+            <div class="save-confirmation-card">
+              <span class="save-confirmation-icon" aria-hidden="true">✓</span>
+              <h3 id="ncd-save-confirmation-title">บันทึกเสร็จแล้ว</h3>
+              <p>บันทึกผลคัดกรอง NCD และสถานะสุขภาพจิต 2Q เรียบร้อยแล้ว</p>
+              <button id="ncd-save-confirmation-ok" type="button" class="primary">ตกลง</button>
+            </div>
+          </div>
           <p class="clinical-note">ผลนี้เป็นการคัดกรองเบื้องต้น ไม่ใช่การวินิจฉัยหรือคำสั่งรักษา กรณีสีแดงให้ประสานเจ้าหน้าที่สาธารณสุขตามแนวทางหน่วยบริการ</p>
         </section>
 
@@ -237,6 +245,6 @@
     </section>
   </main>
 
-  <script type="module" src="./app.js?v=1.8.11"></script>
+  <script type="module" src="./app.js?v=1.8.12"></script>
 </body>
 </html>
