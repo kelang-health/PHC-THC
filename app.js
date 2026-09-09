@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.7';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.8';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
@@ -7,7 +7,6 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
 const $ = s => document.querySelector(s);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, x => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
 const num = v => Number(v || 0).toLocaleString('th-TH');
-let passwordChangeForced = false;
 let currentProfile = null;
 let portalView = 'overview';
 let healthPeople = [];
@@ -31,7 +30,7 @@ function renderAuthView(view){
 }
 function renderLoggedOut(){
   authRequestId += 1;
-  currentProfile=null; passwordChangeForced=false; passwordPanelOpen=false;
+  currentProfile=null; passwordPanelOpen=false;
   renderAuthView('login');
 }
 function roleLabel(role){ return ({admin:'ผู้ดูแลระบบ',staff:'เจ้าหน้าที่',user:'อสม.'})[role] || role || 'ไม่ระบุ'; }
@@ -208,13 +207,6 @@ async function loadPortal(session, requestId){
   if(!profile || !profile.active){
     renderAuthView('blocked'); return;
   }
-  if(profile.must_change_password){
-    passwordChangeForced = true;
-    passwordPanelOpen = true;
-    $('#password-title').textContent = 'ต้องเปลี่ยนรหัสผ่านก่อนใช้งาน';
-    $('#password-help').textContent = profile.role==='user' ? 'บัญชีนี้ใช้ PIN ชั่วคราว กรุณากำหนด PIN ตัวเลข 6–12 หลักก่อนเข้าถึงข้อมูล' : 'บัญชีนี้ใช้รหัสชั่วคราว กรุณากำหนดรหัสผ่านใหม่อย่างน้อย 12 ตัวอักษรก่อนเข้าถึงข้อมูล';
-    renderAuthView('password'); show($('#cancel-password'), false); return;
-  }
   const [{data: master, error: mErr}, {data: communities, error: cErr}, {data: workload, error: wErr}] = await Promise.all([
     supabase.from('communities').select('name,moo,active').eq('active', true).order('moo').order('name'),
     supabase.from('community_report_summary').select('*').order('community'),
@@ -294,7 +286,6 @@ $('#login-form').addEventListener('submit', async e => {
 });
 
 $('#change-password').addEventListener('click', ()=>{
-  passwordChangeForced = false;
   passwordPanelOpen = true;
   authRequestId += 1;
   $('#password-title').textContent = 'เปลี่ยนรหัสผ่าน';
@@ -302,7 +293,7 @@ $('#change-password').addEventListener('click', ()=>{
   $('#password-error').textContent = '';
   renderAuthView('password'); show($('#cancel-password'), true);
 });
-$('#cancel-password').addEventListener('click', ()=>{ if(!passwordChangeForced){ passwordPanelOpen=false; refreshAuth(); } });
+$('#cancel-password').addEventListener('click', ()=>{ passwordPanelOpen=false; refreshAuth(); });
 $('#password-form').addEventListener('submit', async e => {
   e.preventDefault();
   const f = new FormData(e.target), password = String(f.get('password') || ''), confirmPassword = String(f.get('confirm_password') || '');
@@ -313,11 +304,11 @@ $('#password-form').addEventListener('submit', async e => {
   if(error){ $('#password-error').textContent = error.message; return; }
   const { error: rpcError } = await supabase.rpc('complete_password_change');
   if(rpcError){ $('#password-error').textContent = rpcError.message; return; }
-  e.target.reset(); passwordChangeForced = false; passwordPanelOpen=false; await refreshAuth();
+  e.target.reset(); passwordPanelOpen=false; await refreshAuth();
 });
 
 $('#logout').addEventListener('click', async ()=>{
-  passwordPanelOpen=false; passwordChangeForced=false; renderLoggedOut();
+  passwordPanelOpen=false; renderLoggedOut();
   await supabase.auth.signOut();
 });
 supabase.auth.onAuthStateChange((event,session)=>{
