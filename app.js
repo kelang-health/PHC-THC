@@ -1,6 +1,6 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.10';
-import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.10';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.11';
+import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.11';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
@@ -17,6 +17,10 @@ let healthSearchTimer = null;
 let passwordPanelOpen = false;
 let authRequestId = 0;
 let authView = 'login';
+let portalCommunityRows = [];
+let portalVolunteerRows = [];
+let communityRequestId = 0;
+let healthCommunityFocus = '';
 
 function show(el, visible=true){ if(el) el.hidden = !visible; }
 function renderAuthView(view){
@@ -34,9 +38,17 @@ function renderLoggedOut(){
   currentProfile=null; passwordPanelOpen=false;
   renderAuthView('login');
 }
-function roleLabel(role){ return ({admin:'ผู้ดูแลระบบ',staff:'เจ้าหน้าที่',user:'อสม.'})[role] || role || 'ไม่ระบุ'; }
+function roleLabel(role){ return ({admin:'เจ้าหน้าที่',staff:'ประธาน อสม.',user:'อสม.'})[role] || role || 'ไม่ระบุ'; }
 function setPortalView(next){const allowed=[...document.querySelectorAll('#portal-nav [data-portal-view]')].filter(b=>!b.hidden).map(b=>b.dataset.portalView);portalView=allowed.includes(next)?next:'overview';document.querySelectorAll('[data-portal-panel]').forEach(x=>x.hidden=x.dataset.portalPanel!==portalView);document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>b.classList.toggle('active',b.dataset.portalView===portalView));if(window.innerWidth<640)window.scrollTo({top:0,behavior:'smooth'});}
-function configurePortalNav(role){document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>{b.hidden=!(b.dataset.roles||'').split(/\s+/).includes(role);b.onclick=async()=>{setPortalView(b.dataset.portalView);if(b.dataset.portalView==='health'&&!healthLoaded){try{await loadHealthModule();}catch(e){$('#health-person-body').innerHTML=`<tr><td colspan="5">${esc(e.message)}</td></tr>`;}}};});setPortalView('overview');}
+function configurePortalNav(role){
+  const labels={admin:{communities:'ชุมชนทั้งหมด',volunteers:'ทะเบียน อสม.'},staff:{communities:'ชุมชนที่ดูแล',volunteers:'อสม. ในชุมชน'},user:{communities:'ชุมชนของฉัน',houses:'บ้านของฉัน'}};
+  document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>{
+    b.hidden=!(b.dataset.roles||'').split(/\s+/).includes(role);
+    const label=b.querySelector('.portal-nav-label'),roleLabelText=labels[role]?.[b.dataset.portalView];if(label&&roleLabelText)label.textContent=roleLabelText;
+    b.onclick=async()=>{setPortalView(b.dataset.portalView);if(b.dataset.portalView==='health'&&!healthLoaded){try{await loadHealthModule();}catch(e){$('#health-person-body').innerHTML=`<tr><td colspan="5">${esc(e.message)}</td></tr>`;}}};
+  });
+  setPortalView('overview');
+}
 
 function localDate(){return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'});}
 function formNumber(value){const n=Number(value);return Number.isFinite(n)?n:null;}
@@ -67,6 +79,7 @@ async function loadHealthSummary(){
 async function loadHealthPeople(){
   const filter=$('#health-filter').value, stage=$('#health-stage').value, raw=$('#health-search').value.trim();
   let q=supabase.from('health_person_worklist').select('source_pcucode,source_pid,hcode,house_no,moo,community,display_name,gender,birth_date,age_years,life_stage,has_ht,has_dm,known_ncd,ncd_target,latest_screened_on,latest_ncd_status,latest_severity,screened_current_fy,previous_screened_on,previous_weight_kg,previous_height_cm,previous_waist_cm,previous_sbp,previous_dbp,previous_glucose_mg_dl,previous_bmi,previous_source,previous_smoking,previous_alcohol,previous_exercise').order('community').order('hcode').order('display_name').limit(300);
+  if(healthCommunityFocus)q=q.eq('community',healthCommunityFocus);
   if(filter==='due')q=q.eq('ncd_target',true).eq('screened_current_fy',false);
   else if(filter==='targets')q=q.eq('ncd_target',true);
   else if(filter==='known')q=q.eq('known_ncd',true);
@@ -191,10 +204,12 @@ async function saveHealthScreening(event){
   }catch(e){error.textContent=e.message;}finally{button.disabled=false;}
 }
 async function loadHealthModule(){
+  const focus=$('#health-community-focus');focus.hidden=!healthCommunityFocus;focus.querySelector('strong').textContent=healthCommunityFocus||'';
   await loadHealthSummary(); await loadHealthPeople(); await loadHealthHistory(); healthLoaded=true;
   $('#ncd-form').onsubmit=saveHealthScreening; $('#ncd-close').onclick=()=>{$('#ncd-screen-card').hidden=true;selectedHealthPerson=null;};
   $('#ncd-clear-2q').onclick=()=>{$('#ncd-form').querySelectorAll('[name^="mental_2q_"]').forEach(el=>{el.checked=false;});renderMental2QPreview();};
   $('#health-refresh').onclick=async()=>{healthLoaded=false;await loadHealthModule();};
+  $('#health-clear-community').onclick=async()=>{healthCommunityFocus='';focus.hidden=true;await loadHealthPeople();};
   $('#health-filter').onchange=loadHealthPeople; $('#health-stage').onchange=loadHealthPeople;
   $('#health-search').oninput=()=>{clearTimeout(healthSearchTimer);healthSearchTimer=setTimeout(()=>loadHealthPeople().catch(e=>$('#health-list-note').textContent=e.message),300);};
 }
@@ -216,6 +231,39 @@ async function loginAlias(login){
 }
 
 function anchorLabel(status){ return ({confirmed:'ยืนยัน',community_review:'ตรวจชุมชน',outside_tambon:'นอกตำบล',missing:'ไม่มีพิกัด'})[status] || status || '—'; }
+
+function communityHouseRows(rows){
+  return rows.map(h=>{
+    const hasMap=h.latitude!==null&&h.latitude!==undefined&&h.longitude!==null&&h.longitude!==undefined;
+    const map=hasMap?`<a class="community-map-link" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${h.latitude},${h.longitude}`)}" target="_blank" rel="noopener noreferrer">แผนที่</a>`:'<span class="muted">ไม่มีพิกัด</span>';
+    return `<tr><td><strong>บ้าน ${esc(h.house_no||'ไม่ระบุ')}</strong><small>${esc(h.hcode||'—')}</small></td><td>${esc(h.moo||'—')}</td><td>${esc(h.record_status||'—')}</td><td class="${h.review_required?'warn':'good'}">${h.review_required?`ต้องตรวจ<small>${esc(h.review_reason||'')}</small>`:'ปกติ'}</td><td>${map}</td></tr>`;
+  }).join('')||'<tr><td colspan="5">ไม่พบข้อมูลตามสิทธิ์</td></tr>';
+}
+
+async function fetchCommunityHouses(community){
+  const rows=[];for(let from=0;;from+=1000){
+    const {data,error}=await supabase.from('houses').select('hcode,house_no,moo,community,latitude,longitude,coordinate_status,record_status,review_required,review_reason,volunteer_pid').eq('community',community).order('house_no').range(from,from+999);
+    if(error)throw error;rows.push(...(data||[]));if(!data||data.length<1000)break;
+  }return rows;
+}
+
+async function openCommunity(index){
+  const row=portalCommunityRows[index],workspace=$('#community-workspace');if(!row||!workspace)return;
+  const request=++communityRequestId;workspace.hidden=false;workspace.innerHTML='<div class="community-loading">กำลังเปิดศูนย์งานชุมชน…</div>';
+  workspace.scrollIntoView({behavior:'smooth',block:'start'});
+  try{
+    const houses=await fetchCommunityHouses(row.community);if(request!==communityRequestId)return;
+    const volunteers=portalVolunteerRows.filter(v=>String(v.community||'').trim()===String(row.community||'').trim());
+    const review=houses.filter(h=>h.review_required),mapped=houses.filter(h=>h.latitude!==null&&h.longitude!==null);
+    const volunteerRows=volunteers.map(v=>`<tr><td><strong>${esc(v.display_name||'ไม่ระบุ')}</strong></td><td>${esc(anchorLabel(v.anchor_status))}</td><td>${num(v.house_count)}</td><td class="${Number(v.review_count)>0?'warn':'good'}">${num(v.review_count)}</td><td>${num(v.cross_community_count)}</td></tr>`).join('')||'<tr><td colspan="5">ไม่พบข้อมูล อสม. ตามสิทธิ์</td></tr>';
+    workspace.innerHTML=`<div class="community-workspace-head"><div><p class="eyebrow">OSM-PHC COMMUNITY WORKSPACE</p><h3>${esc(row.community||'ไม่ระบุชุมชน')}</h3><p>ข้อมูลครัวเรือน อสม. พิกัด และงานสุขภาพที่บัญชี ${esc(roleLabel(currentProfile?.role))} มีสิทธิ์เห็น</p></div><button type="button" class="secondary" data-community-close>ปิด</button></div><div class="community-actions"><button type="button" class="active" data-community-action="overview"><span>◫</span><strong>สรุปชุมชน</strong><small>${num(houses.length)} หลัง</small></button><button type="button" data-community-action="houses"><span>⌂</span><strong>ครัวเรือน</strong><small>เปิดทะเบียนบ้าน</small></button><button type="button" data-community-action="volunteers"><span>♧</span><strong>อสม.</strong><small>${num(volunteers.length)} คนในสิทธิ์</small></button><button type="button" data-community-action="review"><span>✓</span><strong>ตรวจข้อมูล</strong><small>${num(review.length)} รายการ</small></button><button type="button" data-community-action="health"><span>✚</span><strong>งานสุขภาพ</strong><small>NCD และ 2Q</small></button></div><section class="community-view" data-community-view="overview"><div class="community-metrics"><article><small>ครัวเรือนในสิทธิ์</small><strong>${num(houses.length)}</strong></article><article><small>มอบหมาย อสม.</small><strong>${num(houses.filter(h=>h.volunteer_pid!==null).length)}</strong></article><article><small>มีพิกัด</small><strong>${num(mapped.length)}</strong></article><article><small>ต้องตรวจข้อมูล</small><strong>${num(review.length)}</strong></article></div><p class="community-scope-note">ระบบใช้ RLS กรองข้อมูลอัตโนมัติ ไม่สามารถเปิดชุมชนหรือบ้านนอกขอบเขตของบัญชีนี้ได้</p></section><section class="community-view" data-community-view="houses" hidden><h4>ทะเบียนครัวเรือน</h4><div class="table-wrap"><table><thead><tr><th>บ้าน</th><th>หมู่</th><th>สถานะ</th><th>คุณภาพข้อมูล</th><th>พิกัด</th></tr></thead><tbody>${communityHouseRows(houses)}</tbody></table></div></section><section class="community-view" data-community-view="volunteers" hidden><h4>ทะเบียน อสม. และเขตรับผิดชอบ</h4><div class="table-wrap"><table><thead><tr><th>อสม.</th><th>Anchor</th><th>บ้าน</th><th>ต้องตรวจ</th><th>ข้ามชุมชน</th></tr></thead><tbody>${volunteerRows}</tbody></table></div></section><section class="community-view" data-community-view="review" hidden><h4>รายการที่ต้องตรวจสอบ</h4><div class="table-wrap"><table><thead><tr><th>บ้าน</th><th>หมู่</th><th>สถานะ</th><th>คุณภาพข้อมูล</th><th>พิกัด</th></tr></thead><tbody>${communityHouseRows(review)}</tbody></table></div></section>`;
+    workspace.querySelector('[data-community-close]').onclick=()=>{communityRequestId+=1;workspace.hidden=true;};
+    workspace.querySelectorAll('[data-community-action]').forEach(button=>button.onclick=async()=>{
+      const action=button.dataset.communityAction;if(action==='health'){healthCommunityFocus=row.community;setPortalView('health');try{if(!healthLoaded)await loadHealthModule();else{const focus=$('#health-community-focus');focus.hidden=false;focus.querySelector('strong').textContent=healthCommunityFocus;await loadHealthPeople();}}catch(e){$('#health-list-note').textContent=e.message;}return;}
+      workspace.querySelectorAll('[data-community-action]').forEach(x=>x.classList.toggle('active',x===button));workspace.querySelectorAll('[data-community-view]').forEach(x=>x.hidden=x.dataset.communityView!==action);
+    });
+  }catch(error){if(request===communityRequestId)workspace.innerHTML=`<p class="error">${esc(error.message)}</p>`;}
+}
 
 async function getProfile(userId){
   const { data, error } = await supabase.from('profiles').select('user_id,display_name,role,community,volunteer_pid,active,must_change_password').eq('user_id', userId).maybeSingle();
@@ -247,6 +295,8 @@ async function loadPortal(session, requestId){
   const unknownRows = allSummary.filter(r => !activeNames.has(r.community));
   const unknownHouses = unknownRows.reduce((s,r)=>s+Number(r.houses||0),0);
   const vols = workload || [];
+  portalCommunityRows=rows;portalVolunteerRows=vols;communityRequestId+=1;healthCommunityFocus='';
+  const workspace=$('#community-workspace');workspace.hidden=true;workspace.innerHTML='';
   const totals = rows.reduce((a,r)=>({
     houses:a.houses+Number(r.houses||0),
     assigned:a.assigned+Number(r.assigned_houses||0),
@@ -268,7 +318,8 @@ async function loadPortal(session, requestId){
     [totals.missing,'ไม่มีพิกัด'],
     [unknownHouses,'บ้านไม่ระบุ/นอก 16 ชุมชน']
   ].map(([v,l])=>`<article class="stat"><small>${esc(l)}</small><strong>${num(v)}</strong></article>`).join('');
-  $('#community-body').innerHTML = rows.map(r=>`<tr><td><strong>${esc(r.community||'ไม่ระบุ')}</strong></td><td>${esc(r.moo||'—')}</td><td>${num(r.houses)}</td><td>${num(r.assigned_houses)}</td><td class="${Number(r.review_houses)>0?'warn':'good'}">${num(r.review_houses)}</td><td class="${Number(r.outside_tambon)>0?'bad':'good'}">${num(r.outside_tambon)}</td></tr>`).join('') || '<tr><td colspan="6">ไม่พบข้อมูลตามสิทธิ์</td></tr>';
+  $('#community-body').innerHTML = rows.map((r,index)=>`<tr><td><strong>${esc(r.community||'ไม่ระบุ')}</strong></td><td>${esc(r.moo||'—')}</td><td>${num(r.houses)}</td><td>${num(r.assigned_houses)}</td><td class="${Number(r.review_houses)>0?'warn':'good'}">${num(r.review_houses)}</td><td class="${Number(r.outside_tambon)>0?'bad':'good'}">${num(r.outside_tambon)}</td><td><button type="button" class="community-open" data-community-open="${index}">เปิดชุมชน</button></td></tr>`).join('') || '<tr><td colspan="7">ไม่พบข้อมูลตามสิทธิ์</td></tr>';
+  document.querySelectorAll('[data-community-open]').forEach(button=>button.onclick=()=>openCommunity(Number(button.dataset.communityOpen)));
   $('#volunteer-body').innerHTML = vols.map(v=>`<tr><td><strong>${esc(v.display_name||'ไม่ระบุ')}</strong></td><td>${esc(v.community||'—')}</td><td>${esc(anchorLabel(v.anchor_status))}</td><td>${num(v.house_count)}</td><td class="${Number(v.review_count)>0?'warn':'good'}">${num(v.review_count)}</td><td>${num(v.cross_community_count)}</td></tr>`).join('') || '<tr><td colspan="6">ไม่พบข้อมูล อสม. ตามสิทธิ์</td></tr>';
   $('#my-house-count').textContent=`${num(myHouses.length)} หลัง`;
   $('#my-house-body').innerHTML=myHouses.map(h=>`<tr><td><strong>${esc(h.house_no||'ไม่ระบุ')}</strong></td><td>${esc(h.moo||'—')}</td><td>${esc(h.community||'—')}</td><td>${esc(h.record_status||'—')}</td><td>${esc(h.coordinate_status||'—')}</td><td class="${h.review_required?'warn':'good'}">${h.review_required?'ต้องตรวจ':'ปกติ'}</td></tr>`).join('')||'<tr><td colspan="6">ยังไม่มีบ้านในความรับผิดชอบ</td></tr>';

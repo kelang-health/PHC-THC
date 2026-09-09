@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>อสม. พลัส | งานสุขภาพชุมชน</title>
-  <link rel="stylesheet" href="./style.css?v=1.8.10">
+  <link rel="stylesheet" href="./style.css?v=1.8.11">
 </head>
 <body>
   <main class="shell">
@@ -36,7 +36,7 @@
         <button class="primary login-submit">เข้าสู่ระบบ</button>
         <p id="login-error" class="error"></p>
       </form>
-      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v1.8.10</footer>
+      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v1.8.11</footer>
     </section>
 
     <section id="blocked" class="card" hidden>
@@ -70,11 +70,11 @@
       </div>
 
       <nav id="portal-nav" class="portal-nav" aria-label="เมนูข้อมูล">
-        <button type="button" data-portal-view="overview" data-roles="admin staff user" class="active">ภาพรวม</button>
-        <button type="button" data-portal-view="communities" data-roles="admin staff">ชุมชน</button>
-        <button type="button" data-portal-view="volunteers" data-roles="admin staff">อสม.</button>
-        <button type="button" data-portal-view="houses" data-roles="user">บ้านของฉัน</button>
-        <button type="button" data-portal-view="health" data-roles="admin staff user">งานสุขภาพ</button>
+        <button type="button" data-portal-view="overview" data-roles="admin staff user" class="active"><span class="portal-nav-icon">◫</span><span><strong class="portal-nav-label">ภาพรวม</strong><small>สรุปพื้นที่</small></span></button>
+        <button type="button" data-portal-view="communities" data-roles="admin staff user"><span class="portal-nav-icon">⌂</span><span><strong class="portal-nav-label">ชุมชน</strong><small>ศูนย์งานชุมชน</small></span></button>
+        <button type="button" data-portal-view="volunteers" data-roles="admin staff"><span class="portal-nav-icon">♧</span><span><strong class="portal-nav-label">อสม.</strong><small>ทะเบียนและภาระงาน</small></span></button>
+        <button type="button" data-portal-view="houses" data-roles="user"><span class="portal-nav-icon">⌂</span><span><strong class="portal-nav-label">บ้านของฉัน</strong><small>เขตรับผิดชอบ</small></span></button>
+        <button type="button" data-portal-view="health" data-roles="admin staff user"><span class="portal-nav-icon">✚</span><span><strong class="portal-nav-label">งานสุขภาพ</strong><small>NCD และ 2Q</small></span></button>
       </nav>
 
       <div id="stats" class="stats" data-portal-panel="overview"></div>
@@ -87,9 +87,10 @@
           </div>
           <span id="community-count" class="badge"></span>
         </div>
+        <section id="community-workspace" class="community-workspace" aria-live="polite" hidden></section>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>ชุมชน</th><th>หมู่</th><th>บ้าน</th><th>มอบหมาย อสม.</th><th>ต้องตรวจ</th><th>นอก ต.พระบาท</th></tr></thead>
+            <thead><tr><th>ชุมชน</th><th>หมู่</th><th>บ้าน</th><th>มอบหมาย อสม.</th><th>ต้องตรวจ</th><th>นอก ต.พระบาท</th><th>เปิด</th></tr></thead>
             <tbody id="community-body"></tbody>
           </table>
         </div>
@@ -131,6 +132,7 @@
           <div><p class="eyebrow">HEALTH WORK CENTER</p><h2>งานสุขภาพของพื้นที่</h2><p class="muted">ฐานเดียวกับ อสม. พลัส · เลือกประชาชนจากบ้านที่ได้รับสิทธิ์ ไม่ต้องกรอก PID เอง</p></div>
           <button id="health-refresh" type="button" class="secondary">รีเฟรชงาน</button>
         </div>
+        <div id="health-community-focus" class="health-community-focus" hidden><span>กำลังกรองรายชื่อคัดกรองของ <strong></strong><small>ตัวเลขสรุปด้านบนยังเป็นภาพรวมทุกพื้นที่ตามสิทธิ์</small></span><button id="health-clear-community" type="button" class="secondary">ดูทุกพื้นที่ตามสิทธิ์</button></div>
         <div class="notice go-live-note"><strong>ช่วงทดสอบก่อนเปิดใช้จริง:</strong> ผลคัดกรองก่อนวันที่ 1 ตุลาคม 2569 จะถูกบันทึกเป็นข้อมูลทดสอบและไม่นับเป็นผลงานปีงบประมาณ 2570</div>
         <div id="health-stats" class="stats compact-stats"></div>
         <section class="mental-2q-summary" aria-labelledby="mental-2q-summary-title">
@@ -235,6 +237,6 @@
     </section>
   </main>
 
-  <script type="module" src="./app.js?v=1.8.10"></script>
+  <script type="module" src="./app.js?v=1.8.11"></script>
 </body>
 </html>
