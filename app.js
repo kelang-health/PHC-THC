@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.2';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
@@ -24,7 +24,8 @@ function localDate(){return new Date().toLocaleDateString('en-CA',{timeZone:'Asi
 function formNumber(value){const n=Number(value);return Number.isFinite(n)?n:null;}
 function requestId(){return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;}
 
-function personKey(p){return `${p.source_pcucode}:${p.source_pid}`;}
+function personKey(p){return `${p.source_pcucode}:${p.source_pid}`;}
+
 function healthClass(severity){return severity==='urgent'||severity==='alert'?'bad':severity==='risk'?'warn':severity==='normal'?'good':'';}
 function formatHealthValue(value,suffix=''){return value===null||value===undefined||value===''?'—':`${value}${suffix}`;}
 function healthDateLabel(value){if(!value)return 'ยังไม่มีประวัติคัดกรอง';try{return new Date(value+'T00:00:00').toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});}catch{return value;}}
@@ -127,8 +128,6 @@ async function loadHealthModule(){
   $('#health-refresh').onclick=async()=>{healthLoaded=false;await loadHealthModule();};
   $('#health-filter').onchange=loadHealthPeople; $('#health-stage').onchange=loadHealthPeople;
   $('#health-search').oninput=()=>{clearTimeout(healthSearchTimer);healthSearchTimer=setTimeout(()=>loadHealthPeople().catch(e=>$('#health-list-note').textContent=e.message),300);};
-  document.querySelectorAll('input[name="smoke_status"],input[name="alcohol_status"],input[name="exercise_status"]').forEach(el=>el.onchange=()=>{setBehaviorPanels();updateNcdLivePreview();});
-  $('#ncd-form').querySelectorAll('input[type="number"],select[name="glucose_type"]').forEach(el=>{el.oninput=updateNcdLivePreview;el.onchange=updateNcdLivePreview;});
 }
 
 function normalizePhone(value){
@@ -191,7 +190,7 @@ async function loadPortal(session){
   }),{houses:0,assigned:0,review:0,outside:0,missing:0});
 
   $('#welcome-name').textContent = profile.display_name || session.user.email || 'ภาพรวมพื้นที่';
-  $('#scope-label').textContent = ['admin','staff'].includes(profile.role) ? 'ทุก 16 ชุมชนในระบบ' : 'บ้านและประชาชนในความรับผิดชอบของคุณ';
+  $('#scope-label').textContent = profile.role==='admin' ? 'ทุก 16 ชุมชนในระบบ' : profile.role==='staff' ? `ดูแลชุมชน ${profile.community||'ยังไม่ได้กำหนดชุมชน'}` : 'บ้านและประชาชนในความรับผิดชอบของคุณ';
   $('#role-badge').textContent = roleLabel(profile.role);
   $('#community-count').textContent = `${num(rows.length)} ชุมชน`;
   $('#stats').innerHTML = [
