@@ -1,6 +1,6 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.13';
-import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.13';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.14';
+import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.14';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
@@ -132,8 +132,8 @@ function syncBehaviorPanels(form){
   const alc=form.querySelector('[name="alcohol_state"]:checked')?.value;
   const sw=$('#smoking-frequency-wrap'),aw=$('#alcohol-frequency-wrap');
   sw.hidden=smoke!=='yes';aw.hidden=alc!=='yes';
-  form.elements.smoking_frequency.required=smoke==='yes';form.elements.alcohol_frequency.required=alc==='yes';
-  if(smoke!=='yes')form.elements.smoking_frequency.value='';if(alc!=='yes')form.elements.alcohol_frequency.value='';
+  const syncFrequency=(name,enabled)=>{const choices=[...form.querySelectorAll(`[name="${name}"]`)];choices.forEach((choice,index)=>{choice.required=enabled&&index===0;if(!enabled)choice.checked=false;});};
+  syncFrequency('smoking_frequency',smoke==='yes');syncFrequency('alcohol_frequency',alc==='yes');
 }
 function renderNcdPreview(){
   const form=$('#ncd-form');if(!form||!selectedHealthPerson)return;
@@ -188,7 +188,7 @@ function selectHealthPerson(index){
   const previousBody=$('#ncd-use-previous-body'),hasPreviousBody=[p.previous_weight_kg,p.previous_height_cm,p.previous_waist_cm].some(v=>v!==null&&v!==undefined&&v!=='');
   previousBody.hidden=!hasPreviousBody;previousBody.onclick=()=>{[['weight_kg',p.previous_weight_kg],['height_cm',p.previous_height_cm],['waist_cm',p.previous_waist_cm]].forEach(([name,value])=>{if(value!==null&&value!==undefined&&value!=='')setMeasurementValue(form,name,value);});};
   syncBehaviorPanels(form);renderNcdPreview();renderMental2QPreview();
-  form.querySelectorAll('input,select').forEach(el=>{el.oninput=()=>{renderNcdPreview();renderMental2QPreview();};el.onchange=()=>{syncBehaviorPanels(form);renderNcdPreview();renderMental2QPreview();};});
+  form.querySelectorAll('input,select').forEach(el=>{el.oninput=()=>{renderNcdPreview();renderMental2QPreview();};el.onchange=()=>{renderNcdPreview();renderMental2QPreview();};});
   card.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function closeNcdSaveConfirmation(restoreFocus=true){
@@ -417,5 +417,6 @@ supabase.auth.onAuthStateChange((event,session)=>{
   }
 });
 $('#portal-nav-toggle').addEventListener('click',()=>setPortalNavCollapsed(!$('#portal').classList.contains('nav-collapsed')));
+$('#ncd-form').addEventListener('change',event=>{if(event.target.matches('[name="smoking_state"],[name="alcohol_state"]'))syncBehaviorPanels(event.currentTarget);});
 restorePortalNavPreference();
 refreshAuth();

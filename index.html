@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>อสม. พลัส | งานสุขภาพชุมชน</title>
-  <link rel="stylesheet" href="./style.css?v=1.8.13">
+  <link rel="stylesheet" href="./style.css?v=1.8.14">
 </head>
 <body>
   <main class="shell">
@@ -36,7 +36,7 @@
         <button class="primary login-submit">เข้าสู่ระบบ</button>
         <p id="login-error" class="error"></p>
       </form>
-      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v1.8.13</footer>
+      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v1.8.14</footer>
     </section>
 
     <section id="blocked" class="card" hidden>
@@ -209,9 +209,9 @@
 
             <section class="ncd-form-section">
               <div class="ncd-section-title"><span>4</span><div><strong>พฤติกรรมสุขภาพ</strong><small>เลือกสถานะและความถี่ ไม่ใช้ checkbox แบบเดิม</small></div></div>
-              <fieldset class="behavior-card"><legend>การสูบบุหรี่</legend><div class="choice-pills"><label><input type="radio" name="smoking_state" value="no" required><span>ไม่สูบ</span></label><label><input type="radio" name="smoking_state" value="yes"><span>สูบ</span></label></div><label id="smoking-frequency-wrap" class="frequency-wrap" hidden>จำนวนที่สูบ<select name="smoking_frequency"><option value="">เลือกความถี่</option><option value="1-5 มวนต่อวัน">1–5 มวน/วัน</option><option value="6-10 มวนต่อวัน">6–10 มวน/วัน</option><option value="มากกว่า 10 มวนต่อวัน">มากกว่า 10 มวน/วัน</option></select></label></fieldset>
-              <fieldset class="behavior-card"><legend>การดื่มแอลกอฮอล์</legend><div class="choice-pills"><label><input type="radio" name="alcohol_state" value="no" required><span>ไม่ดื่ม</span></label><label><input type="radio" name="alcohol_state" value="yes"><span>ดื่ม</span></label></div><label id="alcohol-frequency-wrap" class="frequency-wrap" hidden>ความถี่<select name="alcohol_frequency"><option value="">เลือกความถี่</option><option value="1-2 ครั้งต่อสัปดาห์">1–2 ครั้ง/สัปดาห์</option><option value="3-5 ครั้งต่อสัปดาห์">3–5 ครั้ง/สัปดาห์</option><option value="ทุกวัน">ทุกวัน</option></select></label></fieldset>
-              <label class="behavior-card exercise-card">การออกกำลังกาย<select name="exercise_frequency" required><option value="">เลือกความถี่</option><option value="เพียงพอ">อย่างน้อย 3 ครั้ง/สัปดาห์</option><option value="1-2 ครั้งต่อสัปดาห์">1–2 ครั้ง/สัปดาห์</option><option value="ไม่ได้ออกกำลังกาย">ไม่ได้ออกกำลังกาย</option></select></label>
+              <fieldset class="behavior-card"><legend>การสูบบุหรี่</legend><div class="choice-pills behavior-state-choice"><label><input type="radio" name="smoking_state" value="no" required><span>ไม่สูบ</span></label><label><input type="radio" name="smoking_state" value="yes"><span>สูบ</span></label></div><div id="smoking-frequency-wrap" class="frequency-wrap" role="group" aria-labelledby="smoking-frequency-label" hidden><strong id="smoking-frequency-label" class="frequency-label">เลือกจำนวนที่สูบต่อวัน</strong><div class="choice-pills frequency-choices"><label><input type="radio" name="smoking_frequency" value="1-5 มวนต่อวัน"><span>1–5 มวน/วัน</span></label><label><input type="radio" name="smoking_frequency" value="6-10 มวนต่อวัน"><span>6–10 มวน/วัน</span></label><label><input type="radio" name="smoking_frequency" value="มากกว่า 10 มวนต่อวัน"><span>มากกว่า 10 มวน/วัน</span></label></div></div></fieldset>
+              <fieldset class="behavior-card"><legend>การดื่มแอลกอฮอล์</legend><div class="choice-pills behavior-state-choice"><label><input type="radio" name="alcohol_state" value="no" required><span>ไม่ดื่ม</span></label><label><input type="radio" name="alcohol_state" value="yes"><span>ดื่ม</span></label></div><div id="alcohol-frequency-wrap" class="frequency-wrap" role="group" aria-labelledby="alcohol-frequency-label" hidden><strong id="alcohol-frequency-label" class="frequency-label">เลือกความถี่ในการดื่ม</strong><div class="choice-pills frequency-choices"><label><input type="radio" name="alcohol_frequency" value="1-2 ครั้งต่อสัปดาห์"><span>1–2 ครั้ง/สัปดาห์</span></label><label><input type="radio" name="alcohol_frequency" value="3-5 ครั้งต่อสัปดาห์"><span>3–5 ครั้ง/สัปดาห์</span></label><label><input type="radio" name="alcohol_frequency" value="ทุกวัน"><span>ทุกวัน</span></label></div></div></fieldset>
+              <fieldset class="behavior-card exercise-card"><legend>การออกกำลังกาย</legend><div class="choice-pills frequency-choices exercise-choices"><label><input type="radio" name="exercise_frequency" value="เพียงพอ" required><span>อย่างน้อย 3 ครั้ง/สัปดาห์</span></label><label><input type="radio" name="exercise_frequency" value="1-2 ครั้งต่อสัปดาห์"><span>1–2 ครั้ง/สัปดาห์</span></label><label><input type="radio" name="exercise_frequency" value="ไม่ได้ออกกำลังกาย"><span>ไม่ได้ออกกำลังกาย</span></label></div></fieldset>
             </section>
 
             <section class="ncd-form-section">
@@ -246,6 +246,6 @@
     </section>
   </main>
 
-  <script type="module" src="./app.js?v=1.8.13"></script>
+  <script type="module" src="./app.js?v=1.8.14"></script>
 </body>
 </html>
