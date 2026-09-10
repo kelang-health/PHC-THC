@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.16';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.22';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: false, detectSessionInUrl: false }
@@ -14,11 +14,63 @@ let idleWatchActive = false;
 let idleLogoutInProgress = false;
 let lastActivityWrite = 0;
 let lockCountdownTimer = null;
+let loginBusyOverlay = null;
 
 const $ = selector => document.querySelector(selector);
 
 function loginButton(){ return $('#login-form .login-submit'); }
 function loginError(){ return $('#login-error'); }
+
+function ensureLoginBusyOverlay(){
+  if(loginBusyOverlay && document.body.contains(loginBusyOverlay)) return loginBusyOverlay;
+  if(!document.getElementById('phc-login-busy-style')){
+    const style = document.createElement('style');
+    style.id = 'phc-login-busy-style';
+    style.textContent = `
+      #phc-login-busy{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(20,49,45,.38);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+      #phc-login-busy[hidden]{display:none!important}
+      .phc-login-busy-card{width:min(360px,92vw);background:#fff;border:1px solid #d3e4de;border-radius:22px;padding:26px 22px;text-align:center;box-shadow:0 24px 70px rgba(16,46,40,.28);color:#17312d}
+      .phc-login-spinner{width:52px;height:52px;margin:0 auto 16px;border:6px solid #dcebe6;border-top-color:#0b6f60;border-radius:50%;animation:phc-login-spin .8s linear infinite}
+      .phc-login-busy-card strong{display:block;font-size:1.34rem;line-height:1.35;margin-bottom:7px}
+      .phc-login-busy-card p{margin:0;color:#5b716a;font-size:1.02rem;line-height:1.55}
+      @keyframes phc-login-spin{to{transform:rotate(360deg)}}
+      @media(max-width:640px){.phc-login-busy-card{padding:28px 20px;border-radius:20px}.phc-login-busy-card strong{font-size:1.42rem}.phc-login-busy-card p{font-size:1.08rem}.phc-login-spinner{width:58px;height:58px}}
+      @media(prefers-reduced-motion:reduce){.phc-login-spinner{animation-duration:1.6s}}
+    `;
+    document.head.appendChild(style);
+  }
+  loginBusyOverlay = document.createElement('div');
+  loginBusyOverlay.id = 'phc-login-busy';
+  loginBusyOverlay.hidden = true;
+  loginBusyOverlay.setAttribute('role','status');
+  loginBusyOverlay.setAttribute('aria-live','polite');
+  loginBusyOverlay.setAttribute('aria-label','กำลังเข้าสู่ระบบ');
+  loginBusyOverlay.innerHTML = `
+    <div class="phc-login-busy-card">
+      <div class="phc-login-spinner" aria-hidden="true"></div>
+      <strong>กำลังเข้าสู่ระบบ…</strong>
+      <p>กรุณารอสักครู่ ระบบกำลังตรวจสอบบัญชีของคุณ</p>
+    </div>`;
+  document.body.appendChild(loginBusyOverlay);
+  return loginBusyOverlay;
+}
+
+function showLoginBusy(){
+  const overlay = ensureLoginBusyOverlay();
+  overlay.hidden = false;
+  document.body.setAttribute('aria-busy','true');
+  const button = loginButton();
+  if(button){
+    button.disabled = true;
+    button.textContent = 'กำลังเข้าสู่ระบบ…';
+  }
+}
+
+function hideLoginBusy(){
+  const overlay = loginBusyOverlay || document.getElementById('phc-login-busy');
+  if(overlay) overlay.hidden = true;
+  document.body.removeAttribute('aria-busy');
+}
 
 function formatRemaining(seconds){
   const value = Math.max(0, Number(seconds) || 0);
@@ -34,6 +86,7 @@ function stopLockCountdown(){
 }
 
 function startLockCountdown(seconds){
+  hideLoginBusy();
   stopLockCountdown();
   let remaining = Math.max(1, Math.ceil(Number(seconds) || 600));
   const button = loginButton();
@@ -158,7 +211,11 @@ if(loginForm){
     const login = String(formData.get('login') || '').trim();
     const password = String(formData.get('password') || '');
     if(!login || !password){ if(error) error.textContent = 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน'; return; }
-    if(button) button.disabled = true;
+
+    let loginSucceeded = false;
+    showLoginBusy();
+    await new Promise(resolve => requestAnimationFrame(() => resolve()));
+
     try{
       const {response,payload} = await secureLogin(login,password);
       if(response.status === 423 || payload.error === 'LOGIN_LOCKED'){
@@ -184,11 +241,16 @@ if(loginForm){
       });
       if(setError || !data.session) throw setError || new Error('SESSION_SETUP_FAILED');
       writeLastActivity(Date.now(),true);
+      loginSucceeded = true;
       window.location.reload();
     }catch{
       if(error) error.textContent = 'ไม่สามารถเชื่อมต่อระบบเข้าสู่ระบบได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่';
     }finally{
-      if(button && !lockCountdownTimer){ button.disabled = false; button.textContent = 'เข้าสู่ระบบ'; }
+      if(!loginSucceeded) hideLoginBusy();
+      if(button && !lockCountdownTimer && !loginSucceeded){
+        button.disabled = false;
+        button.textContent = 'เข้าสู่ระบบ';
+      }
     }
   }, true);
 }
@@ -214,4 +276,5 @@ supabase.auth.onAuthStateChange((event,session)=>{
   }
 });
 
+ensureLoginBusyOverlay();
 initializeSessionSecurity();
