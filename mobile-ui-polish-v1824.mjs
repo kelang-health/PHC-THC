@@ -17,7 +17,7 @@ function injectStyle(){
     .welcome.session-compact h2{margin:0!important;font-size:1.02rem!important;line-height:1.25!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .welcome.session-compact #scope-label{margin:0!important;font-size:.78rem!important;line-height:1.25!important;color:#62736f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .welcome.session-compact #role-badge{align-self:center;justify-self:end;font-size:.72rem!important;padding:5px 8px!important;white-space:nowrap}
-    .welcome.session-compact .session-last-login{grid-column:1/-1;margin:1px 0 0;font-size:.70rem;line-height:1.25}
+    .welcome.session-compact .session-last-login{margin:1px 0 0;font-size:.70rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
     [data-portal-panel="communities"]{scroll-margin-top:128px}
     .wf22{gap:10px!important;margin-top:9px!important}
@@ -85,6 +85,8 @@ async function compactSessionHeader(){
     const first=welcome.querySelector(':scope > div:first-child');
     (first||welcome).appendChild(note);
   }
+  const scope=$('#scope-label',welcome);
+  if(scope?.textContent?.startsWith('ดูแลชุมชน ')) scope.textContent=`พื้นที่ ${scope.textContent.slice('ดูแลชุมชน '.length)}`;
   try{
     const {data:{session}}=await supabase.auth.getSession();
     const text=formatLogin(session?.user?.last_sign_in_at);
@@ -96,10 +98,8 @@ async function compactSessionHeader(){
 
 function start(){
   compactSessionHeader();
-  const portal=$('#portal');
-  if(!portal) return;
-  const ob=new MutationObserver(()=>compactSessionHeader());
-  ob.observe(portal,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
+  setTimeout(compactSessionHeader,400);
+  setTimeout(compactSessionHeader,1200);
 }
 
 export async function initMobileUIPolish1824(url,key){
