@@ -23,6 +23,8 @@ if (typeof window !== 'undefined') {
       await initInteractionFeedback1827();
       const { initSystemAboutNote1829 } = await import('./system-about-note-v1829.mjs?v=1.8.30');
       initSystemAboutNote1829();
+      const { initCommunityHouseholdQuality1831 } = await import('./community-household-quality-v1831.mjs?v=1.8.31');
+      await initCommunityHouseholdQuality1831(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     })
     .catch(error => console.error('Community GIS/house/mobile workflow modules load failed', error));
 }
