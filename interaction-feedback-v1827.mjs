@@ -1,4 +1,4 @@
-const VERSION='1.8.27';
+const VERSION='1.8.28';
 const LOGIN_SUCCESS_KEY='phc.auth.login-success';
 let popup=null,hideTimer=null,observer=null,lastOutcomeAt=0,lastSignature='';
 
