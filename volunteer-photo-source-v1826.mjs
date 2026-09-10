@@ -1,5 +1,5 @@
-const VERSION='1.8.32';
-let supabase=null,profile=null,photoRows=[],observer=null,mutationObserver=null;
+const VERSION='1.8.33';
+let supabase=null,profile=null,photoRows=[],observer=null,mutationObserver=null,refreshPromise=null,authSubscription=null;
 const $=(s,r=document)=>r.querySelector(s);
 
 function validPhotoUrl(url){
@@ -11,9 +11,9 @@ function validPhotoUrl(url){
 
 async function loadData(){
   const {data:{session}}=await supabase.auth.getSession();
-  if(!session)return;
+  if(!session){profile=null;photoRows=[];return;}
   const {data:p,error:pErr}=await supabase.from('profiles').select('user_id,role,community,volunteer_pid,active').eq('user_id',session.user.id).maybeSingle();
-  if(pErr||!p?.active)return;
+  if(pErr||!p?.active){profile=null;photoRows=[];return;}
   profile=p;
   const {data,error}=await supabase.rpc('volunteer_registry_profiles_v2');
   if(error)return;
@@ -43,7 +43,8 @@ function ensureImg(avatar,row){
     try{
       if(path){
         const {data,error}=await supabase.storage.from('volunteer-profiles').createSignedUrl(path,1800);
-        if(!error&&data?.signedUrl)src=data.signedUrl;
+        const signedUrl=data?.signedUrl||data?.signedURL||'';
+        if(!error&&signedUrl)src=signedUrl;
       }
     }catch{}
     if(!src&&validPhotoUrl(row.photo_source_url))src=row.photo_source_url;
@@ -76,14 +77,25 @@ function applyPhotos(){
 
 function setVersion(){const e=$('.login-version');if(e)e.textContent=`Cloud v${VERSION}`;}
 
+async function refreshPhotos(){
+  if(refreshPromise)return refreshPromise;
+  refreshPromise=(async()=>{await loadData();applyPhotos();setVersion();})();
+  try{await refreshPromise;}finally{refreshPromise=null;}
+}
+function scheduleRefresh(delay=0){setTimeout(()=>refreshPhotos().catch(()=>{}),delay);}
 async function start(){
-  await loadData();applyPhotos();setVersion();
+  await refreshPhotos();
   const portal=$('#portal');
   if(portal&&'MutationObserver'in window){
     let t=null;
-    mutationObserver=new MutationObserver(()=>{clearTimeout(t);t=setTimeout(applyPhotos,100);});
+    mutationObserver=new MutationObserver(()=>{clearTimeout(t);t=setTimeout(()=>{if(!profile||!photoRows.length)scheduleRefresh(0);else applyPhotos();},100);});
     mutationObserver.observe(portal,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden']});
   }
+  const {data}=supabase.auth.onAuthStateChange((event,session)=>{
+    if(event==='SIGNED_OUT'){profile=null;photoRows=[];return;}
+    if(session&&['INITIAL_SESSION','SIGNED_IN','TOKEN_REFRESHED','USER_UPDATED'].includes(event))scheduleRefresh(0);
+  });
+  authSubscription=data?.subscription||null;
 }
 
 export async function initVolunteerPhotoSource1826(url,key){

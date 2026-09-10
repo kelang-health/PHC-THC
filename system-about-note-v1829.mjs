@@ -1,4 +1,4 @@
-const VERSION='1.8.30';
+const VERSION='1.8.33';
 
 function injectStyle(){
   if(document.getElementById('system-about-note-v1829-style')) return;
@@ -34,7 +34,7 @@ function applyNote(){
   const note=document.querySelector('.privacy-note');
   if(!note) return;
   note.classList.add('system-about-note-v1829');
-  note.textContent='© 2026 อสม. พลัส (VHV Plus) | Design & Developed by Apiwat Meethong';
+  note.textContent=`© 2026 อสม. พลัส (VHV Plus) | Design & Developed by Apiwat Meethong | v${VERSION}`;
   const version=document.querySelector('.login-version');
   if(version) version.textContent=`Cloud v${VERSION}`;
 }

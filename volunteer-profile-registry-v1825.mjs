@@ -1,5 +1,5 @@
-const VERSION='1.8.32';
-let supabase=null,profile=null,rows=[],avatarObserver=null,portalObserver=null,statusFilter='all',searchText='',communityFilter='';
+const VERSION='1.8.33';
+let supabase=null,profile=null,rows=[],avatarObserver=null,portalObserver=null,statusFilter='all',searchText='',communityFilter='',enhancePromise=null,authSubscription=null;
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num=v=>Number(v||0).toLocaleString('th-TH');
@@ -57,14 +57,15 @@ function avatarHtml(v,small=false){
 }
 async function resolveAvatar(el){
   if(!el||el.dataset.photoLoaded==='1')return;el.dataset.photoLoaded='1';
-  const path=el.dataset.photoPath;if(!path)return;
+  const path=el.dataset.photoPath;if(!path){delete el.dataset.photoLoaded;return;}
   try{
     const {data,error}=await supabase.storage.from('volunteer-profiles').createSignedUrl(path,1800);
-    if(error||!data?.signedUrl)return;
-    const img=el.querySelector('img');if(!img)return;
-    img.onload=()=>{img.hidden=false;const t=el.querySelector('span');if(t)t.hidden=true;};
-    img.onerror=()=>{img.hidden=true;};img.src=data.signedUrl;
-  }catch{}
+    const signedUrl=data?.signedUrl||data?.signedURL||'';
+    if(error||!signedUrl){delete el.dataset.photoLoaded;return;}
+    const img=el.querySelector('img');if(!img){delete el.dataset.photoLoaded;return;}
+    img.onload=()=>{img.hidden=false;const t=el.querySelector(':scope > span');if(t)t.hidden=true;};
+    img.onerror=()=>{img.hidden=true;delete el.dataset.photoLoaded;};img.src=signedUrl;
+  }catch{delete el.dataset.photoLoaded;}
 }
 function observeAvatars(root=document){
   if(!avatarObserver&&'IntersectionObserver'in window){
@@ -112,12 +113,30 @@ function renderSelfProfile(){
 function paintWorkflowTasks(){
   document.querySelectorAll('.wf22-task[data-wf-task]').forEach(b=>{b.classList.remove('v25-clear','v25-yellow','v25-orange','v25-pink');const raw=(b.querySelector('strong')?.textContent||'').replace(/[^0-9]/g,'');const n=Number(raw||0),type=b.dataset.wfTask;if(n===0)b.classList.add('v25-clear');else if(type==='outside')b.classList.add('v25-pink');else if(type==='review')b.classList.add('v25-orange');else b.classList.add('v25-yellow');});
 }
-async function enhance(){
-  profile=await loadProfile();if(!profile?.active)return;await loadRows();renderRegistry();renderSelfProfile();paintWorkflowTasks();setVersion();
+function clearState(){
+  profile=null;rows=[];
+  document.querySelector('[data-vreg25]')?.remove();
+  document.querySelector('[data-vself25]')?.remove();
+  document.querySelector('[data-portal-panel="volunteers"]')?.classList.remove('vreg25-ready');
 }
+async function enhance(){
+  if(enhancePromise)return enhancePromise;
+  enhancePromise=(async()=>{
+    const nextProfile=await loadProfile();
+    if(!nextProfile?.active){clearState();return;}
+    profile=nextProfile;await loadRows();renderRegistry();renderSelfProfile();paintWorkflowTasks();setVersion();
+  })();
+  try{await enhancePromise;}finally{enhancePromise=null;}
+}
+function scheduleEnhance(delay=0){setTimeout(()=>enhance().catch(()=>{}),delay);}
 function start(){
-  enhance().catch(()=>{});setTimeout(()=>enhance().catch(()=>{}),500);setTimeout(()=>enhance().catch(()=>{}),1500);
-  const portal=$('#portal');if(portal&&'MutationObserver'in window){portalObserver=new MutationObserver(m=>{if(m.some(x=>x.type==='attributes'&&x.attributeName==='hidden')){setTimeout(()=>{renderRegistry();renderSelfProfile();paintWorkflowTasks();},80);}});portalObserver.observe(portal,{subtree:true,attributes:true,attributeFilter:['hidden']});}
+  scheduleEnhance(0);scheduleEnhance(500);scheduleEnhance(1500);
+  const portal=$('#portal');if(portal&&'MutationObserver'in window){portalObserver=new MutationObserver(m=>{if(m.some(x=>x.type==='attributes'&&x.attributeName==='hidden')){setTimeout(()=>{if(!profile||!rows.length)scheduleEnhance(0);else{renderRegistry();renderSelfProfile();paintWorkflowTasks();}},80);}});portalObserver.observe(portal,{subtree:true,attributes:true,attributeFilter:['hidden']});}
+  const {data}=supabase.auth.onAuthStateChange((event,session)=>{
+    if(event==='SIGNED_OUT'){clearState();return;}
+    if(session&&['INITIAL_SESSION','SIGNED_IN','TOKEN_REFRESHED','USER_UPDATED'].includes(event))scheduleEnhance(0);
+  });
+  authSubscription=data?.subscription||null;
 }
 export async function initVolunteerProfileRegistry1825(url,key){
   if(window.__PHC_VOLUNTEER_PROFILE_REGISTRY_1825__)return;window.__PHC_VOLUNTEER_PROFILE_REGISTRY_1825__=true;injectStyle();
