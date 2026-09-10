@@ -1,4 +1,4 @@
-const VERSION='1.8.38';
+const VERSION='1.8.39';
 const $=(selector,root=document)=>root.querySelector(selector);
 const $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
 
@@ -46,8 +46,8 @@ function initLoginKeypad(){
     setOptionalAttribute(login,'maxlength',numeric?'10':null);
     setOptionalAttribute(password,'pattern',numeric?'[0-9]*':null);
     setOptionalAttribute(password,'maxlength',numeric?'12':null);
-    if(loginLabel)loginLabel.textContent=numeric?'เบอร์โทรศัพท์':'อีเมลเจ้าหน้าที่';
-    if(passwordLabel)passwordLabel.textContent=numeric?'PIN':'รหัสผ่าน';
+    if(loginLabel)loginLabel.textContent='ชื่อผู้ใช้';
+    if(passwordLabel)passwordLabel.textContent='รหัสผ่าน';
     if(help)help.textContent='หากเข้าสู่ระบบไม่ได้ กรุณาติดต่อเจ้าหน้าที่';
     if(focus)login.focus({preventScroll:true});
   }
