@@ -15,6 +15,8 @@ if (typeof window !== 'undefined') {
       await initCommunityWorkflow1822(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initMobileUIPolish1824 } = await import('./mobile-ui-polish-v1824.mjs?v=1.8.24b');
       await initMobileUIPolish1824(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+      const { initVolunteerProfileRegistry1825 } = await import('./volunteer-profile-registry-v1825.mjs?v=1.8.25');
+      await initVolunteerProfileRegistry1825(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     })
     .catch(error => console.error('Community GIS/house/mobile workflow modules load failed', error));
 }
