@@ -1,4 +1,4 @@
-const VERSION='1.8.33';
+const VERSION='1.8.34';
 let supabase=null,profile=null,photoRows=[],observer=null,mutationObserver=null,refreshPromise=null,authSubscription=null;
 const $=(s,r=document)=>r.querySelector(s);
 
@@ -88,7 +88,12 @@ async function start(){
   const portal=$('#portal');
   if(portal&&'MutationObserver'in window){
     let t=null;
-    mutationObserver=new MutationObserver(()=>{clearTimeout(t);t=setTimeout(()=>{if(!profile||!photoRows.length)scheduleRefresh(0);else applyPhotos();},100);});
+    mutationObserver=new MutationObserver(mutations=>{
+      const panelChanged=mutations.some(x=>x.type==='attributes'&&x.attributeName==='hidden'&&x.target instanceof Element&&x.target.matches('[data-portal-panel]'));
+      const registryChanged=mutations.some(x=>x.type==='childList'&&[...x.addedNodes].some(n=>n.nodeType===1&&(n.matches?.('.vreg25-card,[data-vreg25],[data-vself25]')||n.querySelector?.('.vreg25-card,[data-vself25]'))));
+      if(!panelChanged&&!registryChanged)return;
+      clearTimeout(t);t=setTimeout(()=>{if(!profile||!photoRows.length)scheduleRefresh(0);else applyPhotos();},100);
+    });
     mutationObserver.observe(portal,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden']});
   }
   const {data}=supabase.auth.onAuthStateChange((event,session)=>{

@@ -1,4 +1,4 @@
-const VERSION='1.8.33';
+const VERSION='1.8.34';
 let supabase=null,profile=null,rows=[],avatarObserver=null,portalObserver=null,statusFilter='all',searchText='',communityFilter='',enhancePromise=null,authSubscription=null;
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -131,7 +131,7 @@ async function enhance(){
 function scheduleEnhance(delay=0){setTimeout(()=>enhance().catch(()=>{}),delay);}
 function start(){
   scheduleEnhance(0);scheduleEnhance(500);scheduleEnhance(1500);
-  const portal=$('#portal');if(portal&&'MutationObserver'in window){portalObserver=new MutationObserver(m=>{if(m.some(x=>x.type==='attributes'&&x.attributeName==='hidden')){setTimeout(()=>{if(!profile||!rows.length)scheduleEnhance(0);else{renderRegistry();renderSelfProfile();paintWorkflowTasks();}},80);}});portalObserver.observe(portal,{subtree:true,attributes:true,attributeFilter:['hidden']});}
+  const portal=$('#portal');if(portal&&'MutationObserver'in window){portalObserver=new MutationObserver(m=>{const panelChanged=m.some(x=>x.type==='attributes'&&x.attributeName==='hidden'&&x.target instanceof Element&&x.target.matches('[data-portal-panel]'));if(panelChanged){setTimeout(()=>{if(!profile||!rows.length)scheduleEnhance(0);else{renderRegistry();renderSelfProfile();paintWorkflowTasks();}},80);}});portalObserver.observe(portal,{subtree:true,attributes:true,attributeFilter:['hidden']});}
   const {data}=supabase.auth.onAuthStateChange((event,session)=>{
     if(event==='SIGNED_OUT'){clearState();return;}
     if(session&&['INITIAL_SESSION','SIGNED_IN','TOKEN_REFRESHED','USER_UPDATED'].includes(event))scheduleEnhance(0);
