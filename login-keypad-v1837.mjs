@@ -1,0 +1,86 @@
+const VERSION='1.8.37';
+const $=(selector,root=document)=>root.querySelector(selector);
+const $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
+
+function setOptionalAttribute(element,name,value){
+  if(value===null) element.removeAttribute(name);
+  else element.setAttribute(name,value);
+}
+
+function initVersion(){
+  const element=$('.login-version');
+  if(!element)return;
+  const expected=`Cloud v${VERSION}`;
+  const apply=()=>{if(element.textContent!==expected)element.textContent=expected;};
+  apply();
+  new MutationObserver(apply).observe(element,{childList:true,characterData:true,subtree:true});
+}
+
+function initLoginKeypad(){
+  const form=$('#login-form');
+  const card=$('#login-card');
+  const login=$('#login-name');
+  const password=$('#login-password');
+  const loginLabel=$('#login-name-label');
+  const passwordLabel=$('#login-password-label');
+  const help=$('#login-keyboard-help');
+  const buttons=$$('[data-login-mode]',form);
+  if(!form||!card||!login||!password||!buttons.length)return;
+  let mode='user';
+
+  function applyMode(next,{focus=false}={}){
+    mode=next==='staff'?'staff':'user';
+    const numeric=mode==='user';
+    card.dataset.loginMode=mode;
+    buttons.forEach(button=>{
+      const active=button.dataset.loginMode===mode;
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-pressed',String(active));
+    });
+    login.type=numeric?'tel':'email';
+    login.inputMode=numeric?'numeric':'email';
+    login.placeholder=numeric?'กรอกเบอร์โทร 10 หลัก':'กรอกอีเมลเจ้าหน้าที่';
+    password.inputMode=numeric?'numeric':'text';
+    password.placeholder=numeric?'PIN ตัวเลข 6–12 หลัก':'กรอกรหัสผ่านเจ้าหน้าที่';
+    setOptionalAttribute(login,'pattern',numeric?'[0-9]*':null);
+    setOptionalAttribute(login,'maxlength',numeric?'10':null);
+    setOptionalAttribute(password,'pattern',numeric?'[0-9]*':null);
+    setOptionalAttribute(password,'maxlength',numeric?'12':null);
+    if(loginLabel)loginLabel.textContent=numeric?'เบอร์โทรศัพท์':'อีเมลเจ้าหน้าที่';
+    if(passwordLabel)passwordLabel.textContent=numeric?'PIN':'รหัสผ่าน';
+    if(help)help.textContent=numeric
+      ?'โหมด อสม.: ทั้งสองช่องจะแสดงแป้นตัวเลขบนมือถือ'
+      :'โหมดเจ้าหน้าที่/Admin: ใช้อีเมลและรหัสผ่านตัวอักษร';
+    if(focus)login.focus({preventScroll:true});
+  }
+
+  buttons.forEach(button=>button.addEventListener('click',()=>applyMode(button.dataset.loginMode,{focus:true})));
+  login.addEventListener('input',()=>{
+    if(login.value.includes('@')&&mode!=='staff')applyMode('staff');
+  });
+  const syncAutofill=()=>applyMode(login.value.includes('@')?'staff':mode);
+  applyMode(login.value.includes('@')?'staff':'user');
+  setTimeout(syncAutofill,250);
+  setTimeout(syncAutofill,1000);
+}
+
+function initPasswordChangeKeypad(){
+  const card=$('#password-card');
+  const help=$('#password-help');
+  const inputs=$$('#password-form input[type="password"]');
+  if(!card||!help||!inputs.length)return;
+  const apply=()=>{
+    const numeric=/PIN/.test(help.textContent||'');
+    inputs.forEach(input=>{
+      input.inputMode=numeric?'numeric':'text';
+      setOptionalAttribute(input,'pattern',numeric?'[0-9]*':null);
+      setOptionalAttribute(input,'maxlength',numeric?'12':null);
+    });
+  };
+  apply();
+  new MutationObserver(apply).observe(card,{attributes:true,attributeFilter:['hidden'],subtree:true,childList:true,characterData:true});
+}
+
+initVersion();
+initLoginKeypad();
+initPasswordChangeKeypad();

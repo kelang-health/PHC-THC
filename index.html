@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>อสม. พลัส | งานสุขภาพชุมชน</title>
-  <link rel="stylesheet" href="./style.css?v=1.8.28">
+  <link rel="stylesheet" href="./style.css?v=1.8.37">
 </head>
 <body>
   <main class="shell">
@@ -31,12 +31,17 @@
         <p>อสม.ใช้เบอร์โทรศัพท์และ PIN ตามระบบเดิม · admin/staff ใช้อีเมล ข้อมูลถูกจำกัดด้วย PID และ Row Level Security</p>
       </div>
       <form id="login-form">
-        <label>ชื่อผู้ใช้<input name="login" type="text" autocomplete="username" placeholder="อสม.ใช้เบอร์โทร · เจ้าหน้าที่ใช้อีเมล" required></label>
-        <label>รหัสผ่าน<div class="password-field"><input id="login-password" name="password" type="password" autocomplete="current-password" required><button id="toggle-login-password" type="button" class="password-toggle" aria-label="แสดงรหัสผ่าน" aria-pressed="false" title="แสดงรหัสผ่าน"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.2 12s3.5-6 9.8-6 9.8 6 9.8 6-3.5 6-9.8 6-9.8-6-9.8-6Z"/><circle cx="12" cy="12" r="2.8"/><path class="eye-slash" d="m4 4 16 16"/></svg></button></div></label>
+        <div class="login-mode" role="group" aria-label="เลือกประเภทบัญชี">
+          <button type="button" class="active" data-login-mode="user" aria-pressed="true">อสม. · ตัวเลข</button>
+          <button type="button" data-login-mode="staff" aria-pressed="false">เจ้าหน้าที่ · อีเมล</button>
+        </div>
+        <label><span id="login-name-label">เบอร์โทรศัพท์</span><input id="login-name" name="login" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="10" autocomplete="username" placeholder="กรอกเบอร์โทร 10 หลัก" required></label>
+        <label><span id="login-password-label">PIN</span><div class="password-field"><input id="login-password" name="password" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="12" autocomplete="current-password" placeholder="PIN ตัวเลข 6–12 หลัก" required><button id="toggle-login-password" type="button" class="password-toggle" aria-label="แสดงรหัสผ่าน" aria-pressed="false" title="แสดงรหัสผ่าน"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.2 12s3.5-6 9.8-6 9.8 6 9.8 6-3.5 6-9.8 6-9.8-6-9.8-6Z"/><circle cx="12" cy="12" r="2.8"/><path class="eye-slash" d="m4 4 16 16"/></svg></button></div></label>
+        <p class="login-keyboard-help" id="login-keyboard-help">โหมด อสม.: ทั้งสองช่องจะแสดงแป้นตัวเลขบนมือถือ</p>
         <button class="primary login-submit">เข้าสู่ระบบ</button>
         <p id="login-error" class="error"></p>
       </form>
-      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v1.8.36</footer>
+      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v1.8.37</footer>
     </section>
 
     <section id="blocked" class="card" hidden>
@@ -246,7 +251,8 @@
     </section>
   </main>
 
+  <script type="module" src="./login-keypad-v1837.mjs?v=1.8.37"></script>
   <script type="module" src="./auth-security.mjs?v=1.8.28"></script>
-  <script type="module" src="./app.js?v=1.8.36"></script>
+  <script type="module" src="./app.js?v=1.8.37"></script>
 </body>
 </html>
