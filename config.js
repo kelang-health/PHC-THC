@@ -17,6 +17,8 @@ if (typeof window !== 'undefined') {
       await initMobileUIPolish1824(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initVolunteerProfileRegistry1825 } = await import('./volunteer-profile-registry-v1825.mjs?v=1.8.25');
       await initVolunteerProfileRegistry1825(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+      const { initVolunteerPhotoSource1826 } = await import('./volunteer-photo-source-v1826.mjs?v=1.8.26');
+      await initVolunteerPhotoSource1826(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     })
     .catch(error => console.error('Community GIS/house/mobile workflow modules load failed', error));
 }
