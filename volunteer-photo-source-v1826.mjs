@@ -1,4 +1,4 @@
-const VERSION='1.8.28';
+const VERSION='1.8.32';
 let supabase=null,profile=null,photoRows=[],observer=null,mutationObserver=null;
 const $=(s,r=document)=>r.querySelector(s);
 
@@ -17,7 +17,7 @@ async function loadData(){
   profile=p;
   const {data,error}=await supabase.rpc('volunteer_registry_profiles_v2');
   if(error)return;
-  photoRows=(data||[]).filter(r=>!String(r.photo_object_path||'').trim()&&validPhotoUrl(r.photo_source_url));
+  photoRows=(data||[]).filter(r=>String(r.photo_object_path||'').trim()||validPhotoUrl(r.photo_source_url));
 }
 
 function ensureImg(avatar,row){
@@ -35,12 +35,24 @@ function ensureImg(avatar,row){
     img.style.width='100%';img.style.height='100%';img.style.objectFit='cover';img.style.position='absolute';img.style.inset='0';
     avatar.appendChild(img);
   }
-  const load=()=>{
-    if(img.dataset.srcSet==='1')return;
+  const load=async()=>{
+    if(img.dataset.srcSet==='1'||img.dataset.loading==='1')return;
+    img.dataset.loading='1';
+    let src='';
+    const path=String(row.photo_object_path||'').trim();
+    try{
+      if(path){
+        const {data,error}=await supabase.storage.from('volunteer-profiles').createSignedUrl(path,1800);
+        if(!error&&data?.signedUrl)src=data.signedUrl;
+      }
+    }catch{}
+    if(!src&&validPhotoUrl(row.photo_source_url))src=row.photo_source_url;
+    delete img.dataset.loading;
+    if(!src){avatar.dataset.v26Ready='';return;}
     img.dataset.srcSet='1';
     img.onload=()=>{img.hidden=false;if(fallback)fallback.hidden=true;};
-    img.onerror=()=>{img.hidden=true;if(fallback)fallback.hidden=false;};
-    img.src=row.photo_source_url;
+    img.onerror=()=>{img.hidden=true;if(fallback)fallback.hidden=false;delete img.dataset.srcSet;avatar.dataset.v26Ready='';};
+    img.src=src;
   };
   if('IntersectionObserver'in window){
     if(!observer)observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){observer.unobserve(e.target);const fn=e.target.__v26Load;delete e.target.__v26Load;if(fn)fn();}}),{rootMargin:'180px'});

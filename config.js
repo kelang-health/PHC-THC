@@ -15,15 +15,15 @@ if (typeof window !== 'undefined') {
       await initCommunityWorkflow1822(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initMobileUIPolish1824 } = await import('./mobile-ui-polish-v1824.mjs?v=1.8.24b');
       await initMobileUIPolish1824(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initVolunteerProfileRegistry1825 } = await import('./volunteer-profile-registry-v1825.mjs?v=1.8.25');
+      const { initVolunteerProfileRegistry1825 } = await import('./volunteer-profile-registry-v1825.mjs?v=1.8.32');
       await initVolunteerProfileRegistry1825(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initVolunteerPhotoSource1826 } = await import('./volunteer-photo-source-v1826.mjs?v=1.8.28');
+      const { initVolunteerPhotoSource1826 } = await import('./volunteer-photo-source-v1826.mjs?v=1.8.32');
       await initVolunteerPhotoSource1826(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initInteractionFeedback1827 } = await import('./interaction-feedback-v1827.mjs?v=1.8.28');
       await initInteractionFeedback1827();
       const { initSystemAboutNote1829 } = await import('./system-about-note-v1829.mjs?v=1.8.30');
       initSystemAboutNote1829();
-      const { initCommunityHouseholdQuality1831 } = await import('./community-household-quality-v1831.mjs?v=1.8.31');
+      const { initCommunityHouseholdQuality1831 } = await import('./community-household-quality-v1831.mjs?v=1.8.32');
       await initCommunityHouseholdQuality1831(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     })
     .catch(error => console.error('Community GIS/house/mobile workflow modules load failed', error));

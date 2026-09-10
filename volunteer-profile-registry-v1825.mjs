@@ -1,4 +1,4 @@
-const VERSION='1.8.25';
+const VERSION='1.8.32';
 let supabase=null,profile=null,rows=[],avatarObserver=null,portalObserver=null,statusFilter='all',searchText='',communityFilter='';
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -34,7 +34,22 @@ async function loadProfile(){
   const {data,error}=await supabase.from('profiles').select('user_id,role,community,volunteer_pid,active').eq('user_id',session.user.id).maybeSingle();
   if(error)throw error;return data;
 }
-async function loadRows(){const {data,error}=await supabase.rpc('volunteer_registry_profiles');if(error)throw error;rows=data||[];}
+async function loadRows(){
+  const primary=await supabase.rpc('volunteer_registry_profiles_v2');
+  if(!primary.error)rows=primary.data||[];
+  else{
+    const fallback=await supabase.rpc('volunteer_registry_profiles');
+    if(fallback.error)throw primary.error;
+    rows=fallback.data||[];
+  }
+  if(!rows.some(r=>String(r.photo_object_path||'').trim())){
+    const {data:media,error:mediaError}=await supabase.from('volunteer_profile_media').select('source_pid,photo_object_path,photo_source_url,photo_alt');
+    if(!mediaError&&media?.length){
+      const byPid=new Map(media.map(m=>[String(m.source_pid),m]));
+      rows=rows.map(r=>({...r,...(byPid.get(String(r.source_pid))||{})}));
+    }
+  }
+}
 
 function avatarHtml(v,small=false){
   const p=String(v.photo_object_path||'').trim();
