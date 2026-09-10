@@ -1,0 +1,13 @@
+name: JS syntax check v1.8.25
+on:
+  push:
+    branches: [main]
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check volunteer profile module
+        run: |
+          node --check volunteer-profile-registry-v1825.mjs
+          node --check config.js
