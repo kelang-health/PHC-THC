@@ -21,7 +21,7 @@ if (typeof window !== 'undefined') {
       await initVolunteerPhotoSource1826(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initInteractionFeedback1827 } = await import('./interaction-feedback-v1827.mjs?v=1.8.28');
       await initInteractionFeedback1827();
-      const { initSystemAboutNote1829 } = await import('./system-about-note-v1829.mjs?v=1.8.29');
+      const { initSystemAboutNote1829 } = await import('./system-about-note-v1829.mjs?v=1.8.30');
       initSystemAboutNote1829();
     })
     .catch(error => console.error('Community GIS/house/mobile workflow modules load failed', error));
