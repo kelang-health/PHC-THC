@@ -1,4 +1,4 @@
-const VERSION='1.8.37';
+const VERSION='1.8.38';
 const $=(selector,root=document)=>root.querySelector(selector);
 const $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
 
@@ -39,18 +39,16 @@ function initLoginKeypad(){
     });
     login.type=numeric?'tel':'email';
     login.inputMode=numeric?'numeric':'email';
-    login.placeholder=numeric?'กรอกเบอร์โทร 10 หลัก':'กรอกอีเมลเจ้าหน้าที่';
+    login.removeAttribute('placeholder');
     password.inputMode=numeric?'numeric':'text';
-    password.placeholder=numeric?'PIN ตัวเลข 6–12 หลัก':'กรอกรหัสผ่านเจ้าหน้าที่';
+    password.removeAttribute('placeholder');
     setOptionalAttribute(login,'pattern',numeric?'[0-9]*':null);
     setOptionalAttribute(login,'maxlength',numeric?'10':null);
     setOptionalAttribute(password,'pattern',numeric?'[0-9]*':null);
     setOptionalAttribute(password,'maxlength',numeric?'12':null);
     if(loginLabel)loginLabel.textContent=numeric?'เบอร์โทรศัพท์':'อีเมลเจ้าหน้าที่';
     if(passwordLabel)passwordLabel.textContent=numeric?'PIN':'รหัสผ่าน';
-    if(help)help.textContent=numeric
-      ?'โหมด อสม.: ทั้งสองช่องจะแสดงแป้นตัวเลขบนมือถือ'
-      :'โหมดเจ้าหน้าที่/Admin: ใช้อีเมลและรหัสผ่านตัวอักษร';
+    if(help)help.textContent='หากเข้าสู่ระบบไม่ได้ กรุณาติดต่อเจ้าหน้าที่';
     if(focus)login.focus({preventScroll:true});
   }
 
