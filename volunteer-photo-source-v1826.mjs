@@ -1,4 +1,4 @@
-const VERSION='1.8.35';
+const VERSION='1.8.36';
 let supabase=null,profile=null,photoRows=[],observer=null,mutationObserver=null,refreshPromise=null,authSubscription=null;
 const $=(s,r=document)=>r.querySelector(s);
 
