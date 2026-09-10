@@ -1,4 +1,4 @@
-const VERSION='1.8.34';
+const VERSION='1.8.35';
 let supabase=null,profile=null,photoRows=[],observer=null,mutationObserver=null,refreshPromise=null,authSubscription=null;
 const $=(s,r=document)=>r.querySelector(s);
 
@@ -27,12 +27,10 @@ function ensureImg(avatar,row){
   let img=avatar.querySelector('img');
   if(!img){
     img=document.createElement('img');
-    img.hidden=true;
-    img.loading='lazy';
     img.decoding='async';
     img.referrerPolicy='no-referrer';
     img.alt=`รูป ${row.display_name||'อสม.'}`;
-    img.style.width='100%';img.style.height='100%';img.style.objectFit='cover';img.style.position='absolute';img.style.inset='0';
+    img.style.width='100%';img.style.height='100%';img.style.objectFit='cover';img.style.position='absolute';img.style.inset='0';img.style.opacity='0';img.style.visibility='hidden';
     avatar.appendChild(img);
   }
   const load=async()=>{
@@ -51,8 +49,8 @@ function ensureImg(avatar,row){
     delete img.dataset.loading;
     if(!src){avatar.dataset.v26Ready='';return;}
     img.dataset.srcSet='1';
-    img.onload=()=>{img.hidden=false;if(fallback)fallback.hidden=true;};
-    img.onerror=()=>{img.hidden=true;if(fallback)fallback.hidden=false;delete img.dataset.srcSet;avatar.dataset.v26Ready='';};
+    img.onload=()=>{img.style.opacity='1';img.style.visibility='visible';img.classList.add('v25-photo-loaded');if(fallback)fallback.hidden=true;};
+    img.onerror=()=>{img.style.opacity='0';img.style.visibility='hidden';img.classList.remove('v25-photo-loaded');if(fallback)fallback.hidden=false;delete img.dataset.srcSet;avatar.dataset.v26Ready='';};
     img.src=src;
   };
   if('IntersectionObserver'in window){
