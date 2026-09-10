@@ -1,4 +1,4 @@
-const VERSION='1.8.26';
+const VERSION='1.8.27';
 let supabase=null,profile=null,photoRows=[],observer=null,mutationObserver=null;
 const $=(s,r=document)=>r.querySelector(s);
 
@@ -17,7 +17,7 @@ async function loadData(){
   profile=p;
   const {data,error}=await supabase.rpc('volunteer_registry_profiles_v2');
   if(error)return;
-  photoRows=(data||[]).filter(r=>validPhotoUrl(r.photo_source_url));
+  photoRows=(data||[]).filter(r=>!String(r.photo_object_path||'').trim()&&validPhotoUrl(r.photo_source_url));
 }
 
 function ensureImg(avatar,row){

@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.26';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.27';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: true, autoRefreshToken: false, detectSessionInUrl: false }
@@ -8,6 +8,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
 const IDLE_TIMEOUT_MS = 10 * 60 * 1000;
 const LAST_ACTIVITY_KEY = 'phc.auth.last-activity';
 const IDLE_NOTICE_KEY = 'phc.auth.idle-notice';
+const LOGIN_SUCCESS_KEY = 'phc.auth.login-success';
 const ACTIVITY_WRITE_THROTTLE_MS = 2000;
 let idleTimer = null;
 let idleWatchActive = false;
@@ -241,6 +242,7 @@ if(loginForm){
       });
       if(setError || !data.session) throw setError || new Error('SESSION_SETUP_FAILED');
       writeLastActivity(Date.now(),true);
+      try{ sessionStorage.setItem(LOGIN_SUCCESS_KEY,'1'); }catch{}
       loginSucceeded = true;
       window.location.reload();
     }catch{
