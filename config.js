@@ -9,7 +9,7 @@ if (typeof window !== 'undefined') {
       await initHouseRegistration(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initMyHousesMobile } = await import('./my-houses-mobile-v1820.mjs?v=1.8.20');
       await initMyHousesMobile(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initMobileSpatialCards } = await import('./mobile-community-volunteer-cards-v1821.mjs?v=1.8.21');
+      const { initMobileSpatialCards } = await import('./mobile-community-volunteer-cards-v1821.mjs?v=1.8.21b');
       await initMobileSpatialCards(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     })
     .catch(error => console.error('Community GIS/house/mobile spatial modules load failed', error));
