@@ -13,7 +13,7 @@ if (typeof window !== 'undefined') {
       await initMobileSpatialCards(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initCommunityWorkflow1822 } = await import('./community-workflow-v1822.mjs?v=1.8.22');
       await initCommunityWorkflow1822(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initMobileUIPolish1824 } = await import('./mobile-ui-polish-v1824.mjs?v=1.8.24');
+      const { initMobileUIPolish1824 } = await import('./mobile-ui-polish-v1824.mjs?v=1.8.24b');
       await initMobileUIPolish1824(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     })
     .catch(error => console.error('Community GIS/house/mobile workflow modules load failed', error));
