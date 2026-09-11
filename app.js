@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.46';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.47';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -23,7 +23,7 @@ let portalCommunityRows = [];
 let portalVolunteerRows = [];
 let communityRequestId = 0;
 let healthCommunityFocus = '';
-let healthActiveViewAvailable = true;
+let healthActiveViewName = 'health_person_worklist_active_v1847';
 const PORTAL_NAV_STORAGE = 'phc.portal.nav-collapsed';
 
 function show(el, visible=true){ if(el) el.hidden = !visible; }
@@ -95,25 +95,25 @@ async function loadHealthSummary(){
 }
 async function loadHealthPeople(){
   const filter=$('#health-filter').value, stage=$('#health-stage').value, raw=$('#health-search').value.trim();
-  let q=supabase.from(healthActiveViewAvailable?'health_person_worklist_active_v1841':'health_person_worklist').select('source_pcucode,source_pid,hcode,house_no,moo,community,display_name,gender,birth_date,age_years,life_stage,has_ht,has_dm,known_ncd,ncd_target,latest_screened_on,latest_ncd_status,latest_severity,screened_current_fy,previous_screened_on,previous_weight_kg,previous_height_cm,previous_waist_cm,previous_sbp,previous_dbp,previous_glucose_mg_dl,previous_bmi,previous_source,previous_smoking,previous_alcohol,previous_exercise').order('community').order('hcode').order('display_name').limit(300);
+  let q=supabase.from(healthActiveViewName).select('source_pcucode,source_pid,hcode,house_no,moo,community,display_name,gender,birth_date,age_years,life_stage,has_ht,has_dm,has_cvd,cvd_population_eligible,known_ncd,ncd_target,latest_screened_on,latest_ncd_status,latest_severity,screened_current_fy,previous_screened_on,previous_weight_kg,previous_height_cm,previous_waist_cm,previous_sbp,previous_dbp,previous_glucose_mg_dl,previous_bmi,previous_source,previous_smoking,previous_alcohol,previous_exercise').order('community').order('hcode').order('display_name').limit(300);
   if(healthCommunityFocus)q=q.eq('community',healthCommunityFocus);
   if(filter==='due')q=q.eq('ncd_target',true).eq('screened_current_fy',false);
   else if(filter==='targets')q=q.eq('ncd_target',true);
   else if(filter==='known')q=q.eq('known_ncd',true);
   if(stage)q=q.eq('life_stage',stage);
   const term=raw.replace(/[%_,()]/g,'').slice(0,60); if(term)q=q.ilike('display_name',`%${term}%`);
-  const {data,error}=await q;if(error&&healthActiveViewAvailable){healthActiveViewAvailable=false;return loadHealthPeople();}if(error)throw error;healthPeople=data||[];
+  const {data,error}=await q;if(error&&healthActiveViewName==='health_person_worklist_active_v1847'){healthActiveViewName='health_person_worklist_active_v1841';return loadHealthPeople();}if(error&&healthActiveViewName==='health_person_worklist_active_v1841'){healthActiveViewName='health_person_worklist';return loadHealthPeople();}if(error)throw error;healthPeople=data||[];
   $('#health-person-body').innerHTML=healthPeople.map((p,i)=>`<tr><td><button type="button" class="health-person-name" data-health-person="${i}">${esc(p.display_name)}</button><small>${p.known_ncd?`โรคเดิม: ${p.has_ht?'HT ':''}${p.has_dm?'DM':''}`:'ยังไม่พบ DM/HT ใน personchronic'}</small></td><td>${esc(p.age_years??'—')} ปี<small>${esc(p.life_stage||'—')}</small></td><td>บ้าน ${esc(p.house_no||p.hcode)}<small>หมู่ ${esc(p.moo||'—')} · ${esc(p.community||'—')}</small></td><td class="${healthClass(p.latest_severity)}">${esc(p.latest_ncd_status||'ยังไม่มีผล')}<small>${p.latest_screened_on?esc(healthDateLabel(p.latest_screened_on)):''}</small></td><td><button type="button" class="row-open" data-health-person="${i}">${Number(p.age_years)>=18?'เปิดคัดกรอง':'ดูข้อมูล'}</button></td></tr>`).join('')||'<tr><td colspan="5">ไม่พบประชาชนตามตัวกรอง</td></tr>';
   $('#health-list-note').textContent=healthPeople.length>=300?'แสดงสูงสุด 300 ราย กรุณาใช้ค้นหาชื่อหรือตัวกรองเพื่อเจาะจงรายการ':'';
   document.querySelectorAll('[data-health-person]').forEach(b=>b.onclick=()=>selectHealthPerson(Number(b.dataset.healthPerson)));
 }
 async function loadHealthHistory(){
-  const {data,error}=await supabase.from('health_ncd_history').select('screened_on,display_name,house_no,hcode,ncd_status,severity,source_label,quality_valid,quality_issues,legacy_cvd_risk,recorded_at,mental_2q_status,mental_2q_result').order('screened_on',{ascending:false}).order('recorded_at',{ascending:false}).limit(50);
+  const {data,error}=await supabase.from('health_ncd_history').select('screened_on,display_name,house_no,hcode,ncd_status,severity,source_label,quality_valid,quality_issues,legacy_cvd_risk,recorded_at,mental_2q_status,mental_2q_result,cvd_risk_percent,cvd_risk_level,cvd_risk_eligible,cvd_risk_reason,cvd_model_version').order('screened_on',{ascending:false}).order('recorded_at',{ascending:false}).limit(50);
   if(error)throw error;
   $('#ncd-history-body').innerHTML=(data||[]).map(r=>{
     const quality=r.quality_valid===false?'<small class="bad">ข้อมูลเดิมต้องตรวจสอบ</small>':'';
     const source=`<span class="source-pill">${esc(r.source_label||'อสม. พลัส')}</span>${quality}`;
-    const cvd=r.legacy_cvd_risk?`<small>CVD เดิม: ${esc(r.legacy_cvd_risk)} · ใช้อ้างอิงย้อนหลังเท่านั้น</small>`:'';
+    const cvd=r.cvd_risk_eligible?`<small>Thai CV Risk: ${esc(Number(r.cvd_risk_percent).toFixed(1))}% · ${esc(thaiCvLevelLabel(r.cvd_risk_level))}</small>`:(r.legacy_cvd_risk?`<small>CVD เดิม: ${esc(r.legacy_cvd_risk)} · ใช้อ้างอิงย้อนหลังเท่านั้น</small>`:'');
     const mental=`<span class="mental-2q-status ${r.mental_2q_status||'not_assessed'}">${esc(mental2QLabel(r.mental_2q_status,r.mental_2q_result))}</span>`;
     return `<tr><td>${esc(healthDateLabel(r.screened_on))}</td><td>${esc(r.display_name||'ไม่ระบุชื่อ')}</td><td>${esc(r.house_no||r.hcode||'—')}</td><td>${source}</td><td class="${healthClass(r.severity)}">${esc(r.ncd_status||'—')}${cvd}</td><td>${mental}</td></tr>`;
   }).join('')||'<tr><td colspan="6">ยังไม่มีผลคัดกรองในขอบเขตของคุณ</td></tr>';
@@ -152,6 +152,7 @@ function renderNcdPreview(){
   $('#preview-glucose').textContent=!g?'รอกรอก':g<70?'ต่ำ':gt==='fasting'?(g>=126?'สูง':g>=100?'เริ่มสูง':'ช่วงปกติ'):gt==='random'?(g>=200?'สูง':'ยังสรุปไม่ได้'):'เลือกสถานะก่อนตรวจ';
   const limit=selectedHealthPerson.gender==='ชาย'?90:selectedHealthPerson.gender==='หญิง'?80:null;
   $('#preview-waist').textContent=!waist?'รอกรอก':limit===null?'ตรวจข้อมูลเพศ':waist>=limit?'เกินเกณฑ์':'ไม่เกินเกณฑ์';
+  renderThaiCvPreview();
 }
 function renderMental2QPreview(){
   const form=$('#ncd-form');if(!form)return;
@@ -163,6 +164,31 @@ function renderMental2QPreview(){
   output.dataset.status=state.status;
   output.textContent=mental2QLabel(state.status,state.result);
 }
+
+const THAI_CV_MODEL='thai-ascvd-score5-nolab-moph-2026-09';
+function thaiCvLevelLabel(level){return ({low:'ต่ำ',moderate:'ปานกลาง',high:'สูง',very_high:'สูงมาก',dangerous:'สูงอันตราย'})[level]||'—';}
+function thaiCvReasonLabel(reason){return ({assessed:'ประเมินอัตโนมัติ',population_not_eligible:'ไม่อยู่ในกลุ่มประชากรที่สูตรกำหนด',age_outside_35_70:'ใช้สำหรับอายุ 35–70 ปี',known_cvd_excluded:'มีประวัติโรคหัวใจ/หลอดเลือด — ไม่ใช้คะแนนนี้',gender_unavailable:'ข้อมูลเพศไม่ครบ',required_data_incomplete:'ข้อมูลคำนวณไม่ครบ'})[reason]||'ไม่ประเมิน';}
+function calculateThaiCvPreview(person,form){
+  const age=Number(person?.age_years),sbp=Number(form?.elements?.sbp?.value),waist=Number(form?.elements?.waist_cm?.value),height=Number(form?.elements?.height_cm?.value);
+  if(!person?.cvd_population_eligible)return {eligible:false,reason:'population_not_eligible'};
+  if(!Number.isFinite(age)||age<35||age>70)return {eligible:false,reason:'age_outside_35_70'};
+  if(person?.has_cvd)return {eligible:false,reason:'known_cvd_excluded'};
+  if(!['ชาย','หญิง'].includes(person?.gender))return {eligible:false,reason:'gender_unavailable'};
+  const smoke=form?.querySelector('[name="smoking_state"]:checked')?.value;
+  if(!sbp||!waist||!height||!smoke)return {eligible:false,reason:'required_data_incomplete'};
+  const sex=person.gender==='ชาย'?1:0,dm=person.has_dm?1:0,smoker=smoke==='yes'?1:0;
+  const score=(0.079*age)+(0.128*sex)+(0.019350987*sbp)+(0.58454*dm)+(3.512566*(waist/height))+(0.459*smoker);
+  const risk=Math.max(0,Math.min(100,(1-Math.pow(0.978296,Math.exp(score-7.720484)))*100));
+  const level=risk<10?'low':risk<20?'moderate':risk<30?'high':risk<40?'very_high':'dangerous';
+  return {eligible:true,riskPercent:risk,level,reason:'assessed',modelVersion:THAI_CV_MODEL};
+}
+function renderThaiCvPreview(){
+  const el=$('#preview-cvd'),form=$('#ncd-form');if(!el||!form||!selectedHealthPerson)return;
+  const cvd=calculateThaiCvPreview(selectedHealthPerson,form);
+  el.textContent=cvd.eligible?`${cvd.riskPercent.toFixed(1)}% ${thaiCvLevelLabel(cvd.level)}`:thaiCvReasonLabel(cvd.reason);
+  el.className=cvd.eligible?(cvd.riskPercent>=20?'bad':cvd.riskPercent>=10?'warn':'good'):'';
+}
+function savedThaiCvLabel(saved){return saved?.cvd_risk_eligible?`${Number(saved.cvd_risk_percent).toFixed(1)}% ${thaiCvLevelLabel(saved.cvd_risk_level)}`:thaiCvReasonLabel(saved?.cvd_risk_reason);}
 
 function feedbackBmiLabel(value){
   if(!Number.isFinite(value))return 'รอข้อมูล';
@@ -192,6 +218,7 @@ function feedbackActions(saved,mental){
   else if(saved.severity==='risk')actions.push('ปรับพฤติกรรมสุขภาพและติดตามค่าตามรอบที่หน่วยบริการกำหนด');
   else if(saved.severity==='normal')actions.push('รักษาพฤติกรรมสุขภาพที่ดีและตรวจติดตามตามรอบ');
   else actions.push('ทบทวนข้อมูลกับเจ้าหน้าที่ก่อนสรุปผล');
+  if(saved.cvd_risk_eligible && Number(saved.cvd_risk_percent)>=20) actions.push('Thai CV Risk ตั้งแต่ 20% ขึ้นไป ควรให้เจ้าหน้าที่ประเมินปัจจัยเสี่ยงร่วมและวางแผนติดตาม');
   if((saved.mental_2q_status??mental.status)==='assessed' && (saved.mental_2q_result??mental.result)===true) actions.push('2Q พบคำตอบบวก ควรประสานเจ้าหน้าที่เพื่อประเมินสุขภาพจิตต่อ');
   if(saved.advice && !actions.some(x=>saved.advice.includes(x))) actions.push(String(saved.advice).replace(/\s+/g,' ').trim());
   return actions.filter(Boolean).slice(0,3);
@@ -209,6 +236,7 @@ function buildHealthFeedbackModel(saved,mental,person,formData){
     {label:'รอบเอว',value:Number.isFinite(waist)?`${waist.toFixed(1)} ซม.`:'—',detail:feedbackWaistLabel(waist,person.gender)},
     {label:'ความดัน',value:Number.isFinite(sbp)&&Number.isFinite(dbp)?`${sbp}/${dbp}`:'—',detail:saved.bp_status||'รอผล'},
     {label:'น้ำตาล',value:Number.isFinite(glucose)?`${glucose} mg/dL`:'—',detail:saved.glucose_status||'รอผล'},
+    {label:'Thai CV Risk',value:saved.cvd_risk_eligible?`${Number(saved.cvd_risk_percent).toFixed(1)}%`:'ไม่ประเมิน',detail:saved.cvd_risk_eligible?thaiCvLevelLabel(saved.cvd_risk_level):thaiCvReasonLabel(saved.cvd_risk_reason)},
     {label:'สุขภาพจิต 2Q',value:mental2QLabel(mentalStatus,mentalResult),detail:mentalStatus==='assessed'?'ประเมินครบ 2 ข้อ':'ไม่ใช้สรุปแทนการประเมิน'}
   ];
   const changes=[
@@ -245,7 +273,7 @@ function wrapCanvasText(ctx,text,maxWidth){
   if(line)lines.push(line);return lines.length?lines:[''];
 }
 function createHealthFeedbackCanvas(model){
-  const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1550;const ctx=canvas.getContext('2d');
+  const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1700;const ctx=canvas.getContext('2d');
   ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);
   ctx.fillStyle='#126f61';ctx.fillRect(0,0,canvas.width,22);
   ctx.fillStyle='#17312d';ctx.font='800 54px system-ui, sans-serif';ctx.fillText('บัตรสรุปสุขภาพ',70,105);
@@ -264,7 +292,7 @@ function createHealthFeedbackCanvas(model){
   if(model.changes.length){ctx.fillStyle='#17312d';ctx.font='800 29px system-ui, sans-serif';ctx.fillText('เปลี่ยนแปลงจากครั้งก่อน',70,y+8);y+=50;ctx.fillStyle='#526b65';ctx.font='500 25px system-ui, sans-serif';wrapCanvasText(ctx,model.changes.join(' · '),930).slice(0,2).forEach((line,i)=>ctx.fillText(line,70,y+i*32));y+=78;}
   ctx.fillStyle='#17312d';ctx.font='800 29px system-ui, sans-serif';ctx.fillText('สิ่งที่ควรทำต่อ',70,y);y+=42;ctx.fillStyle='#405e57';ctx.font='500 25px system-ui, sans-serif';
   for(const action of model.actions.slice(0,3)){const lines=wrapCanvasText(ctx,`• ${action}`,900).slice(0,2);for(const line of lines){ctx.fillText(line,85,y);y+=32;}y+=9;}
-  ctx.fillStyle='#75857f';ctx.font='500 22px system-ui, sans-serif';ctx.fillText('ผลนี้เป็นการคัดกรองเบื้องต้น ไม่ใช่การวินิจฉัยโรค',70,1460);ctx.fillText('ภาพนี้ไม่แสดงชื่อ PID, HN, บ้าน หรือข้อมูลติดต่อ',70,1500);
+  ctx.fillStyle='#75857f';ctx.font='500 22px system-ui, sans-serif';ctx.fillText('ผลนี้เป็นการคัดกรองเบื้องต้น ไม่ใช่การวินิจฉัยโรค',70,1610);ctx.fillText('ภาพนี้ไม่แสดงชื่อ PID, HN, บ้าน หรือข้อมูลติดต่อ',70,1650);
   return canvas;
 }
 async function shareHealthFeedback(){
@@ -310,7 +338,7 @@ function bindNcdSectionNav(){
 function selectHealthPerson(index){
   const p=healthPeople[index]; if(!p)return; selectedHealthPerson=p;
   $('#ncd-person-summary').innerHTML=`<strong>${esc(p.display_name)}</strong><span>${esc(p.age_years??'—')} ปี · ${esc(p.gender)} · ${esc(p.community||'—')}</span>`;
-  const conditions=[];if(p.has_ht)conditions.push('<span class="condition-badge disease">มีประวัติ HT</span>');if(p.has_dm)conditions.push('<span class="condition-badge disease">มีประวัติ DM</span>');if(!p.known_ncd)conditions.push('<span class="condition-badge clear">ยังไม่พบ DM/HT ใน JHCIS</span>');$('#ncd-condition-badges').innerHTML=conditions.join('');
+  const conditions=[];if(p.has_ht)conditions.push('<span class="condition-badge disease">มีประวัติ HT</span>');if(p.has_dm)conditions.push('<span class="condition-badge disease">มีประวัติ DM</span>');if(!p.known_ncd)conditions.push('<span class="condition-badge clear">ยังไม่พบ DM/HT ใน JHCIS</span>');if(p.has_cvd)conditions.push('<span class="condition-badge disease">มีประวัติ CVD · ไม่ใช้ Thai CV Risk</span>');else if(p.cvd_population_eligible&&Number(p.age_years)>=35&&Number(p.age_years)<=70)conditions.push('<span class="condition-badge clear">Thai CV Risk คำนวณอัตโนมัติ</span>');$('#ncd-condition-badges').innerHTML=conditions.join('');
   const card=$('#ncd-screen-card'); card.hidden=!(Number(p.age_years)>=18); if(card.hidden){return;}
   const form=$('#ncd-form'); form.reset(); form.elements.screened_on.value=localDate(); form.dataset.requestId=requestId(); $('#ncd-result').hidden=true; healthFeedbackModel=null; closeHealthFeedbackCard(); closeNcdSaveConfirmation(false); $('#ncd-error').textContent=''; setActiveNcdSection('ncd-section-measure',false);
   renderPreviousPanel(p);
@@ -345,8 +373,8 @@ async function saveHealthScreening(event){
   const payload={p_source_pcucode:p.source_pcucode,p_source_pid:Number(p.source_pid),p_screened_on:d.get('screened_on')||null,p_weight_kg:formNumber(d.get('weight_kg')),p_height_cm:formNumber(d.get('height_cm')),p_waist_cm:formNumber(d.get('waist_cm')),p_sbp:formNumber(d.get('sbp')),p_dbp:formNumber(d.get('dbp')),p_glucose_mg_dl:formNumber(d.get('glucose_mg_dl')),p_glucose_type:glucoseType,p_danger_symptoms:false,p_smoking_frequency:smokingFrequency,p_alcohol_frequency:alcoholFrequency,p_exercise_frequency:d.get('exercise_frequency'),p_note:d.get('note')||'',p_request_id:form.dataset.requestId||requestId(),p_mental_2q_q1:mental.q1,p_mental_2q_q2:mental.q2};
   button.disabled=true;
   try{
-    const {data:saved,error:saveError}=await supabase.rpc('save_health_ncd_screening_v3',payload); if(saveError)throw saveError;
-    result.innerHTML=`<strong>${esc(saved.ncd_status)}</strong><span>${esc(saved.bp_status)} · ${esc(saved.glucose_status)} · 2Q: ${esc(mental2QLabel(saved.mental_2q_status,saved.mental_2q_result))}</span>`; result.hidden=false; renderHealthFeedbackCard(buildHealthFeedbackModel(saved,mental,p,d)); form.dataset.requestId=requestId(); showNcdSaveConfirmation();
+    const {data:saved,error:saveError}=await supabase.rpc('save_health_ncd_screening_v4',payload); if(saveError)throw saveError;
+    result.innerHTML=`<strong>${esc(saved.ncd_status)}</strong><span>${esc(saved.bp_status)} · ${esc(saved.glucose_status)} · CVD: ${esc(savedThaiCvLabel(saved))} · 2Q: ${esc(mental2QLabel(saved.mental_2q_status,saved.mental_2q_result))}</span>`; result.hidden=false; renderHealthFeedbackCard(buildHealthFeedbackModel(saved,mental,p,d)); form.dataset.requestId=requestId(); showNcdSaveConfirmation();
     const key=personKey(p); await Promise.all([loadHealthSummary(),loadHealthPeople()]); await loadHealthHistory(); const refreshed=healthPeople.find(x=>personKey(x)===key); if(refreshed){selectedHealthPerson=refreshed;renderPreviousPanel(refreshed);}
     result.scrollIntoView({behavior:'smooth',block:'nearest'});
   }catch(e){error.textContent=e.message;}finally{button.disabled=false;}
