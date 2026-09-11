@@ -1,19 +1,9 @@
-const VERSION='1.8.39';
 const $=(selector,root=document)=>root.querySelector(selector);
 const $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
 
 function setOptionalAttribute(element,name,value){
   if(value===null) element.removeAttribute(name);
   else element.setAttribute(name,value);
-}
-
-function initVersion(){
-  const element=$('.login-version');
-  if(!element)return;
-  const expected=`Cloud v${VERSION}`;
-  const apply=()=>{if(element.textContent!==expected)element.textContent=expected;};
-  apply();
-  new MutationObserver(apply).observe(element,{childList:true,characterData:true,subtree:true});
 }
 
 function initLoginKeypad(){
@@ -79,6 +69,5 @@ function initPasswordChangeKeypad(){
   new MutationObserver(apply).observe(card,{attributes:true,attributeFilter:['hidden'],subtree:true,childList:true,characterData:true});
 }
 
-initVersion();
 initLoginKeypad();
 initPasswordChangeKeypad();
