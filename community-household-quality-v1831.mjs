@@ -1,4 +1,4 @@
-const VERSION='1.8.61';
+const VERSION='1.8.62';
 let supabase=null,profile=null,communityRows=[],scopeMode='own',scopeCommunity='',activeCommunity='',panelObserver=null,houseRows=[],houseFilter='all',houseSearch='',houseLimit=80,detailMap=null,leafletPromise=null,residenceFeatureReady=true;
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
