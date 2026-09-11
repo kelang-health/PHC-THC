@@ -1,4 +1,4 @@
-const VERSION='1.8.48';
+const VERSION='1.8.49';
 const CENTER=[18.2696,99.5071];
 let supabase=null,profile=null,observer=null,leafletPromise=null,quickMap=null,fieldMap=null,fieldMarker=null,fieldDraftMarker=null,fieldHouses=[],fieldFilter='pending',fieldIndex=0,searchTimer=null,enhanceTimer=null;
 const $=(s,r=document)=>r.querySelector(s);
