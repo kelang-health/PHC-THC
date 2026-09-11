@@ -93,8 +93,18 @@ async function loadHealthSummary(){
   $('#mental-2q-note').textContent=`สรุปจากผล NCD ล่าสุด ${num(q2.latest_ncd_screenings)} ราย · พบคำตอบบวก ${num(q2.mental_2q_positive)} ราย`;
   $('#life-stage-stats').innerHTML=[['เด็กปฐมวัย',x.early_child],['เด็กวัยเรียน',x.school_age],['วัยรุ่นและเยาวชน',x.youth],['วัยทำงาน',x.working_age],['ผู้สูงอายุ',x.older_people]].map(([l,v])=>`<div class="life-chip"><span>${esc(l)}</span><strong>${num(v)}</strong></div>`).join('');
 }
+function syncHealthTargetButtons(){
+  const filter=$('#health-filter').value;
+  $('#health-view-linked-targets').classList.toggle('active',filter==='due');
+  $('#health-view-all-targets').classList.toggle('active',filter==='targets');
+}
+async function setHealthTargetFilter(filter){
+  healthCommunityFocus='';
+  const focus=$('#health-community-focus');if(focus)focus.hidden=true;
+  $('#health-filter').value=filter;syncHealthTargetButtons();await loadHealthPeople();
+}
 async function loadHealthPeople(){
-  const filter=$('#health-filter').value, stage=$('#health-stage').value, raw=$('#health-search').value.trim();
+  const filter=$('#health-filter').value;syncHealthTargetButtons();const stage=$('#health-stage').value, raw=$('#health-search').value.trim();
   let q=supabase.from(healthActiveViewName).select('source_pcucode,source_pid,hcode,house_no,moo,community,display_name,gender,birth_date,age_years,life_stage,has_ht,has_dm,has_cvd,cvd_population_eligible,known_ncd,ncd_target,latest_screened_on,latest_ncd_status,latest_severity,screened_current_fy,previous_screened_on,previous_weight_kg,previous_height_cm,previous_waist_cm,previous_sbp,previous_dbp,previous_glucose_mg_dl,previous_bmi,previous_source,previous_smoking,previous_alcohol,previous_exercise').order('community').order('hcode').order('display_name').limit(300);
   if(healthCommunityFocus)q=q.eq('community',healthCommunityFocus);
   if(filter==='due')q=q.eq('ncd_target',true).eq('screened_current_fy',false);
@@ -381,6 +391,9 @@ async function saveHealthScreening(event){
 }
 async function loadHealthModule(){
   const focus=$('#health-community-focus');focus.hidden=!healthCommunityFocus;focus.querySelector('strong').textContent=healthCommunityFocus||'';
+  if(!healthLoaded&&profile.role==='staff')$('#health-filter').value='due';
+  $('#health-target-scope-note').textContent=profile.role==='staff'?`ชุมชน ${profile.community||'ที่ได้รับมอบหมาย'} · แสดงงานที่ผูกไว้ก่อน`:profile.role==='user'?'บ้านในความรับผิดชอบ · แสดงงานที่ผูกไว้ก่อน':'ทุกพื้นที่ · เลือกดูเป้าหมายทั้งหมดได้';
+  syncHealthTargetButtons();
   await loadHealthSummary(); await loadHealthPeople(); await loadHealthHistory(); healthLoaded=true;
   bindNcdSectionNav();
   $('#ncd-form').onsubmit=saveHealthScreening; $('#ncd-close').onclick=()=>{closeNcdSaveConfirmation(false);closeHealthFeedbackCard();healthFeedbackModel=null;$('#ncd-screen-card').hidden=true;selectedHealthPerson=null;};
@@ -389,7 +402,8 @@ async function loadHealthModule(){
   $('#health-feedback-share').onclick=shareHealthFeedback;$('#health-feedback-close').onclick=closeHealthFeedbackCard;
   $('#health-refresh').onclick=async()=>{healthLoaded=false;await loadHealthModule();};
   $('#health-clear-community').onclick=async()=>{healthCommunityFocus='';focus.hidden=true;await loadHealthPeople();};
-  $('#health-filter').onchange=loadHealthPeople; $('#health-stage').onchange=loadHealthPeople;
+  $('#health-view-linked-targets').onclick=()=>setHealthTargetFilter('due'); $('#health-view-all-targets').onclick=()=>setHealthTargetFilter('targets');
+  $('#health-filter').onchange=()=>{syncHealthTargetButtons();return loadHealthPeople();}; $('#health-stage').onchange=loadHealthPeople;
   $('#health-search').oninput=()=>{clearTimeout(healthSearchTimer);healthSearchTimer=setTimeout(()=>loadHealthPeople().catch(e=>$('#health-list-note').textContent=e.message),300);};
 }
 
@@ -589,3 +603,4 @@ $('#portal-nav-toggle').addEventListener('click',()=>setPortalNavCollapsed(!$('#
 $('#ncd-form').addEventListener('change',event=>{if(event.target.matches('[name="smoking_state"],[name="alcohol_state"]'))syncBehaviorPanels(event.currentTarget);});
 restorePortalNavPreference();
 refreshAuth();
+

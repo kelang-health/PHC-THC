@@ -150,8 +150,12 @@
           <p id="mental-2q-note" class="muted"></p>
         </section>
         <div id="life-stage-stats" class="life-stage-grid"></div>
+        <div class="health-target-shortcuts" aria-label="ตัวเลือกประชากรเป้าหมาย">
+          <div><strong>เลือกประชากรคัดกรอง</strong><small id="health-target-scope-note">แสดงเป้าหมายตามสิทธิ์ของบัญชี</small></div>
+          <div class="health-target-actions"><button id="health-view-linked-targets" type="button" class="primary active">เป้าหมายที่ผูกไว้</button><button id="health-view-all-targets" type="button" class="secondary">ดูเป้าหมายทั้งหมด</button></div>
+        </div>
         <div class="health-toolbar">
-          <label>งานที่ต้องดู<select id="health-filter"><option value="due">NCD 35+ ยังไม่คัดกรองปีงบฯ นี้</option><option value="targets">เป้าหมาย NCD 35+</option><option value="known">ผู้มี DM/HT เดิม</option><option value="all">ประชาชนทั้งหมดในสิทธิ์</option></select></label>
+          <label>งานที่ต้องดู<select id="health-filter"><option value="due">เป้าหมายที่ผูกไว้และยังไม่คัดกรอง</option><option value="targets">เป้าหมาย NCD 35+</option><option value="known">ผู้มี DM/HT เดิม</option><option value="all">ประชาชนทั้งหมดในสิทธิ์</option></select></label>
           <label>กลุ่มวัย<select id="health-stage"><option value="">ทุกกลุ่มวัย</option><option>เด็กปฐมวัย</option><option>เด็กวัยเรียน</option><option>วัยรุ่นและเยาวชน</option><option>วัยทำงาน</option><option>ผู้สูงอายุ</option></select></label>
           <label class="health-search">ค้นหาชื่อ<input id="health-search" type="search" placeholder="พิมพ์ชื่อประชาชน"></label>
         </div>
@@ -270,3 +274,4 @@
   <script type="module" src="./app.js?v=1.8.47"></script>
 </body>
 </html>
+
