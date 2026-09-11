@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.41';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.42';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -57,6 +57,10 @@ function configurePortalNav(role){
     b.onclick=async()=>{setPortalView(b.dataset.portalView);if(b.dataset.portalView==='health'&&!healthLoaded){try{await loadHealthModule();}catch(e){$('#health-person-body').innerHTML=`<tr><td colspan="5">${esc(e.message)}</td></tr>`;}}};
   });
   setPortalView('overview');
+}
+function configureHealthAdminUI(role){
+  const adminIntro=$('#health-admin-intro');
+  if(adminIntro)adminIntro.hidden=role!=='admin';
 }
 
 function localDate(){return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'});}
@@ -341,6 +345,7 @@ async function loadPortal(session, requestId){
   $('#my-house-body').innerHTML=myHouses.map(h=>`<tr><td><strong>${esc(h.house_no||'ไม่ระบุ')}</strong></td><td>${esc(h.moo||'—')}</td><td>${esc(h.community||'—')}</td><td>${esc(h.record_status||'—')}</td><td>${esc(h.coordinate_status||'—')}</td><td class="${h.review_required?'warn':'good'}">${h.review_required?'ต้องตรวจ':'ปกติ'}</td></tr>`).join('')||'<tr><td colspan="6">ยังไม่มีบ้านในความรับผิดชอบ</td></tr>';
   healthLoaded=false; selectedHealthPerson=null; healthPeople=[];
   configurePortalNav(profile.role);
+  configureHealthAdminUI(profile.role);
 
   if(requestId !== authRequestId || passwordPanelOpen) return;
   renderAuthView('portal');
@@ -421,4 +426,3 @@ $('#portal-nav-toggle').addEventListener('click',()=>setPortalNavCollapsed(!$('#
 $('#ncd-form').addEventListener('change',event=>{if(event.target.matches('[name="smoking_state"],[name="alcohol_state"]'))syncBehaviorPanels(event.currentTarget);});
 restorePortalNavPreference();
 refreshAuth();
-

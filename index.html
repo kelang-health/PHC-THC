@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>อสม. พลัส | งานสุขภาพชุมชน</title>
-  <link rel="stylesheet" href="./style.css?v=1.8.41">
+  <link rel="stylesheet" href="./style.css?v=1.8.42">
 </head>
 <body>
   <main class="shell">
@@ -41,7 +41,7 @@
         <button class="primary login-submit">เข้าสู่ระบบ</button>
         <p id="login-error" class="error"></p>
       </form>
-      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v1.8.41</footer>
+      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v1.8.42</footer>
     </section>
 
     <section id="blocked" class="card" hidden>
@@ -134,12 +134,15 @@
       </section>
 
       <section class="card health-center" data-portal-panel="health" hidden>
-        <div class="section-head">
-          <div><p class="eyebrow">HEALTH WORK CENTER</p><h2>งานสุขภาพของพื้นที่</h2><p class="muted">ฐานเดียวกับ อสม. พลัส · เลือกประชาชนจากบ้านที่ได้รับสิทธิ์ ไม่ต้องกรอก PID เอง</p></div>
+        <div class="section-head health-center-heading">
+          <div><p class="eyebrow">HEALTH WORK CENTER</p><h2>งานสุขภาพของพื้นที่</h2></div>
+        </div>
+        <div id="health-admin-intro" class="health-admin-intro" hidden>
+          <p class="muted">ฐานเดียวกับ อสม. พลัส · เลือกประชาชนจากบ้านที่ได้รับสิทธิ์ ไม่ต้องกรอก PID เอง</p>
           <button id="health-refresh" type="button" class="secondary">รีเฟรชงาน</button>
+          <div class="notice go-live-note"><strong>ช่วงทดสอบก่อนเปิดใช้จริง:</strong> ผลคัดกรองก่อนวันที่ 1 ตุลาคม 2569 จะถูกบันทึกเป็นข้อมูลทดสอบและไม่นับเป็นผลงานปีงบประมาณ 2570</div>
         </div>
         <div id="health-community-focus" class="health-community-focus" hidden><span>กำลังกรองรายชื่อคัดกรองของ <strong></strong><small>ตัวเลขสรุปด้านบนยังเป็นภาพรวมทุกพื้นที่ตามสิทธิ์</small></span><button id="health-clear-community" type="button" class="secondary">ดูทุกพื้นที่ตามสิทธิ์</button></div>
-        <div class="notice go-live-note"><strong>ช่วงทดสอบก่อนเปิดใช้จริง:</strong> ผลคัดกรองก่อนวันที่ 1 ตุลาคม 2569 จะถูกบันทึกเป็นข้อมูลทดสอบและไม่นับเป็นผลงานปีงบประมาณ 2570</div>
         <div id="health-stats" class="stats compact-stats"></div>
         <section class="mental-2q-summary" aria-labelledby="mental-2q-summary-title">
           <div><strong id="mental-2q-summary-title">สุขภาพจิต 2Q</strong><small>แยกสถานะจากผล NCD และนับเฉพาะผู้ตอบครบว่า “ประเมินแล้ว”</small></div>
@@ -253,7 +256,6 @@
 
   <script type="module" src="./login-keypad-v1837.mjs?v=1.8.39"></script>
   <script type="module" src="./auth-security.mjs?v=1.8.28"></script>
-  <script type="module" src="./app.js?v=1.8.41"></script>
+  <script type="module" src="./app.js?v=1.8.42"></script>
 </body>
 </html>
-

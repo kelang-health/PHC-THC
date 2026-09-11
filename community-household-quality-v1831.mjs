@@ -1,4 +1,4 @@
-const VERSION='1.8.41';
+const VERSION='1.8.42';
 let supabase=null,profile=null,communityRows=[],scopeMode='own',scopeCommunity='',activeCommunity='',panelObserver=null,houseRows=[],houseFilter='all',houseSearch='',houseLimit=80,detailMap=null,leafletPromise=null,residenceFeatureReady=true;
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -81,4 +81,3 @@ function observe(){const panel=$('[data-portal-panel="communities"]');if(!panel|
 function setVersion(){const e=$('.login-version');if(e)e.textContent=`Cloud v${VERSION}`;}
 async function start(){profile=await loadProfile();if(!profile?.active)return;const {data,error}=await supabase.rpc('spatial_community_cards');if(error)return;communityRows=data||[];scopeCommunity=profile.community||'';activeCommunity=profile.community||'';renderScopeSelector();installClickTracking();observe();setTimeout(()=>{applyScopeCards();refreshScopeSummary();maybeRenderHouseholds();},500);setVersion();}
 export async function initCommunityHouseholdQuality1831(url,key){if(window.__PHC_COMMUNITY_HOUSEHOLD_1831__)return;window.__PHC_COMMUNITY_HOUSEHOLD_1831__=true;injectStyle();const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');supabase=createClient(url,key,{auth:{persistSession:true,autoRefreshToken:false,detectSessionInUrl:false}});if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();}
-

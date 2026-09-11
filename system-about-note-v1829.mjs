@@ -1,4 +1,4 @@
-const VERSION='1.8.41';
+const VERSION='1.8.42';
 
 function injectStyle(){
   if(document.getElementById('system-about-note-v1829-style')) return;
@@ -46,4 +46,3 @@ export function initSystemAboutNote1829(){
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',applyNote,{once:true});
   else applyNote();
 }
-
