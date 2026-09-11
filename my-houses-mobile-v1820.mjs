@@ -1,4 +1,4 @@
-const VERSION='1.8.59';
+const VERSION='1.8.60';
 const DEFAULT_CENTER=[18.2696,99.5071];
 let supabase=null,panel=null,profile=null,houses=[],selected=null,map=null,markers=null,draftMarker=null,draft=null,boundary=null,leafletPromise=null,observer=null,modal=null,modalMap=null,modalMarker=null,modalBoundary=null,modalPoint=null,modalLocationCheck=null,modalMode='add',modalHouse=null,enhancePromise=null;
 const $=(s,r=document)=>r.querySelector(s);
@@ -20,8 +20,8 @@ function setMsg(text,type='info'){const e=$('[data-myh-msg]',panel);if(e){e.text
 function status(h){if(!hasCoord(h))return'ยังไม่มีพิกัด';if(h.review_required)return'มีพิกัด แต่ควรตรวจสอบ';if(String(h.coordinate_status||'').startsWith('resolved_'))return'ยืนยันพิกัดจากพื้นที่แล้ว';return'มีพิกัด';}
 function markerColor(h){if(h.review_required)return'#b75a42';if(String(h.coordinate_status||'').startsWith('resolved_'))return'#17745f';return'#3979a8';}
 async function loadProfile(){const {data:{session}}=await supabase.auth.getSession();if(!session)return null;const {data,error}=await supabase.from('profiles').select('user_id,role,community,volunteer_pid,active').eq('user_id',session.user.id).maybeSingle();if(error)throw error;return data;}
-async function loadHouses(){const all=[];for(let from=0;;from+=1000){const {data,error}=await supabase.from('houses').select('id,hcode,house_no,moo,community,latitude,longitude,coordinate_source,coordinate_status,record_status,review_required,review_reason,volunteer_pid,house_id_11,entry_source').order('house_no').range(from,from+999);if(error)throw error;all.push(...(data||[]));if(!data||data.length<1000)break;}houses=all.sort(natural);}
-async function loadQuota(){const {data,error}=await supabase.rpc('house_add_quota');if(error)throw error;return data;}
+async function loadHouses(){const {data,error}=await supabase.rpc('my_household_cards_v1860');if(error)throw error;houses=(data||[]).sort(natural);}
+async function loadQuota(){if(profile?.role==='staff')return {limit:null,remaining:null,staff:true};const {data,error}=await supabase.rpc('house_add_quota');if(error)throw error;return data;}
 function renderOptions(term=''){const list=$('[data-myh-house-list]',panel),count=$('[data-myh-filter-count]',panel);if(!list)return;const q=String(term||'').trim().toLowerCase();const filtered=q?houses.filter(h=>String(h.house_no||'').toLowerCase().includes(q)||String(h.hcode||'').toLowerCase().includes(q)||String(h.house_id_11||'').includes(q)):houses;list.innerHTML=filtered.map(h=>`<button type="button" class="myh-house-pick" data-myh-house-pick="${esc(h.id)}"><span><strong>บ้านเลขที่ ${esc(h.house_no||'ไม่ระบุ')}</strong><small>หมู่ ${esc(h.moo||'—')} · ${esc(h.community||'—')} · ${esc(status(h))}</small></span><span>เปิดบ้าน ›</span></button>`).join('')||'<div class="myh-selected-note">ไม่พบบ้านตามคำค้นหา</div>';list.querySelectorAll('[data-myh-house-pick]').forEach(b=>b.onclick=()=>openHouse(b.dataset.myhHousePick));if(count)count.textContent=`พบ ${filtered.length.toLocaleString('th-TH')} หลัง`;}
 function renderMarkers(){if(!map||!markers)return;markers.clearLayers();const bounds=[];houses.forEach(h=>{if(!hasCoord(h))return;const lat=Number(h.latitude),lng=Number(h.longitude);const m=window.L.circleMarker([lat,lng],{radius:9,color:'#fff',weight:2,fillColor:markerColor(h),fillOpacity:.94,bubblingMouseEvents:false}).addTo(markers);m.bindPopup(`<strong>บ้าน ${esc(h.house_no)}</strong><br>${esc(status(h))}`);m.on('click',()=>selectHouse(h.id,true));bounds.push([lat,lng]);});if(bounds.length&&!selected){try{map.fitBounds(bounds,{padding:[22,22],maxZoom:17});}catch{}}}
 function links(){const view=$('[data-myh-view]',panel),dir=$('[data-myh-dir]',panel);const p=draft||(hasCoord(selected)?{lat:Number(selected.latitude),lng:Number(selected.longitude)}:null);if(!p){[view,dir].forEach(x=>{x.classList.add('disabled');x.removeAttribute('href');});return;}const q=encodeURIComponent(`${p.lat},${p.lng}`);view.href=`https://www.google.com/maps/search/?api=1&query=${q}`;dir.href=`https://www.google.com/maps/dir/?api=1&destination=${q}`;view.classList.remove('disabled');dir.classList.remove('disabled');}
@@ -58,22 +58,22 @@ function openConfirm(){validateModal();if($('[data-modal-submit]',modal).disable
 function friendlyError(m){m=String(m||'');if(m.includes('DUPLICATE_HOUSE_ID_11'))return'รหัสบ้าน 11 หลักนี้มีอยู่แล้วในระบบ';if(m.includes('DUPLICATE_HOUSE_NO_MOO'))return'บ้านเลขที่นี้มีอยู่แล้วในหมู่เดียวกัน';if(m.includes('VHV_HOUSE_LIMIT'))return'คุณเพิ่มบ้านครบ 30 หลังแล้ว';if(m.includes('OUTSIDE_TAMBON'))return'พิกัดอยู่นอก ต.พระบาท';if(m.includes('OUTSIDE_COMMUNITY'))return'พิกัดอยู่นอกชุมชนของคุณ';if(m.includes('HOUSE_OUT_OF_SCOPE'))return'บัญชีนี้ไม่มีสิทธิ์แก้บ้านหลังนี้';return'บันทึกไม่สำเร็จ กรุณาตรวจข้อมูลแล้วลองใหม่';}
 async function commitModal(){const b=$('[data-modal-ok]',modal),old=b.textContent;b.disabled=true;b.textContent='กำลังบันทึก…';try{const no=$('[data-modal-house-no]',modal).value.trim(),id=$('[data-modal-id11]',modal).value.trim();let data,error;if(modalMode==='add')({data,error}=await supabase.rpc('add_house_field',{p_house_no:no,p_house_id_11:id,p_latitude:modalPoint.lat,p_longitude:modalPoint.lng,p_source:modalPoint.source,p_community:profile.community}));else({data,error}=await supabase.rpc('update_house_field_details',{p_house_id:modalHouse.id,p_house_no:no,p_house_id_11:id||null}));if(error)throw error;const newId=data?.house_id||modalHouse?.id||null;const message=modalMode==='add'?`เพิ่มบ้าน ${data.house_no} เรียบร้อยแล้ว`:`แก้ไขบ้าน ${data.house_no} เรียบร้อยแล้ว`;closeModal();await reload();setMsg(message,'good');if(newId)selectHouse(newId);}catch(e){showConfirm(false);modalMsg(friendlyError(e?.message||e),'bad');}finally{b.disabled=false;b.textContent=old;}}
 
-async function reload(){const keep=selected?.id||null;await loadHouses();const quota=await loadQuota();$('[data-myh-count]',panel).textContent=`${houses.length.toLocaleString('th-TH')} หลัง`;$('[data-myh-quota]',panel).textContent=quota.limit==null?'ตามสิทธิ์':`${quota.remaining}/${quota.limit} หลัง`;$('[data-myh-add]',panel).disabled=quota.limit!=null&&Number(quota.remaining)<=0;selected=keep?houses.find(h=>String(h.id)===String(keep))||null:null;renderOptions($('[data-myh-search]',panel)?.value||'');updateCard();}
+async function reload(){const keep=selected?.id||null;await loadHouses();const quota=await loadQuota();$('[data-myh-count]',panel).textContent=`${houses.length.toLocaleString('th-TH')} หลัง`;const quotaLabel=$('[data-myh-quota]',panel),addButton=$('[data-myh-add]',panel);if(profile.role==='staff'){quotaLabel.textContent='ประธาน อสม.';addButton.hidden=true;}else{quotaLabel.textContent=quota.limit==null?'ตามสิทธิ์':`${quota.remaining}/${quota.limit} หลัง`;addButton.disabled=quota.limit!=null&&Number(quota.remaining)<=0;}selected=keep?houses.find(h=>String(h.id)===String(keep))||null:null;renderOptions($('[data-myh-search]',panel)?.value||'');updateCard();}
 async function enhance(){
   if(enhancePromise)return enhancePromise;
   enhancePromise=(async()=>{
     const p=document.querySelector('[data-portal-panel="houses"]');if(!p)return;
     const existing=myHouseRoots(p);
     if(p.dataset.myHousesMobile===VERSION&&existing.length===1){panel=p;return;}
-    profile=await loadProfile();if(!profile||profile.role!=='user'||!profile.active)return;
+    profile=await loadProfile();if(!profile||!['user','staff'].includes(profile.role)||!profile.active||profile.volunteer_pid==null)return;
     panel=p;myHouseRoots(p).forEach(el=>el.remove());p.classList.add('my-houses-mobile-ready');
     const root=createMain();p.appendChild(root);
     $('[data-myh-search]',root).oninput=e=>renderOptions(e.target.value);
     $('[data-myh-add]',root).onclick=openAdd;
     await loadHouses();const quota=await loadQuota();
     $('[data-myh-count]',root).textContent=`${houses.length.toLocaleString('th-TH')} หลัง`;
-    $('[data-myh-quota]',root).textContent=quota.limit==null?'ตามสิทธิ์':`${quota.remaining}/${quota.limit} หลัง`;
-    $('[data-myh-add]',root).disabled=quota.limit!=null&&Number(quota.remaining)<=0;
+    const quotaLabel=$('[data-myh-quota]',root),addButton=$('[data-myh-add]',root);
+    if(profile.role==='staff'){quotaLabel.textContent='ประธาน อสม.';addButton.hidden=true;}else{quotaLabel.textContent=quota.limit==null?'ตามสิทธิ์':`${quota.remaining}/${quota.limit} หลัง`;addButton.disabled=quota.limit!=null&&Number(quota.remaining)<=0;}
     renderOptions();setMsg(houses.length?'แตะบ้านเลขที่เพื่อเปิดหน้าทำงานของบ้านนั้น':'ยังไม่มีบ้านในความรับผิดชอบ สามารถกด “เพิ่มบ้านใหม่” ได้','info');
     p.dataset.myHousesMobile=VERSION;
   })();

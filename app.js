@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.59';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.60';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -23,6 +23,7 @@ let portalCommunityRows = [];
 let portalVolunteerRows = [];
 let communityRequestId = 0;
 let healthCommunityFocus = '';
+let careScopeMode = 'self';
 let healthActiveViewName = 'health_person_worklist_active_v1847';
 const PORTAL_NAV_STORAGE = 'phc.portal.nav-collapsed';
 
@@ -52,7 +53,7 @@ function setPortalNavCollapsed(collapsed,persist=true){
 function restorePortalNavPreference(){let collapsed=false;try{collapsed=localStorage.getItem(PORTAL_NAV_STORAGE)==='1';}catch{}setPortalNavCollapsed(collapsed,false);}
 function setPortalView(next){const allowed=[...document.querySelectorAll('#portal-nav [data-portal-view]')].filter(b=>!b.hidden).map(b=>b.dataset.portalView);portalView=allowed.includes(next)?next:'overview';document.querySelectorAll('[data-portal-panel]').forEach(x=>x.hidden=x.dataset.portalPanel!==portalView);document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>b.classList.toggle('active',b.dataset.portalView===portalView));if(window.innerWidth<=900)window.scrollTo({top:0,behavior:'smooth'});}
 function configurePortalNav(role){
-  const labels={admin:{communities:'ชุมชนทั้งหมด',volunteers:'ทะเบียน อสม.'},staff:{communities:'ชุมชนที่ดูแล',volunteers:'อสม. ในชุมชน'},user:{communities:'ชุมชนของฉัน',houses:'บ้านของฉัน'}};
+  const labels={admin:{communities:'ชุมชนทั้งหมด',volunteers:'ทะเบียน อสม.'},staff:{communities:'ชุมชนที่ดูแล',houses:'บ้านของฉัน'},user:{communities:'ชุมชนของฉัน',houses:'บ้านของฉัน'}};
   document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>{
     b.hidden=!(b.dataset.roles||'').split(/\s+/).includes(role);
     const label=b.querySelector('.portal-nav-label'),roleLabelText=labels[role]?.[b.dataset.portalView];if(label&&roleLabelText)label.textContent=roleLabelText;
@@ -77,20 +78,17 @@ function healthClass(severity){return severity==='urgent'||severity==='alert'?'b
 function formatHealthValue(value,suffix=''){return value===null||value===undefined||value===''?'—':`${value}${suffix}`;}
 function healthDateLabel(value){if(!value)return 'ยังไม่มีประวัติคัดกรอง';try{return new Date(value+'T00:00:00').toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});}catch{return value;}}
 async function loadHealthSummary(){
-  const [{data,error},{data:q2Data,error:q2Error}]=await Promise.all([
-    supabase.from('health_work_summary').select('*').maybeSingle(),
-    supabase.from('health_2q_summary').select('*').maybeSingle()
-  ]);
-  if(error)throw error;if(q2Error)throw q2Error;const x=data||{},q2=q2Data||{};
+  const {data,error}=await supabase.rpc('care_dashboard_v1860',{p_scope:careScopeMode});
+  if(error)throw error;const x=data||{};
   $('#health-stats').innerHTML=[
-    [x.people,'ประชาชนในสิทธิ์'],[x.ncd_targets,'เป้าหมาย NCD 35+'],[x.ncd_screened_current_fy,'คัดกรองแล้วปีงบฯ'],[x.ncd_due,'คงเหลือ'],[x.known_ncd,'DM/HT เดิม']
+    [x.people,'ประชาชนในสิทธิ์'],[x.ncd_targets,'เป้าหมาย NCD 35+'],[x.ncd_done,'คัดกรองแล้วปีงบฯ'],[x.ncd_due,'คงเหลือ'],[x.known_ncd,'DM/HT เดิม']
   ].map(([v,l])=>`<article class="stat"><small>${esc(l)}</small><strong>${num(v)}</strong></article>`).join('');
   $('#mental-2q-stats').innerHTML=[
-    [q2.mental_2q_assessed,'ประเมินแล้ว','good'],
-    [q2.mental_2q_not_assessed,'ไม่ได้ประเมิน',''],
-    [q2.mental_2q_incomplete,'ข้อมูลไม่ครบ','warn']
+    [x.mental_2q_assessed,'ประเมินแล้ว','good'],
+    [x.mental_2q_not_assessed,'ไม่ได้ประเมิน',''],
+    [x.mental_2q_incomplete,'ข้อมูลไม่ครบ','warn']
   ].map(([v,l,c])=>`<article class="stat ${c}"><small>${esc(l)}</small><strong>${num(v)}</strong></article>`).join('');
-  $('#mental-2q-note').textContent=`สรุปจากผล NCD ล่าสุด ${num(q2.latest_ncd_screenings)} ราย · พบคำตอบบวก ${num(q2.mental_2q_positive)} ราย`;
+  $('#mental-2q-note').textContent=`พบคำตอบบวก ${num(x.mental_2q_positive)} ราย · ขอบเขต ${x.scope_label||'ตามสิทธิ์'}`;
   $('#life-stage-stats').innerHTML=[['เด็กปฐมวัย',x.early_child],['เด็กวัยเรียน',x.school_age],['วัยรุ่นและเยาวชน',x.youth],['วัยทำงาน',x.working_age],['ผู้สูงอายุ',x.older_people]].map(([l,v])=>`<div class="life-chip"><span>${esc(l)}</span><strong>${num(v)}</strong></div>`).join('');
 }
 function syncHealthTargetButtons(){
@@ -105,8 +103,9 @@ async function setHealthTargetFilter(filter){
 }
 async function loadHealthPeople(){
   const filter=$('#health-filter').value;syncHealthTargetButtons();const stage=$('#health-stage').value, raw=$('#health-search').value.trim();
-  let q=supabase.from(healthActiveViewName).select('source_pcucode,source_pid,hcode,house_no,moo,community,display_name,gender,birth_date,age_years,life_stage,has_ht,has_dm,has_cvd,cvd_population_eligible,known_ncd,ncd_target,latest_screened_on,latest_ncd_status,latest_severity,screened_current_fy,previous_screened_on,previous_weight_kg,previous_height_cm,previous_waist_cm,previous_sbp,previous_dbp,previous_glucose_mg_dl,previous_bmi,previous_source,previous_smoking,previous_alcohol,previous_exercise').order('community').order('hcode').order('display_name').limit(300);
+  let q=supabase.from(healthActiveViewName).select('source_pcucode,source_pid,hcode,house_no,moo,community,volunteer_pid,display_name,gender,birth_date,age_years,life_stage,has_ht,has_dm,has_cvd,cvd_population_eligible,known_ncd,ncd_target,latest_screened_on,latest_ncd_status,latest_severity,screened_current_fy,previous_screened_on,previous_weight_kg,previous_height_cm,previous_waist_cm,previous_sbp,previous_dbp,previous_glucose_mg_dl,previous_bmi,previous_source,previous_smoking,previous_alcohol,previous_exercise').order('community').order('hcode').order('display_name').limit(300);
   if(healthCommunityFocus)q=q.eq('community',healthCommunityFocus);
+  if(currentProfile?.role==='staff'&&careScopeMode==='self'&&currentProfile?.volunteer_pid!=null)q=q.eq('volunteer_pid',currentProfile.volunteer_pid);
   if(filter==='due')q=q.eq('ncd_target',true).eq('screened_current_fy',false);
   else if(filter==='targets')q=q.eq('ncd_target',true);
   else if(filter==='known')q=q.eq('known_ncd',true);
@@ -391,8 +390,8 @@ async function saveHealthScreening(event){
 }
 async function loadHealthModule(){
   const focus=$('#health-community-focus');focus.hidden=!healthCommunityFocus;focus.querySelector('strong').textContent=healthCommunityFocus||'';
-  if(!healthLoaded&&profile.role==='staff')$('#health-filter').value='due';
-  $('#health-target-scope-note').textContent=profile.role==='staff'?`ชุมชน ${profile.community||'ที่ได้รับมอบหมาย'} · แสดงงานที่ผูกไว้ก่อน`:profile.role==='user'?'บ้านในความรับผิดชอบ · แสดงงานที่ผูกไว้ก่อน':'ทุกพื้นที่ · เลือกดูเป้าหมายทั้งหมดได้';
+  if(!healthLoaded&&currentProfile?.role==='staff')$('#health-filter').value='due';
+  $('#health-target-scope-note').textContent=currentProfile?.role==='staff'?(careScopeMode==='community'?`ชุมชน ${currentProfile.community||'ที่ได้รับมอบหมาย'} · บทบาทประธาน อสม.`:'บ้านและประชาชนที่ฉันรับผิดชอบ · บทบาท อสม.') : currentProfile?.role==='user'?'บ้านในความรับผิดชอบ · แสดงงานที่ผูกไว้ก่อน':'ทุกพื้นที่ · เลือกดูเป้าหมายทั้งหมดได้';
   syncHealthTargetButtons();
   await loadHealthSummary(); await loadHealthPeople(); await loadHealthHistory(); healthLoaded=true;
   bindNcdSectionNav();
@@ -479,7 +478,7 @@ async function loadPortal(session, requestId){
   if(requestId !== authRequestId || passwordPanelOpen) return;
   if(mErr) throw mErr; if(cErr) throw cErr; if(wErr) throw wErr;
   let myHouses=[];
-  if(profile.role==='user'){const {data,error}=await supabase.from('houses').select('house_no,moo,community,record_status,coordinate_status,review_required').order('house_no');if(error)throw error;myHouses=data||[];}
+  if(['user','staff'].includes(profile.role)&&profile.volunteer_pid!=null){const {data,error}=await supabase.rpc('my_household_cards_v1860');if(error)throw error;myHouses=data||[];}
   if(requestId !== authRequestId || passwordPanelOpen) return;
 
   const activeNames = new Set((master || []).map(x => x.name));
@@ -499,7 +498,7 @@ async function loadPortal(session, requestId){
   }),{houses:0,assigned:0,review:0,outside:0,missing:0});
 
   $('#welcome-name').textContent = profile.display_name || session.user.email || 'ภาพรวมพื้นที่';
-  $('#scope-label').textContent = profile.role==='admin' ? 'ทุก 16 ชุมชนในระบบ' : profile.role==='staff' ? `ดูแลชุมชน ${profile.community||'ยังไม่ได้กำหนดชุมชน'}` : 'บ้านและประชาชนในความรับผิดชอบของคุณ';
+  $('#scope-label').textContent = profile.role==='admin' ? 'ทุก 16 ชุมชนในระบบ' : profile.role==='staff' ? `อสม.ในพื้นที่รับผิดชอบ · ประธานชุมชน ${profile.community||'ยังไม่ได้กำหนดชุมชน'}` : 'บ้านและประชาชนในความรับผิดชอบของคุณ';
   $('#role-badge').textContent = roleLabel(profile.role);
   $('#community-count').textContent = `${num(rows.length)} ชุมชน`;
   $('#stats').innerHTML = [
@@ -598,6 +597,12 @@ supabase.auth.onAuthStateChange((event,session)=>{
   if((event==='INITIAL_SESSION' || event==='SIGNED_IN') && session){
     setTimeout(()=>applyAuthSession(session),0);
   }
+});
+document.addEventListener('phc:care-scope-changed',async event=>{
+  const next=event.detail?.scope;careScopeMode=next==='community'?'community':next==='all'?'all':'self';
+  if(currentProfile?.role==='user')careScopeMode='self';
+  if(currentProfile?.role==='admin')careScopeMode='all';
+  if(healthLoaded){try{await loadHealthSummary();await loadHealthPeople();}catch{}}
 });
 $('#portal-nav-toggle').addEventListener('click',()=>setPortalNavCollapsed(!$('#portal').classList.contains('nav-collapsed')));
 $('#ncd-form').addEventListener('change',event=>{if(event.target.matches('[name="smoking_state"],[name="alcohol_state"]'))syncBehaviorPanels(event.currentTarget);});
