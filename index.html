@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>อสม. พลัส | งานสุขภาพชุมชน</title>
-  <link rel="stylesheet" href="./style.css?v=1.8.42">
+  <link rel="stylesheet" href="./style.css?v=1.8.43">
 </head>
 <body>
   <main class="shell">
@@ -41,7 +41,7 @@
         <button class="primary login-submit">เข้าสู่ระบบ</button>
         <p id="login-error" class="error"></p>
       </form>
-      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v1.8.42</footer>
+      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v1.8.43</footer>
     </section>
 
     <section id="blocked" class="card" hidden>
@@ -162,14 +162,18 @@
 
         <section id="ncd-screen-card" class="nested-card ncd-mobile-card" hidden>
           <div class="section-head ncd-screen-head">
-            <div>
-              <p class="eyebrow">SMART NCD CARE · MOBILE SCREENING</p>
-              <h3>คัดกรอง NCD</h3>
+            <div class="ncd-identity">
               <div id="ncd-person-summary" class="person-summary"></div>
               <div id="ncd-condition-badges" class="condition-badges"></div>
             </div>
-            <button id="ncd-close" type="button" class="secondary">ปิด</button>
+            <button id="ncd-close" type="button" class="secondary" aria-label="ปิดแบบคัดกรอง">ปิด</button>
           </div>
+          <nav id="ncd-section-nav" class="ncd-section-nav" aria-label="เมนูคัดกรอง NCD">
+            <button type="button" class="active" data-ncd-section-target="ncd-section-measure">ค่าที่วัด</button>
+            <button type="button" data-ncd-section-target="ncd-section-mental">2Q</button>
+            <button type="button" data-ncd-section-target="ncd-section-behavior">พฤติกรรม</button>
+            <button type="button" data-ncd-section-target="ncd-section-review">ตรวจสอบ</button>
+          </nav>
 
           <section id="ncd-previous-panel" class="previous-screen-card" hidden>
             <div class="previous-head">
@@ -188,7 +192,7 @@
           </section>
 
           <form id="ncd-form" class="ncd-mobile-form">
-            <section class="ncd-form-section">
+            <section id="ncd-section-measure" class="ncd-form-section">
               <div class="ncd-section-title"><span>1</span><div><strong>ค่าที่วัดวันนี้</strong><small>แตะตัวเลขเพื่อพิมพ์ กด −/+ หรือเลื่อนแถบได้ · ไม่ดึง BP/น้ำตาลเดิมมาบันทึกอัตโนมัติ</small></div></div>
               <label class="screen-date">วันที่ตรวจ<input name="screened_on" type="date" required></label>
               <button id="ncd-use-previous-body" type="button" class="previous-fill" hidden>ใช้ส่วนสูง น้ำหนัก และรอบเอวครั้งก่อน</button>
@@ -200,30 +204,26 @@
                 <div class="measure-card bp-card"><label for="ncd-dbp">ความดันล่าง <small>DIA</small></label><div class="measure-control"><button type="button" data-step-for="dbp" data-delta="-1" aria-label="ลดความดันตัวล่าง">−</button><input id="ncd-dbp" name="dbp" type="number" inputmode="numeric" min="40" max="180" step="1" placeholder="80" required><button type="button" data-step-for="dbp" data-delta="1" aria-label="เพิ่มความดันตัวล่าง">+</button></div><input class="measure-range" data-range-for="dbp" type="range" min="40" max="180" step="1" value="80" aria-label="เลื่อนค่าความดันตัวล่าง"><small id="hint-dbp" class="old-hint"></small></div>
                 <div class="measure-card glucose-card"><label for="ncd-glucose">น้ำตาล <small>mg/dL</small></label><div class="measure-control"><button type="button" data-step-for="glucose_mg_dl" data-delta="-1" aria-label="ลดค่าน้ำตาล">−</button><input id="ncd-glucose" name="glucose_mg_dl" type="number" inputmode="numeric" min="20" max="700" step="1" placeholder="100" required><button type="button" data-step-for="glucose_mg_dl" data-delta="1" aria-label="เพิ่มค่าน้ำตาล">+</button></div><input class="measure-range" data-range-for="glucose_mg_dl" type="range" min="20" max="400" step="1" value="100" aria-label="เลื่อนค่าน้ำตาล"><small id="hint-glucose" class="old-hint"></small></div>
               </div>
-              <label>สถานะก่อนตรวจน้ำตาล<select name="glucose_type"><option value="unknown">ไม่ทราบ/ไม่ได้ถาม</option><option value="fasting">อดอาหารอย่างน้อย 8 ชั่วโมง</option><option value="random">ไม่ได้อดอาหาร</option></select></label>
+              <fieldset class="choice-field glucose-state-field"><legend>สถานะก่อนตรวจน้ำตาล</legend><div class="choice-pills glucose-state-choice"><label><input type="radio" name="glucose_type" value="fasting" required><span>อดอาหารอย่างน้อย 8 ชม.</span></label><label><input type="radio" name="glucose_type" value="random"><span>ไม่ได้อดอาหาร</span></label></div></fieldset>
             </section>
 
-            <section class="ncd-form-section">
+            <section id="ncd-section-mental" class="ncd-form-section">
               <div class="ncd-section-title"><span>2</span><div><strong>สุขภาพจิต 2Q</strong><small>ไม่บังคับตอบ · เว้นว่างได้ และจะไม่ถูกนับว่าประเมินแล้ว</small></div></div>
               <fieldset class="mental-2q-question"><legend>1. ใน 2 สัปดาห์ที่ผ่านมา รวมวันนี้ รู้สึกหดหู่ เศร้า หรือท้อแท้สิ้นหวังหรือไม่</legend><div class="choice-pills"><label><input type="radio" name="mental_2q_q1" value="no"><span>ไม่ใช่</span></label><label><input type="radio" name="mental_2q_q1" value="yes"><span>ใช่</span></label></div></fieldset>
               <fieldset class="mental-2q-question"><legend>2. ใน 2 สัปดาห์ที่ผ่านมา รวมวันนี้ รู้สึกเบื่อ ทำอะไรก็ไม่เพลิดเพลินหรือไม่</legend><div class="choice-pills"><label><input type="radio" name="mental_2q_q2" value="no"><span>ไม่ใช่</span></label><label><input type="radio" name="mental_2q_q2" value="yes"><span>ใช่</span></label></div></fieldset>
               <div class="mental-2q-footer"><span id="mental-2q-preview" class="mental-2q-status not_assessed" data-status="not_assessed">ไม่ได้ประเมิน</span><button id="ncd-clear-2q" type="button" class="secondary compact-button">ล้างคำตอบ 2Q</button></div>
             </section>
 
-            <section class="ncd-form-section">
-              <div class="ncd-section-title"><span>3</span><div><strong>อาการที่ต้องระวัง</strong><small>ให้เลือกทุกครั้งก่อนบันทึก</small></div></div>
-              <fieldset class="choice-field"><legend>มีเจ็บหน้าอก หอบ อ่อนแรง พูดไม่ชัด ซึม หรือหมดสติหรือไม่</legend><div class="choice-pills danger-choice"><label><input type="radio" name="danger_symptoms" value="no" required><span>ไม่มี</span></label><label><input type="radio" name="danger_symptoms" value="yes"><span>มีอาการ</span></label></div></fieldset>
-            </section>
 
-            <section class="ncd-form-section">
-              <div class="ncd-section-title"><span>4</span><div><strong>พฤติกรรมสุขภาพ</strong><small>เลือกสถานะและความถี่ ไม่ใช้ checkbox แบบเดิม</small></div></div>
+            <section id="ncd-section-behavior" class="ncd-form-section">
+              <div class="ncd-section-title"><span>3</span><div><strong>พฤติกรรมสุขภาพ</strong><small>เลือกสถานะและความถี่ ไม่ใช้ checkbox แบบเดิม</small></div></div>
               <fieldset class="behavior-card"><legend>การสูบบุหรี่</legend><div class="choice-pills behavior-state-choice"><label><input type="radio" name="smoking_state" value="no" required><span>ไม่สูบ</span></label><label><input type="radio" name="smoking_state" value="yes"><span>สูบ</span></label></div><div id="smoking-frequency-wrap" class="frequency-wrap" role="group" aria-labelledby="smoking-frequency-label" hidden><strong id="smoking-frequency-label" class="frequency-label">เลือกจำนวนที่สูบต่อวัน</strong><div class="choice-pills frequency-choices"><label><input type="radio" name="smoking_frequency" value="1-5 มวนต่อวัน"><span>1–5 มวน/วัน</span></label><label><input type="radio" name="smoking_frequency" value="6-10 มวนต่อวัน"><span>6–10 มวน/วัน</span></label><label><input type="radio" name="smoking_frequency" value="มากกว่า 10 มวนต่อวัน"><span>มากกว่า 10 มวน/วัน</span></label></div></div></fieldset>
               <fieldset class="behavior-card"><legend>การดื่มแอลกอฮอล์</legend><div class="choice-pills behavior-state-choice"><label><input type="radio" name="alcohol_state" value="no" required><span>ไม่ดื่ม</span></label><label><input type="radio" name="alcohol_state" value="yes"><span>ดื่ม</span></label></div><div id="alcohol-frequency-wrap" class="frequency-wrap" role="group" aria-labelledby="alcohol-frequency-label" hidden><strong id="alcohol-frequency-label" class="frequency-label">เลือกความถี่ในการดื่ม</strong><div class="choice-pills frequency-choices"><label><input type="radio" name="alcohol_frequency" value="1-2 ครั้งต่อสัปดาห์"><span>1–2 ครั้ง/สัปดาห์</span></label><label><input type="radio" name="alcohol_frequency" value="3-5 ครั้งต่อสัปดาห์"><span>3–5 ครั้ง/สัปดาห์</span></label><label><input type="radio" name="alcohol_frequency" value="ทุกวัน"><span>ทุกวัน</span></label></div></div></fieldset>
               <fieldset class="behavior-card exercise-card"><legend>การออกกำลังกาย</legend><div class="choice-pills frequency-choices exercise-choices"><label><input type="radio" name="exercise_frequency" value="เพียงพอ" required><span>อย่างน้อย 3 ครั้ง/สัปดาห์</span></label><label><input type="radio" name="exercise_frequency" value="1-2 ครั้งต่อสัปดาห์"><span>1–2 ครั้ง/สัปดาห์</span></label><label><input type="radio" name="exercise_frequency" value="ไม่ได้ออกกำลังกาย"><span>ไม่ได้ออกกำลังกาย</span></label></div></fieldset>
             </section>
 
-            <section class="ncd-form-section">
-              <div class="ncd-section-title"><span>5</span><div><strong>ตรวจสอบก่อนบันทึก</strong><small>ผลด้านล่างเป็น preview; ผลสุดท้ายคำนวณที่ฐานข้อมูล</small></div></div>
+            <section id="ncd-section-review" class="ncd-form-section">
+              <div class="ncd-section-title"><span>4</span><div><strong>ตรวจสอบก่อนบันทึก</strong><small>ผลด้านล่างเป็น preview; ผลสุดท้ายคำนวณที่ฐานข้อมูล</small></div></div>
               <div id="ncd-live-preview" class="ncd-live-preview"><div><small>BMI</small><strong id="preview-bmi">—</strong></div><div><small>ความดัน</small><strong id="preview-bp">รอกรอก</strong></div><div><small>น้ำตาล</small><strong id="preview-glucose">รอกรอก</strong></div><div><small>รอบเอว</small><strong id="preview-waist">รอกรอก</strong></div></div>
               <label>หมายเหตุ<input name="note" maxlength="1000" placeholder="ใส่เฉพาะข้อมูลที่จำเป็น"></label>
             </section>
@@ -256,6 +256,6 @@
 
   <script type="module" src="./login-keypad-v1837.mjs?v=1.8.39"></script>
   <script type="module" src="./auth-security.mjs?v=1.8.28"></script>
-  <script type="module" src="./app.js?v=1.8.42"></script>
+  <script type="module" src="./app.js?v=1.8.43"></script>
 </body>
 </html>

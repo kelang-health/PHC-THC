@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.42';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.43';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -99,7 +99,7 @@ async function loadHealthPeople(){
   if(stage)q=q.eq('life_stage',stage);
   const term=raw.replace(/[%_,()]/g,'').slice(0,60); if(term)q=q.ilike('display_name',`%${term}%`);
   const {data,error}=await q;if(error&&healthActiveViewAvailable){healthActiveViewAvailable=false;return loadHealthPeople();}if(error)throw error;healthPeople=data||[];
-  $('#health-person-body').innerHTML=healthPeople.map((p,i)=>`<tr><td><strong>${esc(p.display_name)}</strong><small>${p.known_ncd?`โรคเดิม: ${p.has_ht?'HT ':''}${p.has_dm?'DM':''}`:'ยังไม่พบ DM/HT ใน personchronic'}</small></td><td>${esc(p.age_years??'—')} ปี<small>${esc(p.life_stage||'—')}</small></td><td>บ้าน ${esc(p.house_no||p.hcode)}<small>หมู่ ${esc(p.moo||'—')} · ${esc(p.community||'—')}</small></td><td class="${healthClass(p.latest_severity)}">${esc(p.latest_ncd_status||'ยังไม่มีผล')}<small>${p.latest_screened_on?esc(healthDateLabel(p.latest_screened_on)):''}</small></td><td><button type="button" class="row-open" data-health-person="${i}">${Number(p.age_years)>=18?'เปิดคัดกรอง':'ดูข้อมูล'}</button></td></tr>`).join('')||'<tr><td colspan="5">ไม่พบประชาชนตามตัวกรอง</td></tr>';
+  $('#health-person-body').innerHTML=healthPeople.map((p,i)=>`<tr><td><button type="button" class="health-person-name" data-health-person="${i}">${esc(p.display_name)}</button><small>${p.known_ncd?`โรคเดิม: ${p.has_ht?'HT ':''}${p.has_dm?'DM':''}`:'ยังไม่พบ DM/HT ใน personchronic'}</small></td><td>${esc(p.age_years??'—')} ปี<small>${esc(p.life_stage||'—')}</small></td><td>บ้าน ${esc(p.house_no||p.hcode)}<small>หมู่ ${esc(p.moo||'—')} · ${esc(p.community||'—')}</small></td><td class="${healthClass(p.latest_severity)}">${esc(p.latest_ncd_status||'ยังไม่มีผล')}<small>${p.latest_screened_on?esc(healthDateLabel(p.latest_screened_on)):''}</small></td><td><button type="button" class="row-open" data-health-person="${i}">${Number(p.age_years)>=18?'เปิดคัดกรอง':'ดูข้อมูล'}</button></td></tr>`).join('')||'<tr><td colspan="5">ไม่พบประชาชนตามตัวกรอง</td></tr>';
   $('#health-list-note').textContent=healthPeople.length>=300?'แสดงสูงสุด 300 ราย กรุณาใช้ค้นหาชื่อหรือตัวกรองเพื่อเจาะจงรายการ':'';
   document.querySelectorAll('[data-health-person]').forEach(b=>b.onclick=()=>selectHealthPerson(Number(b.dataset.healthPerson)));
 }
@@ -145,7 +145,7 @@ function renderNcdPreview(){
   const n=name=>Number(form.elements[name]?.value||0),w=n('weight_kg'),h=n('height_cm'),waist=n('waist_cm'),sbp=n('sbp'),dbp=n('dbp'),g=n('glucose_mg_dl'),gt=form.elements.glucose_type.value;
   $('#preview-bmi').textContent=w>0&&h>0?(w/((h/100)**2)).toFixed(1):'—';
   $('#preview-bp').textContent=!sbp||!dbp?'รอกรอก':(sbp>=180||dbp>=120?'สูงมาก':sbp>=140||dbp>=90?'สูง':sbp>=120||dbp>=80?'เริ่มสูง':sbp<90||dbp<60?'ต่ำ':'ช่วงปกติ');
-  $('#preview-glucose').textContent=!g?'รอกรอก':g<70?'ต่ำ':gt==='fasting'?(g>=126?'สูง':g>=100?'เริ่มสูง':'ช่วงปกติ'):gt==='random'?(g>=200?'สูง':'ยังสรุปไม่ได้'):'ไม่ทราบอดอาหาร';
+  $('#preview-glucose').textContent=!g?'รอกรอก':g<70?'ต่ำ':gt==='fasting'?(g>=126?'สูง':g>=100?'เริ่มสูง':'ช่วงปกติ'):gt==='random'?(g>=200?'สูง':'ยังสรุปไม่ได้'):'เลือกสถานะก่อนตรวจ';
   const limit=selectedHealthPerson.gender==='ชาย'?90:selectedHealthPerson.gender==='หญิง'?80:null;
   $('#preview-waist').textContent=!waist?'รอกรอก':limit===null?'ตรวจข้อมูลเพศ':waist>=limit?'เกินเกณฑ์':'ไม่เกินเกณฑ์';
 }
@@ -179,12 +179,21 @@ function bindMeasurementControls(form){
     const n=Number(form.elements[name].value),range=form.querySelector(`[data-range-for="${name}"]`);if(range&&Number.isFinite(n)&&form.elements[name].value!=='')range.value=String(Math.min(Number(range.max),Math.max(Number(range.min),n)));
   }));
 }
+function setActiveNcdSection(targetId,scroll=false){
+  document.querySelectorAll('[data-ncd-section-target]').forEach(button=>button.classList.toggle('active',button.dataset.ncdSectionTarget===targetId));
+  const target=document.getElementById(targetId);if(scroll&&target)target.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function bindNcdSectionNav(){
+  const nav=$('#ncd-section-nav');if(!nav||nav.dataset.bound==='1')return;nav.dataset.bound='1';
+  nav.querySelectorAll('[data-ncd-section-target]').forEach(button=>button.onclick=()=>setActiveNcdSection(button.dataset.ncdSectionTarget,true));
+}
+
 function selectHealthPerson(index){
   const p=healthPeople[index]; if(!p)return; selectedHealthPerson=p;
-  $('#ncd-person-summary').innerHTML=`<strong>${esc(p.display_name)}</strong> · ${esc(p.age_years??'—')} ปี · ${esc(p.gender)}<br>บ้าน ${esc(p.house_no||p.hcode)} · ${esc(p.community||'—')}`;
+  $('#ncd-person-summary').innerHTML=`<strong>${esc(p.display_name)}</strong><span>${esc(p.age_years??'—')} ปี · ${esc(p.gender)} · ${esc(p.community||'—')}</span>`;
   const conditions=[];if(p.has_ht)conditions.push('<span class="condition-badge disease">มีประวัติ HT</span>');if(p.has_dm)conditions.push('<span class="condition-badge disease">มีประวัติ DM</span>');if(!p.known_ncd)conditions.push('<span class="condition-badge clear">ยังไม่พบ DM/HT ใน JHCIS</span>');$('#ncd-condition-badges').innerHTML=conditions.join('');
   const card=$('#ncd-screen-card'); card.hidden=!(Number(p.age_years)>=18); if(card.hidden){return;}
-  const form=$('#ncd-form'); form.reset(); form.elements.screened_on.value=localDate(); form.dataset.requestId=requestId(); $('#ncd-result').hidden=true; closeNcdSaveConfirmation(false); $('#ncd-error').textContent='';
+  const form=$('#ncd-form'); form.reset(); form.elements.screened_on.value=localDate(); form.dataset.requestId=requestId(); $('#ncd-result').hidden=true; closeNcdSaveConfirmation(false); $('#ncd-error').textContent=''; setActiveNcdSection('ncd-section-measure',false);
   renderPreviousPanel(p);
   form.elements.height_cm.value=p.previous_height_cm||'';
   setPreviousText('#hint-weight',previousHint(p.previous_weight_kg,'กก.'));setPreviousText('#hint-height',previousHint(p.previous_height_cm,'ซม.'));setPreviousText('#hint-waist',previousHint(p.previous_waist_cm,'ซม.'));setPreviousText('#hint-sbp',previousHint(p.previous_sbp));setPreviousText('#hint-dbp',previousHint(p.previous_dbp));setPreviousText('#hint-glucose',previousHint(p.previous_glucose_mg_dl,'mg/dL'));
@@ -207,13 +216,14 @@ async function saveHealthScreening(event){
   error.textContent=''; result.hidden=true; if(!selectedHealthPerson){error.textContent='กรุณาเลือกประชาชนจากรายการงาน';return;}
   if(!form.reportValidity())return;
   const d=new FormData(form),p=selectedHealthPerson;
-  const smokeState=d.get('smoking_state'),alcoholState=d.get('alcohol_state'),danger=d.get('danger_symptoms');
+  const smokeState=d.get('smoking_state'),alcoholState=d.get('alcohol_state'),glucoseType=d.get('glucose_type');
   const mental=evaluateMental2Q(d.get('mental_2q_q1'),d.get('mental_2q_q2'));
-  if(!smokeState||!alcoholState||!danger||!d.get('exercise_frequency')){error.textContent='กรุณาเลือกอาการและพฤติกรรมสุขภาพให้ครบ';return;}
+  if(!glucoseType){error.textContent='กรุณาเลือกสถานะก่อนตรวจน้ำตาล';setActiveNcdSection('ncd-section-measure',true);return;}
+  if(!smokeState||!alcoholState||!d.get('exercise_frequency')){error.textContent='กรุณาเลือกพฤติกรรมสุขภาพให้ครบ';setActiveNcdSection('ncd-section-behavior',true);return;}
   const smokingFrequency=smokeState==='no'?'ไม่สูบ':d.get('smoking_frequency');
   const alcoholFrequency=alcoholState==='no'?'ไม่ดื่ม':d.get('alcohol_frequency');
   if(!smokingFrequency||!alcoholFrequency){error.textContent='กรุณาเลือกความถี่ของพฤติกรรมสุขภาพ';return;}
-  const payload={p_source_pcucode:p.source_pcucode,p_source_pid:Number(p.source_pid),p_screened_on:d.get('screened_on')||null,p_weight_kg:formNumber(d.get('weight_kg')),p_height_cm:formNumber(d.get('height_cm')),p_waist_cm:formNumber(d.get('waist_cm')),p_sbp:formNumber(d.get('sbp')),p_dbp:formNumber(d.get('dbp')),p_glucose_mg_dl:formNumber(d.get('glucose_mg_dl')),p_glucose_type:d.get('glucose_type'),p_danger_symptoms:danger==='yes',p_smoking_frequency:smokingFrequency,p_alcohol_frequency:alcoholFrequency,p_exercise_frequency:d.get('exercise_frequency'),p_note:d.get('note')||'',p_request_id:form.dataset.requestId||requestId(),p_mental_2q_q1:mental.q1,p_mental_2q_q2:mental.q2};
+  const payload={p_source_pcucode:p.source_pcucode,p_source_pid:Number(p.source_pid),p_screened_on:d.get('screened_on')||null,p_weight_kg:formNumber(d.get('weight_kg')),p_height_cm:formNumber(d.get('height_cm')),p_waist_cm:formNumber(d.get('waist_cm')),p_sbp:formNumber(d.get('sbp')),p_dbp:formNumber(d.get('dbp')),p_glucose_mg_dl:formNumber(d.get('glucose_mg_dl')),p_glucose_type:glucoseType,p_danger_symptoms:false,p_smoking_frequency:smokingFrequency,p_alcohol_frequency:alcoholFrequency,p_exercise_frequency:d.get('exercise_frequency'),p_note:d.get('note')||'',p_request_id:form.dataset.requestId||requestId(),p_mental_2q_q1:mental.q1,p_mental_2q_q2:mental.q2};
   button.disabled=true;
   try{
     const {data:saved,error:saveError}=await supabase.rpc('save_health_ncd_screening_v3',payload); if(saveError)throw saveError;
@@ -225,6 +235,7 @@ async function saveHealthScreening(event){
 async function loadHealthModule(){
   const focus=$('#health-community-focus');focus.hidden=!healthCommunityFocus;focus.querySelector('strong').textContent=healthCommunityFocus||'';
   await loadHealthSummary(); await loadHealthPeople(); await loadHealthHistory(); healthLoaded=true;
+  bindNcdSectionNav();
   $('#ncd-form').onsubmit=saveHealthScreening; $('#ncd-close').onclick=()=>{closeNcdSaveConfirmation(false);$('#ncd-screen-card').hidden=true;selectedHealthPerson=null;};
   $('#ncd-clear-2q').onclick=()=>{$('#ncd-form').querySelectorAll('[name^="mental_2q_"]').forEach(el=>{el.checked=false;});renderMental2QPreview();};
   const saveConfirmation=$('#ncd-save-confirmation');$('#ncd-save-confirmation-ok').onclick=()=>closeNcdSaveConfirmation();saveConfirmation.onclick=e=>{if(e.target===saveConfirmation)closeNcdSaveConfirmation();};saveConfirmation.onkeydown=e=>{if(e.key==='Escape')closeNcdSaveConfirmation();};
