@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.44';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.45';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -17,6 +17,7 @@ let healthSearchTimer = null;
 let passwordPanelOpen = false;
 let authRequestId = 0;
 let authView = 'login';
+let renderedPortalUserId = null;
 let portalCommunityRows = [];
 let portalVolunteerRows = [];
 let communityRequestId = 0;
@@ -37,7 +38,7 @@ function renderAuthView(view){
 }
 function renderLoggedOut(){
   authRequestId += 1;
-  currentProfile=null; passwordPanelOpen=false;
+  currentProfile=null; passwordPanelOpen=false; renderedPortalUserId=null; portalView='overview';
   renderAuthView('login');
 }
 function roleLabel(role){ return ({admin:'เจ้าหน้าที่',staff:'ประธาน อสม.',user:'อสม.'})[role] || role || 'ไม่ระบุ'; }
@@ -56,7 +57,9 @@ function configurePortalNav(role){
     const label=b.querySelector('.portal-nav-label'),roleLabelText=labels[role]?.[b.dataset.portalView];if(label&&roleLabelText)label.textContent=roleLabelText;
     b.onclick=async()=>{setPortalView(b.dataset.portalView);if(b.dataset.portalView==='health'&&!healthLoaded){try{await loadHealthModule();}catch(e){$('#health-person-body').innerHTML=`<tr><td colspan="5">${esc(e.message)}</td></tr>`;}}};
   });
-  setPortalView('overview');
+  // Preserve the panel the user is currently working in during session refreshes.
+  // setPortalView() falls back to overview only when that panel is unavailable.
+  setPortalView(portalView);
 }
 function configureHealthAdminUI(role){
   const adminIntro=$('#health-admin-intro');
@@ -360,11 +363,15 @@ async function loadPortal(session, requestId){
 
   if(requestId !== authRequestId || passwordPanelOpen) return;
   renderAuthView('portal');
+  renderedPortalUserId=session.user.id;
 }
 
 async function applyAuthSession(session){
   if(!session){ renderLoggedOut(); return; }
   if(passwordPanelOpen) return;
+  // INITIAL_SESSION/SIGNED_IN may be emitted repeatedly for the same user.
+  // Avoid rebuilding a completed portal because that can interrupt the active menu.
+  if(authView==='portal' && renderedPortalUserId===session.user.id && currentProfile?.user_id===session.user.id) return;
   const requestId = ++authRequestId;
   try{ await loadPortal(session, requestId); }
   catch(error){
