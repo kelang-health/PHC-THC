@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.39';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.41';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -21,6 +21,7 @@ let portalCommunityRows = [];
 let portalVolunteerRows = [];
 let communityRequestId = 0;
 let healthCommunityFocus = '';
+let healthActiveViewAvailable = true;
 const PORTAL_NAV_STORAGE = 'phc.portal.nav-collapsed';
 
 function show(el, visible=true){ if(el) el.hidden = !visible; }
@@ -86,14 +87,14 @@ async function loadHealthSummary(){
 }
 async function loadHealthPeople(){
   const filter=$('#health-filter').value, stage=$('#health-stage').value, raw=$('#health-search').value.trim();
-  let q=supabase.from('health_person_worklist').select('source_pcucode,source_pid,hcode,house_no,moo,community,display_name,gender,birth_date,age_years,life_stage,has_ht,has_dm,known_ncd,ncd_target,latest_screened_on,latest_ncd_status,latest_severity,screened_current_fy,previous_screened_on,previous_weight_kg,previous_height_cm,previous_waist_cm,previous_sbp,previous_dbp,previous_glucose_mg_dl,previous_bmi,previous_source,previous_smoking,previous_alcohol,previous_exercise').order('community').order('hcode').order('display_name').limit(300);
+  let q=supabase.from(healthActiveViewAvailable?'health_person_worklist_active_v1841':'health_person_worklist').select('source_pcucode,source_pid,hcode,house_no,moo,community,display_name,gender,birth_date,age_years,life_stage,has_ht,has_dm,known_ncd,ncd_target,latest_screened_on,latest_ncd_status,latest_severity,screened_current_fy,previous_screened_on,previous_weight_kg,previous_height_cm,previous_waist_cm,previous_sbp,previous_dbp,previous_glucose_mg_dl,previous_bmi,previous_source,previous_smoking,previous_alcohol,previous_exercise').order('community').order('hcode').order('display_name').limit(300);
   if(healthCommunityFocus)q=q.eq('community',healthCommunityFocus);
   if(filter==='due')q=q.eq('ncd_target',true).eq('screened_current_fy',false);
   else if(filter==='targets')q=q.eq('ncd_target',true);
   else if(filter==='known')q=q.eq('known_ncd',true);
   if(stage)q=q.eq('life_stage',stage);
   const term=raw.replace(/[%_,()]/g,'').slice(0,60); if(term)q=q.ilike('display_name',`%${term}%`);
-  const {data,error}=await q; if(error)throw error; healthPeople=data||[];
+  const {data,error}=await q;if(error&&healthActiveViewAvailable){healthActiveViewAvailable=false;return loadHealthPeople();}if(error)throw error;healthPeople=data||[];
   $('#health-person-body').innerHTML=healthPeople.map((p,i)=>`<tr><td><strong>${esc(p.display_name)}</strong><small>${p.known_ncd?`โรคเดิม: ${p.has_ht?'HT ':''}${p.has_dm?'DM':''}`:'ยังไม่พบ DM/HT ใน personchronic'}</small></td><td>${esc(p.age_years??'—')} ปี<small>${esc(p.life_stage||'—')}</small></td><td>บ้าน ${esc(p.house_no||p.hcode)}<small>หมู่ ${esc(p.moo||'—')} · ${esc(p.community||'—')}</small></td><td class="${healthClass(p.latest_severity)}">${esc(p.latest_ncd_status||'ยังไม่มีผล')}<small>${p.latest_screened_on?esc(healthDateLabel(p.latest_screened_on)):''}</small></td><td><button type="button" class="row-open" data-health-person="${i}">${Number(p.age_years)>=18?'เปิดคัดกรอง':'ดูข้อมูล'}</button></td></tr>`).join('')||'<tr><td colspan="5">ไม่พบประชาชนตามตัวกรอง</td></tr>';
   $('#health-list-note').textContent=healthPeople.length>=300?'แสดงสูงสุด 300 ราย กรุณาใช้ค้นหาชื่อหรือตัวกรองเพื่อเจาะจงรายการ':'';
   document.querySelectorAll('[data-health-person]').forEach(b=>b.onclick=()=>selectHealthPerson(Number(b.dataset.healthPerson)));
@@ -420,3 +421,4 @@ $('#portal-nav-toggle').addEventListener('click',()=>setPortalNavCollapsed(!$('#
 $('#ncd-form').addEventListener('change',event=>{if(event.target.matches('[name="smoking_state"],[name="alcohol_state"]'))syncBehaviorPanels(event.currentTarget);});
 restorePortalNavPreference();
 refreshAuth();
+
