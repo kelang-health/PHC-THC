@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f4f7f5">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>อสม. พลัส | งานสุขภาพชุมชน</title>
+  <link rel="stylesheet" href="./style.css?v=1.8.42">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">อสม. พลัส · PHC-THC</p>
+        <h1>อสม. พลัส</h1>
+        <p class="sub">บ้าน · ประชาชน · งานสุขภาพ ในแอปเดียว</p>
+      </div>
+      <div class="top-actions">
+        <button id="change-password" class="secondary" hidden>เปลี่ยนรหัสผ่าน</button>
+        <button id="logout" class="secondary" hidden>ออกจากระบบ</button>
+      </div>
+    </header>
+
+    <section id="login-card" class="card auth-card login-card">
+      <div class="login-intro">
+        <p class="eyebrow">SECURE ACCESS</p>
+        <h2>เข้าสู่ระบบ อสม. พลัส</h2>
+        <p class="login-agency"><span>ศูนย์บริการสาธารณสุขบ้านโทกหัวช้าง</span><span>เทศบาลเมืองเขลางค์นคร</span></p>
+      </div>
+      <form id="login-form">
+        <div class="login-mode" role="group" aria-label="เลือกประเภทบัญชี">
+          <button type="button" class="active" data-login-mode="user" aria-pressed="true">อสม.</button>
+          <button type="button" data-login-mode="staff" aria-pressed="false">เจ้าหน้าที่</button>
+        </div>
+        <label><span id="login-name-label">ชื่อผู้ใช้</span><input id="login-name" name="login" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="10" autocomplete="username" required></label>
+        <label><span id="login-password-label">รหัสผ่าน</span><div class="password-field"><input id="login-password" name="password" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="12" autocomplete="current-password" required><button id="toggle-login-password" type="button" class="password-toggle" aria-label="แสดงรหัสผ่าน" aria-pressed="false" title="แสดงรหัสผ่าน"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.2 12s3.5-6 9.8-6 9.8 6 9.8 6-3.5 6-9.8 6-9.8-6-9.8-6Z"/><circle cx="12" cy="12" r="2.8"/><path class="eye-slash" d="m4 4 16 16"/></svg></button></div></label>
+        <p class="login-keyboard-help" id="login-keyboard-help">หากเข้าสู่ระบบไม่ได้ กรุณาติดต่อเจ้าหน้าที่</p>
+        <button class="primary login-submit">เข้าสู่ระบบ</button>
+        <p id="login-error" class="error"></p>
+      </form>
+      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v1.8.42</footer>
+    </section>
+
+    <section id="blocked" class="card" hidden>
+      <p class="eyebrow">ACCESS PENDING</p>
+      <h2>บัญชียังไม่ได้รับสิทธิ์</h2>
+      <p>บัญชี Supabase Auth มีอยู่แล้ว แต่ยังไม่มี Profile ที่ active หรือยังไม่ได้กำหนดบทบาท/ชุมชน</p>
+    </section>
+
+    <section id="password-card" class="card auth-card" hidden>
+      <div>
+        <p class="eyebrow">PASSWORD SECURITY</p>
+        <h2 id="password-title">เปลี่ยนรหัสผ่าน</h2>
+        <p id="password-help">กำหนดรหัสผ่านใหม่อย่างน้อย 12 ตัวอักษร</p>
+      </div>
+      <form id="password-form">
+        <label>รหัสผ่านใหม่<input name="password" type="password" minlength="6" autocomplete="new-password" required></label>
+        <label>ยืนยันรหัสผ่าน<input name="confirm_password" type="password" minlength="6" autocomplete="new-password" required></label>
+        <div class="form-actions"><button id="cancel-password" type="button" class="secondary">ยกเลิก</button><button class="primary">บันทึกรหัสผ่านใหม่</button></div>
+        <p id="password-error" class="error"></p>
+      </form>
+    </section>
+
+    <section id="portal" hidden>
+      <div class="welcome card">
+        <div>
+          <p class="eyebrow">SIGNED IN</p>
+          <h2 id="welcome-name">ภาพรวมพื้นที่</h2>
+          <p id="scope-label" class="muted"></p>
+        </div>
+        <span id="role-badge" class="badge"></span>
+      </div>
+
+      <nav id="portal-nav" class="portal-nav" aria-label="เมนูข้อมูล">
+        <button id="portal-nav-toggle" type="button" class="portal-nav-toggle" aria-expanded="true" aria-label="ย่อเมนู"><span class="portal-nav-toggle-icon" aria-hidden="true">‹</span><span class="portal-nav-toggle-text">ย่อเมนู</span></button>
+        <button type="button" data-portal-view="overview" data-roles="admin staff user" class="active"><span class="portal-nav-icon">◫</span><span><strong class="portal-nav-label">ภาพรวม</strong><small>สรุปพื้นที่</small></span></button>
+        <button type="button" data-portal-view="communities" data-roles="admin staff user"><span class="portal-nav-icon">⌂</span><span><strong class="portal-nav-label">ชุมชน</strong><small>ศูนย์งานชุมชน</small></span></button>
+        <button type="button" data-portal-view="volunteers" data-roles="admin staff"><span class="portal-nav-icon">♧</span><span><strong class="portal-nav-label">อสม.</strong><small>ทะเบียนและภาระงาน</small></span></button>
+        <button type="button" data-portal-view="houses" data-roles="user"><span class="portal-nav-icon">⌂</span><span><strong class="portal-nav-label">บ้านของฉัน</strong><small>เขตรับผิดชอบ</small></span></button>
+        <button type="button" data-portal-view="health" data-roles="admin staff user"><span class="portal-nav-icon">✚</span><span><strong class="portal-nav-label">งานสุขภาพ</strong><small>NCD และ 2Q</small></span></button>
+      </nav>
+
+      <div id="stats" class="stats" data-portal-panel="overview"></div>
+
+      <section class="card" data-portal-panel="communities" hidden>
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">COMMUNITY OVERVIEW</p>
+            <h2>ภาพรวมรายชุมชน</h2>
+          </div>
+          <span id="community-count" class="badge"></span>
+        </div>
+        <section id="community-workspace" class="community-workspace" aria-live="polite" hidden></section>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ชุมชน</th><th>หมู่</th><th>บ้าน</th><th>มอบหมาย อสม.</th><th>ต้องตรวจ</th><th>นอก ต.พระบาท</th><th>เปิด</th></tr></thead>
+            <tbody id="community-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" data-portal-panel="volunteers" hidden>
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">VOLUNTEER WORKLOAD</p>
+            <h2>อสม. และภาระงาน</h2>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>อสม.</th><th>ชุมชน</th><th>Anchor</th><th>บ้านรับผิดชอบ</th><th>ต้องตรวจ</th><th>ข้ามชุมชน</th></tr></thead>
+            <tbody id="volunteer-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" data-portal-panel="houses" hidden>
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">MY HOUSEHOLDS</p>
+            <h2>บ้านในความรับผิดชอบของฉัน</h2>
+          </div>
+          <span id="my-house-count" class="badge"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>บ้านเลขที่</th><th>หมู่</th><th>ชุมชน</th><th>สถานะ</th><th>พิกัด</th><th>ตรวจซ้ำ</th></tr></thead>
+            <tbody id="my-house-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card health-center" data-portal-panel="health" hidden>
+        <div class="section-head health-center-heading">
+          <div><p class="eyebrow">HEALTH WORK CENTER</p><h2>งานสุขภาพของพื้นที่</h2></div>
+        </div>
+        <div id="health-admin-intro" class="health-admin-intro" hidden>
+          <p class="muted">ฐานเดียวกับ อสม. พลัส · เลือกประชาชนจากบ้านที่ได้รับสิทธิ์ ไม่ต้องกรอก PID เอง</p>
+          <button id="health-refresh" type="button" class="secondary">รีเฟรชงาน</button>
+          <div class="notice go-live-note"><strong>ช่วงทดสอบก่อนเปิดใช้จริง:</strong> ผลคัดกรองก่อนวันที่ 1 ตุลาคม 2569 จะถูกบันทึกเป็นข้อมูลทดสอบและไม่นับเป็นผลงานปีงบประมาณ 2570</div>
+        </div>
+        <div id="health-community-focus" class="health-community-focus" hidden><span>กำลังกรองรายชื่อคัดกรองของ <strong></strong><small>ตัวเลขสรุปด้านบนยังเป็นภาพรวมทุกพื้นที่ตามสิทธิ์</small></span><button id="health-clear-community" type="button" class="secondary">ดูทุกพื้นที่ตามสิทธิ์</button></div>
+        <div id="health-stats" class="stats compact-stats"></div>
+        <section class="mental-2q-summary" aria-labelledby="mental-2q-summary-title">
+          <div><strong id="mental-2q-summary-title">สุขภาพจิต 2Q</strong><small>แยกสถานะจากผล NCD และนับเฉพาะผู้ตอบครบว่า “ประเมินแล้ว”</small></div>
+          <div id="mental-2q-stats" class="stats mental-2q-stats"></div>
+          <p id="mental-2q-note" class="muted"></p>
+        </section>
+        <div id="life-stage-stats" class="life-stage-grid"></div>
+        <div class="health-toolbar">
+          <label>งานที่ต้องดู<select id="health-filter"><option value="due">NCD 35+ ยังไม่คัดกรองปีงบฯ นี้</option><option value="targets">เป้าหมาย NCD 35+</option><option value="known">ผู้มี DM/HT เดิม</option><option value="all">ประชาชนทั้งหมดในสิทธิ์</option></select></label>
+          <label>กลุ่มวัย<select id="health-stage"><option value="">ทุกกลุ่มวัย</option><option>เด็กปฐมวัย</option><option>เด็กวัยเรียน</option><option>วัยรุ่นและเยาวชน</option><option>วัยทำงาน</option><option>ผู้สูงอายุ</option></select></label>
+          <label class="health-search">ค้นหาชื่อ<input id="health-search" type="search" placeholder="พิมพ์ชื่อประชาชน"></label>
+        </div>
+        <div class="table-wrap">
+          <table class="health-table"><thead><tr><th>ประชาชน</th><th>อายุ/กลุ่มวัย</th><th>บ้าน</th><th>สถานะ NCD</th><th>งาน</th></tr></thead><tbody id="health-person-body"></tbody></table>
+        </div>
+        <p id="health-list-note" class="muted"></p>
+
+        <section id="ncd-screen-card" class="nested-card ncd-mobile-card" hidden>
+          <div class="section-head ncd-screen-head">
+            <div>
+              <p class="eyebrow">SMART NCD CARE · MOBILE SCREENING</p>
+              <h3>คัดกรอง NCD</h3>
+              <div id="ncd-person-summary" class="person-summary"></div>
+              <div id="ncd-condition-badges" class="condition-badges"></div>
+            </div>
+            <button id="ncd-close" type="button" class="secondary">ปิด</button>
+          </div>
+
+          <section id="ncd-previous-panel" class="previous-screen-card" hidden>
+            <div class="previous-head">
+              <div><span class="previous-label">ค่าคัดกรองครั้งก่อน</span><strong id="ncd-previous-date">—</strong></div>
+              <span id="ncd-previous-source" class="source-pill"></span>
+            </div>
+            <div class="previous-grid">
+              <div><small>น้ำหนัก</small><strong id="prev-weight">—</strong></div>
+              <div><small>ส่วนสูง</small><strong id="prev-height">—</strong></div>
+              <div><small>รอบเอว</small><strong id="prev-waist">—</strong></div>
+              <div><small>ความดัน</small><strong id="prev-bp">—</strong></div>
+              <div><small>น้ำตาล</small><strong id="prev-glucose">—</strong></div>
+              <div><small>BMI</small><strong id="prev-bmi">—</strong></div>
+            </div>
+            <p id="ncd-previous-behavior" class="previous-behavior" hidden></p>
+          </section>
+
+          <form id="ncd-form" class="ncd-mobile-form">
+            <section class="ncd-form-section">
+              <div class="ncd-section-title"><span>1</span><div><strong>ค่าที่วัดวันนี้</strong><small>แตะตัวเลขเพื่อพิมพ์ กด −/+ หรือเลื่อนแถบได้ · ไม่ดึง BP/น้ำตาลเดิมมาบันทึกอัตโนมัติ</small></div></div>
+              <label class="screen-date">วันที่ตรวจ<input name="screened_on" type="date" required></label>
+              <button id="ncd-use-previous-body" type="button" class="previous-fill" hidden>ใช้ส่วนสูง น้ำหนัก และรอบเอวครั้งก่อน</button>
+              <div class="measure-grid">
+                <div class="measure-card"><label for="ncd-weight">น้ำหนัก <small>กก.</small></label><div class="measure-control"><button type="button" data-step-for="weight_kg" data-delta="-0.1" aria-label="ลดน้ำหนัก 0.1 กิโลกรัม">−</button><input id="ncd-weight" name="weight_kg" type="number" inputmode="decimal" min="10" max="400" step="0.1" placeholder="0.0" required><button type="button" data-step-for="weight_kg" data-delta="0.1" aria-label="เพิ่มน้ำหนัก 0.1 กิโลกรัม">+</button></div><input class="measure-range" data-range-for="weight_kg" type="range" min="10" max="200" step="0.5" value="60" aria-label="เลื่อนค่าน้ำหนัก"><small id="hint-weight" class="old-hint"></small></div>
+                <div class="measure-card"><label for="ncd-height">ส่วนสูง <small>ซม.</small></label><div class="measure-control"><button type="button" data-step-for="height_cm" data-delta="-0.1" aria-label="ลดส่วนสูง 0.1 เซนติเมตร">−</button><input id="ncd-height" name="height_cm" type="number" inputmode="decimal" min="80" max="250" step="0.1" placeholder="0.0" required><button type="button" data-step-for="height_cm" data-delta="0.1" aria-label="เพิ่มส่วนสูง 0.1 เซนติเมตร">+</button></div><input class="measure-range" data-range-for="height_cm" type="range" min="80" max="220" step="0.5" value="160" aria-label="เลื่อนค่าส่วนสูง"><small id="hint-height" class="old-hint"></small></div>
+                <div class="measure-card"><label for="ncd-waist">รอบเอว <small>ซม.</small></label><div class="measure-control"><button type="button" data-step-for="waist_cm" data-delta="-0.1" aria-label="ลดรอบเอว 0.1 เซนติเมตร">−</button><input id="ncd-waist" name="waist_cm" type="number" inputmode="decimal" min="30" max="250" step="0.1" placeholder="0.0" required><button type="button" data-step-for="waist_cm" data-delta="0.1" aria-label="เพิ่มรอบเอว 0.1 เซนติเมตร">+</button></div><input class="measure-range" data-range-for="waist_cm" type="range" min="30" max="180" step="0.5" value="80" aria-label="เลื่อนค่ารอบเอว"><small id="hint-waist" class="old-hint"></small></div>
+                <div class="measure-card bp-card"><label for="ncd-sbp">ความดันบน <small>SYS</small></label><div class="measure-control"><button type="button" data-step-for="sbp" data-delta="-1" aria-label="ลดความดันตัวบน">−</button><input id="ncd-sbp" name="sbp" type="number" inputmode="numeric" min="70" max="260" step="1" placeholder="120" required><button type="button" data-step-for="sbp" data-delta="1" aria-label="เพิ่มความดันตัวบน">+</button></div><input class="measure-range" data-range-for="sbp" type="range" min="70" max="260" step="1" value="120" aria-label="เลื่อนค่าความดันตัวบน"><small id="hint-sbp" class="old-hint"></small></div>
+                <div class="measure-card bp-card"><label for="ncd-dbp">ความดันล่าง <small>DIA</small></label><div class="measure-control"><button type="button" data-step-for="dbp" data-delta="-1" aria-label="ลดความดันตัวล่าง">−</button><input id="ncd-dbp" name="dbp" type="number" inputmode="numeric" min="40" max="180" step="1" placeholder="80" required><button type="button" data-step-for="dbp" data-delta="1" aria-label="เพิ่มความดันตัวล่าง">+</button></div><input class="measure-range" data-range-for="dbp" type="range" min="40" max="180" step="1" value="80" aria-label="เลื่อนค่าความดันตัวล่าง"><small id="hint-dbp" class="old-hint"></small></div>
+                <div class="measure-card glucose-card"><label for="ncd-glucose">น้ำตาล <small>mg/dL</small></label><div class="measure-control"><button type="button" data-step-for="glucose_mg_dl" data-delta="-1" aria-label="ลดค่าน้ำตาล">−</button><input id="ncd-glucose" name="glucose_mg_dl" type="number" inputmode="numeric" min="20" max="700" step="1" placeholder="100" required><button type="button" data-step-for="glucose_mg_dl" data-delta="1" aria-label="เพิ่มค่าน้ำตาล">+</button></div><input class="measure-range" data-range-for="glucose_mg_dl" type="range" min="20" max="400" step="1" value="100" aria-label="เลื่อนค่าน้ำตาล"><small id="hint-glucose" class="old-hint"></small></div>
+              </div>
+              <label>สถานะก่อนตรวจน้ำตาล<select name="glucose_type"><option value="unknown">ไม่ทราบ/ไม่ได้ถาม</option><option value="fasting">อดอาหารอย่างน้อย 8 ชั่วโมง</option><option value="random">ไม่ได้อดอาหาร</option></select></label>
+            </section>
+
+            <section class="ncd-form-section">
+              <div class="ncd-section-title"><span>2</span><div><strong>สุขภาพจิต 2Q</strong><small>ไม่บังคับตอบ · เว้นว่างได้ และจะไม่ถูกนับว่าประเมินแล้ว</small></div></div>
+              <fieldset class="mental-2q-question"><legend>1. ใน 2 สัปดาห์ที่ผ่านมา รวมวันนี้ รู้สึกหดหู่ เศร้า หรือท้อแท้สิ้นหวังหรือไม่</legend><div class="choice-pills"><label><input type="radio" name="mental_2q_q1" value="no"><span>ไม่ใช่</span></label><label><input type="radio" name="mental_2q_q1" value="yes"><span>ใช่</span></label></div></fieldset>
+              <fieldset class="mental-2q-question"><legend>2. ใน 2 สัปดาห์ที่ผ่านมา รวมวันนี้ รู้สึกเบื่อ ทำอะไรก็ไม่เพลิดเพลินหรือไม่</legend><div class="choice-pills"><label><input type="radio" name="mental_2q_q2" value="no"><span>ไม่ใช่</span></label><label><input type="radio" name="mental_2q_q2" value="yes"><span>ใช่</span></label></div></fieldset>
+              <div class="mental-2q-footer"><span id="mental-2q-preview" class="mental-2q-status not_assessed" data-status="not_assessed">ไม่ได้ประเมิน</span><button id="ncd-clear-2q" type="button" class="secondary compact-button">ล้างคำตอบ 2Q</button></div>
+            </section>
+
+            <section class="ncd-form-section">
+              <div class="ncd-section-title"><span>3</span><div><strong>อาการที่ต้องระวัง</strong><small>ให้เลือกทุกครั้งก่อนบันทึก</small></div></div>
+              <fieldset class="choice-field"><legend>มีเจ็บหน้าอก หอบ อ่อนแรง พูดไม่ชัด ซึม หรือหมดสติหรือไม่</legend><div class="choice-pills danger-choice"><label><input type="radio" name="danger_symptoms" value="no" required><span>ไม่มี</span></label><label><input type="radio" name="danger_symptoms" value="yes"><span>มีอาการ</span></label></div></fieldset>
+            </section>
+
+            <section class="ncd-form-section">
+              <div class="ncd-section-title"><span>4</span><div><strong>พฤติกรรมสุขภาพ</strong><small>เลือกสถานะและความถี่ ไม่ใช้ checkbox แบบเดิม</small></div></div>
+              <fieldset class="behavior-card"><legend>การสูบบุหรี่</legend><div class="choice-pills behavior-state-choice"><label><input type="radio" name="smoking_state" value="no" required><span>ไม่สูบ</span></label><label><input type="radio" name="smoking_state" value="yes"><span>สูบ</span></label></div><div id="smoking-frequency-wrap" class="frequency-wrap" role="group" aria-labelledby="smoking-frequency-label" hidden><strong id="smoking-frequency-label" class="frequency-label">เลือกจำนวนที่สูบต่อวัน</strong><div class="choice-pills frequency-choices"><label><input type="radio" name="smoking_frequency" value="1-5 มวนต่อวัน"><span>1–5 มวน/วัน</span></label><label><input type="radio" name="smoking_frequency" value="6-10 มวนต่อวัน"><span>6–10 มวน/วัน</span></label><label><input type="radio" name="smoking_frequency" value="มากกว่า 10 มวนต่อวัน"><span>มากกว่า 10 มวน/วัน</span></label></div></div></fieldset>
+              <fieldset class="behavior-card"><legend>การดื่มแอลกอฮอล์</legend><div class="choice-pills behavior-state-choice"><label><input type="radio" name="alcohol_state" value="no" required><span>ไม่ดื่ม</span></label><label><input type="radio" name="alcohol_state" value="yes"><span>ดื่ม</span></label></div><div id="alcohol-frequency-wrap" class="frequency-wrap" role="group" aria-labelledby="alcohol-frequency-label" hidden><strong id="alcohol-frequency-label" class="frequency-label">เลือกความถี่ในการดื่ม</strong><div class="choice-pills frequency-choices"><label><input type="radio" name="alcohol_frequency" value="1-2 ครั้งต่อสัปดาห์"><span>1–2 ครั้ง/สัปดาห์</span></label><label><input type="radio" name="alcohol_frequency" value="3-5 ครั้งต่อสัปดาห์"><span>3–5 ครั้ง/สัปดาห์</span></label><label><input type="radio" name="alcohol_frequency" value="ทุกวัน"><span>ทุกวัน</span></label></div></div></fieldset>
+              <fieldset class="behavior-card exercise-card"><legend>การออกกำลังกาย</legend><div class="choice-pills frequency-choices exercise-choices"><label><input type="radio" name="exercise_frequency" value="เพียงพอ" required><span>อย่างน้อย 3 ครั้ง/สัปดาห์</span></label><label><input type="radio" name="exercise_frequency" value="1-2 ครั้งต่อสัปดาห์"><span>1–2 ครั้ง/สัปดาห์</span></label><label><input type="radio" name="exercise_frequency" value="ไม่ได้ออกกำลังกาย"><span>ไม่ได้ออกกำลังกาย</span></label></div></fieldset>
+            </section>
+
+            <section class="ncd-form-section">
+              <div class="ncd-section-title"><span>5</span><div><strong>ตรวจสอบก่อนบันทึก</strong><small>ผลด้านล่างเป็น preview; ผลสุดท้ายคำนวณที่ฐานข้อมูล</small></div></div>
+              <div id="ncd-live-preview" class="ncd-live-preview"><div><small>BMI</small><strong id="preview-bmi">—</strong></div><div><small>ความดัน</small><strong id="preview-bp">รอกรอก</strong></div><div><small>น้ำตาล</small><strong id="preview-glucose">รอกรอก</strong></div><div><small>รอบเอว</small><strong id="preview-waist">รอกรอก</strong></div></div>
+              <label>หมายเหตุ<input name="note" maxlength="1000" placeholder="ใส่เฉพาะข้อมูลที่จำเป็น"></label>
+            </section>
+
+            <div class="ncd-save-bar"><button id="ncd-submit" class="primary">บันทึกผลคัดกรอง</button><p id="ncd-error" class="error"></p></div>
+          </form>
+          <div id="ncd-result" class="notice" hidden></div>
+          <div id="ncd-save-confirmation" class="save-confirmation" role="dialog" aria-modal="true" aria-labelledby="ncd-save-confirmation-title" hidden>
+            <div class="save-confirmation-card">
+              <span class="save-confirmation-icon" aria-hidden="true">✓</span>
+              <h3 id="ncd-save-confirmation-title">บันทึกเสร็จแล้ว</h3>
+              <p>บันทึกผลคัดกรอง NCD และสถานะสุขภาพจิต 2Q เรียบร้อยแล้ว</p>
+              <button id="ncd-save-confirmation-ok" type="button" class="primary">ตกลง</button>
+            </div>
+          </div>
+          <p class="clinical-note">ผลนี้เป็นการคัดกรองเบื้องต้น ไม่ใช่การวินิจฉัยหรือคำสั่งรักษา กรณีสีแดงให้ประสานเจ้าหน้าที่สาธารณสุขตามแนวทางหน่วยบริการ</p>
+        </section>
+
+        <section class="nested-card">
+          <div class="section-head"><div><p class="eyebrow">RECENT SCREENINGS</p><h3>ผลคัดกรองล่าสุดในขอบเขตสิทธิ์</h3></div></div>
+          <div class="table-wrap"><table><thead><tr><th>วันที่</th><th>ประชาชน</th><th>บ้าน</th><th>แหล่งข้อมูล</th><th>ผล NCD</th><th>2Q</th></tr></thead><tbody id="ncd-history-body"></tbody></table></div>
+        </section>
+      </section>
+
+      <aside class="privacy-note">
+        <strong>Privacy by design:</strong> Cloud schema ไม่เก็บเลขบัตรประชาชน 13 หลัก และใช้ <code>source_pcucode + source_pid</code> สำหรับการเชื่อมบุคคล · ข้อมูลคัดกรอง Smart NCD Care D เดิมถูกเก็บเป็น field-test archive เท่านั้น และไม่ถูกนำมานับผลงานหรือใช้เป็นค่าครั้งก่อนในการปฏิบัติงานจริง
+      </aside>
+    </section>
+  </main>
+
+  <script type="module" src="./login-keypad-v1837.mjs?v=1.8.39"></script>
+  <script type="module" src="./auth-security.mjs?v=1.8.28"></script>
+  <script type="module" src="./app.js?v=1.8.42"></script>
+</body>
+</html>
