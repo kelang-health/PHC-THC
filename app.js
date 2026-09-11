@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.62';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.63';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -74,7 +74,7 @@ function requestId(){return crypto.randomUUID ? crypto.randomUUID() : `${Date.no
 
 function personKey(p){return `${p.source_pcucode}:${p.source_pid}`;}
 
-function healthClass(severity){return severity==='urgent'||severity==='alert'?'bad':severity==='risk'?'warn':severity==='normal'?'good':'';}
+function healthClass(severity){return severity==='urgent'?'bad':severity==='alert'?'attention':severity==='risk'?'warn':severity==='normal'?'good':'';}
 function formatHealthValue(value,suffix=''){return value===null||value===undefined||value===''?'—':`${value}${suffix}`;}
 function healthDateLabel(value){if(!value)return 'ยังไม่มีประวัติคัดกรอง';try{return new Date(value+'T00:00:00').toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});}catch{return value;}}
 async function loadHealthSummary(){
@@ -195,7 +195,7 @@ function renderThaiCvPreview(){
   const el=$('#preview-cvd'),form=$('#ncd-form');if(!el||!form||!selectedHealthPerson)return;
   const cvd=calculateThaiCvPreview(selectedHealthPerson,form);
   el.textContent=cvd.eligible?`${cvd.riskPercent.toFixed(1)}% ${thaiCvLevelLabel(cvd.level)}`:thaiCvReasonLabel(cvd.reason);
-  el.className=cvd.eligible?(cvd.riskPercent>=20?'bad':cvd.riskPercent>=10?'warn':'good'):'';
+  el.className=cvd.eligible?(cvd.riskPercent>=30?'bad':cvd.riskPercent>=20?'attention':cvd.riskPercent>=10?'warn':'good'):'';
 }
 function savedThaiCvLabel(saved){return saved?.cvd_risk_eligible?`${Number(saved.cvd_risk_percent).toFixed(1)}% ${thaiCvLevelLabel(saved.cvd_risk_level)}`:thaiCvReasonLabel(saved?.cvd_risk_reason);}
 

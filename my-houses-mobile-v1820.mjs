@@ -1,4 +1,4 @@
-const VERSION='1.8.62';
+const VERSION='1.8.63';
 const DEFAULT_CENTER=[18.2696,99.5071];
 let supabase=null,panel=null,profile=null,houses=[],selected=null,map=null,markers=null,draftMarker=null,draft=null,boundary=null,leafletPromise=null,observer=null,modal=null,modalMap=null,modalMarker=null,modalBoundary=null,modalPoint=null,modalLocationCheck=null,modalMode='add',modalHouse=null,enhancePromise=null;
 const $=(s,r=document)=>r.querySelector(s);

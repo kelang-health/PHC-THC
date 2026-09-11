@@ -1,4 +1,4 @@
-const VERSION='1.8.62';
+const VERSION='1.8.63';
 let supabase=null,profile=null,observer=null,leafletPromise=null,readonlyMap=null,readonlyMarkers=null,volMap=null,volMarkers=null;
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
