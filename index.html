@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>อสม. พลัส | งานสุขภาพชุมชน</title>
-  <link rel="stylesheet" href="./style.css?v=1.8.45">
+  <link rel="stylesheet" href="./style.css?v=1.8.46">
 </head>
 <body>
   <main class="shell">
@@ -41,7 +41,7 @@
         <button class="primary login-submit">เข้าสู่ระบบ</button>
         <p id="login-error" class="error"></p>
       </form>
-      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v1.8.45</footer>
+      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v1.8.46</footer>
     </section>
 
     <section id="blocked" class="card" hidden>
@@ -230,13 +230,24 @@
 
             <div class="ncd-save-bar"><button id="ncd-submit" class="primary">บันทึกผลคัดกรอง</button><p id="ncd-error" class="error"></p></div>
           </form>
-          <div id="ncd-result" class="notice" hidden></div>
+          <div id="ncd-result" class="notice compact-result" hidden></div>
+          <section id="health-feedback-card" class="health-feedback-card" aria-labelledby="health-feedback-title" hidden>
+            <div class="health-feedback-head">
+              <div><p class="eyebrow">HEALTH FEEDBACK</p><h3 id="health-feedback-title">บัตรสรุปสุขภาพ</h3><p id="health-feedback-person" class="muted"></p></div>
+              <span id="health-feedback-status" class="health-feedback-status"></span>
+            </div>
+            <div id="health-feedback-metrics" class="health-feedback-metrics"></div>
+            <div id="health-feedback-changes" class="health-feedback-changes" hidden><strong>เปลี่ยนแปลงจากครั้งก่อน</strong><div id="health-feedback-change-list"></div></div>
+            <div class="health-feedback-advice"><strong>สิ่งที่ควรทำต่อ</strong><ul id="health-feedback-advice-list"></ul></div>
+            <p class="health-feedback-privacy">ภาพสำหรับแชร์จะไม่ใส่ชื่อ PID, HN, บ้าน หรือข้อมูลติดต่อ</p>
+            <div class="health-feedback-actions"><button id="health-feedback-share" type="button" class="primary">แชร์ / บันทึกภาพ</button><button id="health-feedback-close" type="button" class="secondary">ปิดบัตร</button></div>
+          </section>
           <div id="ncd-save-confirmation" class="save-confirmation" role="dialog" aria-modal="true" aria-labelledby="ncd-save-confirmation-title" hidden>
             <div class="save-confirmation-card">
               <span class="save-confirmation-icon" aria-hidden="true">✓</span>
               <h3 id="ncd-save-confirmation-title">บันทึกเสร็จแล้ว</h3>
-              <p>บันทึกผลคัดกรอง NCD และสถานะสุขภาพจิต 2Q เรียบร้อยแล้ว</p>
-              <button id="ncd-save-confirmation-ok" type="button" class="primary">ตกลง</button>
+              <p>บันทึกผลคัดกรองเรียบร้อยแล้ว สามารถเปิดบัตรสรุปเพื่อคืนข้อมูลให้ประชาชนได้ทันที</p>
+              <div class="save-confirmation-actions"><button id="ncd-save-confirmation-ok" type="button" class="primary">ดูผลสุขภาพ</button><button id="ncd-save-confirmation-close" type="button" class="secondary">ปิด</button></div>
             </div>
           </div>
           <p class="clinical-note">ผลนี้เป็นการคัดกรองเบื้องต้น ไม่ใช่การวินิจฉัยหรือคำสั่งรักษา กรณีสีแดงให้ประสานเจ้าหน้าที่สาธารณสุขตามแนวทางหน่วยบริการ</p>
@@ -254,8 +265,8 @@
     </section>
   </main>
 
-  <script type="module" src="./login-keypad-v1837.mjs?v=1.8.45"></script>
+  <script type="module" src="./login-keypad-v1837.mjs?v=1.8.46"></script>
   <script type="module" src="./auth-security.mjs?v=1.8.28"></script>
-  <script type="module" src="./app.js?v=1.8.45"></script>
+  <script type="module" src="./app.js?v=1.8.46"></script>
 </body>
 </html>

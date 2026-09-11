@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.45';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.46';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -18,6 +18,7 @@ let passwordPanelOpen = false;
 let authRequestId = 0;
 let authView = 'login';
 let renderedPortalUserId = null;
+let healthFeedbackModel = null;
 let portalCommunityRows = [];
 let portalVolunteerRows = [];
 let communityRequestId = 0;
@@ -38,7 +39,7 @@ function renderAuthView(view){
 }
 function renderLoggedOut(){
   authRequestId += 1;
-  currentProfile=null; passwordPanelOpen=false; renderedPortalUserId=null; portalView='overview';
+  currentProfile=null; passwordPanelOpen=false; renderedPortalUserId=null; healthFeedbackModel=null; portalView='overview';
   renderAuthView('login');
 }
 function roleLabel(role){ return ({admin:'เจ้าหน้าที่',staff:'ประธาน อสม.',user:'อสม.'})[role] || role || 'ไม่ระบุ'; }
@@ -162,6 +163,121 @@ function renderMental2QPreview(){
   output.dataset.status=state.status;
   output.textContent=mental2QLabel(state.status,state.result);
 }
+
+function feedbackBmiLabel(value){
+  if(!Number.isFinite(value))return 'รอข้อมูล';
+  if(value<18.5)return 'ต่ำกว่าเกณฑ์';
+  if(value<23)return 'ช่วงคัดกรองปกติ';
+  if(value<25)return 'เริ่มสูง';
+  if(value<30)return 'สูง';
+  return 'สูงมาก';
+}
+function feedbackWaistLabel(value,gender){
+  const limit=gender==='ชาย'?90:gender==='หญิง'?80:null;
+  if(!Number.isFinite(value)||limit===null)return 'ตรวจข้อมูลเพศ';
+  return value>=limit?`เกินเกณฑ์ ${limit} ซม.`:`ไม่เกินเกณฑ์ ${limit} ซม.`;
+}
+function feedbackDelta(label,current,previous,unit='',digits=0){
+  const now=Number(current),before=Number(previous);
+  if(!Number.isFinite(now)||!Number.isFinite(before))return null;
+  const delta=now-before,threshold=digits?0.05:0.5;
+  if(Math.abs(delta)<threshold)return null;
+  const shown=(digits?delta.toFixed(digits):Math.round(delta));
+  return `${label} ${delta>0?'+':''}${shown}${unit?` ${unit}`:''}`;
+}
+function feedbackActions(saved,mental){
+  const actions=[];
+  if(saved.severity==='urgent')actions.push('ประสานเจ้าหน้าที่สาธารณสุขทันที และตรวจซ้ำตามแนวทางหน่วยบริการ');
+  else if(saved.severity==='alert')actions.push('ประสานเจ้าหน้าที่เพื่อตรวจยืนยันและกำหนดการติดตาม');
+  else if(saved.severity==='risk')actions.push('ปรับพฤติกรรมสุขภาพและติดตามค่าตามรอบที่หน่วยบริการกำหนด');
+  else if(saved.severity==='normal')actions.push('รักษาพฤติกรรมสุขภาพที่ดีและตรวจติดตามตามรอบ');
+  else actions.push('ทบทวนข้อมูลกับเจ้าหน้าที่ก่อนสรุปผล');
+  if((saved.mental_2q_status??mental.status)==='assessed' && (saved.mental_2q_result??mental.result)===true) actions.push('2Q พบคำตอบบวก ควรประสานเจ้าหน้าที่เพื่อประเมินสุขภาพจิตต่อ');
+  if(saved.advice && !actions.some(x=>saved.advice.includes(x))) actions.push(String(saved.advice).replace(/\s+/g,' ').trim());
+  return actions.filter(Boolean).slice(0,3);
+}
+function buildHealthFeedbackModel(saved,mental,person,formData){
+  const w=Number(saved.weight_kg??formData.get('weight_kg')),h=Number(saved.height_cm??formData.get('height_cm'));
+  const bmi=Number(saved.bmi??(w>0&&h>0?w/((h/100)**2):NaN));
+  const waist=Number(saved.waist_cm??formData.get('waist_cm'));
+  const sbp=Number(saved.sbp??formData.get('sbp')),dbp=Number(saved.dbp??formData.get('dbp'));
+  const glucose=Number(saved.glucose_mg_dl??formData.get('glucose_mg_dl'));
+  const mentalStatus=saved.mental_2q_status??mental.status,mentalResult=saved.mental_2q_result??mental.result;
+  const screenedOn=saved.screened_on||formData.get('screened_on')||localDate();
+  const metrics=[
+    {label:'BMI',value:Number.isFinite(bmi)?bmi.toFixed(1):'—',detail:feedbackBmiLabel(bmi)},
+    {label:'รอบเอว',value:Number.isFinite(waist)?`${waist.toFixed(1)} ซม.`:'—',detail:feedbackWaistLabel(waist,person.gender)},
+    {label:'ความดัน',value:Number.isFinite(sbp)&&Number.isFinite(dbp)?`${sbp}/${dbp}`:'—',detail:saved.bp_status||'รอผล'},
+    {label:'น้ำตาล',value:Number.isFinite(glucose)?`${glucose} mg/dL`:'—',detail:saved.glucose_status||'รอผล'},
+    {label:'สุขภาพจิต 2Q',value:mental2QLabel(mentalStatus,mentalResult),detail:mentalStatus==='assessed'?'ประเมินครบ 2 ข้อ':'ไม่ใช้สรุปแทนการประเมิน'}
+  ];
+  const changes=[
+    feedbackDelta('น้ำหนัก',w,person.previous_weight_kg,'กก.',1),
+    feedbackDelta('รอบเอว',waist,person.previous_waist_cm,'ซม.',1),
+    feedbackDelta('SYS',sbp,person.previous_sbp,'',0),
+    feedbackDelta('น้ำตาล',glucose,person.previous_glucose_mg_dl,'mg/dL',0)
+  ].filter(Boolean);
+  return {
+    personLabel:`${person.display_name} · ${person.age_years??'—'} ปี · ${person.gender||'—'}`,
+    dateLabel:healthDateLabel(screenedOn),
+    status:saved.ncd_status||'ผลคัดกรอง',severity:saved.severity||'incomplete',metrics,changes,
+    actions:feedbackActions(saved,mental)
+  };
+}
+function renderHealthFeedbackCard(model){
+  healthFeedbackModel=model;
+  const card=$('#health-feedback-card');if(!card)return;
+  $('#health-feedback-person').textContent=`${model.personLabel} · ${model.dateLabel}`;
+  const status=$('#health-feedback-status');status.textContent=model.status;status.className=`health-feedback-status ${healthClass(model.severity)}`;
+  $('#health-feedback-metrics').innerHTML=model.metrics.map(m=>`<article><small>${esc(m.label)}</small><strong>${esc(m.value)}</strong><span>${esc(m.detail)}</span></article>`).join('');
+  const changes=$('#health-feedback-changes');changes.hidden=!model.changes.length;$('#health-feedback-change-list').innerHTML=model.changes.map(x=>`<span>${esc(x)}</span>`).join('');
+  $('#health-feedback-advice-list').innerHTML=model.actions.map(x=>`<li>${esc(x)}</li>`).join('');
+  card.hidden=false;
+}
+function viewHealthFeedback(){
+  const card=$('#health-feedback-card');if(!card||card.hidden)return;
+  card.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function closeHealthFeedbackCard(){const card=$('#health-feedback-card');if(card)card.hidden=true;}
+function wrapCanvasText(ctx,text,maxWidth){
+  const words=String(text||'').split(/\s+/).filter(Boolean),lines=[];let line='';
+  for(const word of words){const test=line?`${line} ${word}`:word;if(ctx.measureText(test).width<=maxWidth){line=test;continue;}if(line)lines.push(line);line=word;}
+  if(line)lines.push(line);return lines.length?lines:[''];
+}
+function createHealthFeedbackCanvas(model){
+  const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1550;const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#126f61';ctx.fillRect(0,0,canvas.width,22);
+  ctx.fillStyle='#17312d';ctx.font='800 54px system-ui, sans-serif';ctx.fillText('บัตรสรุปสุขภาพ',70,105);
+  ctx.fillStyle='#667a74';ctx.font='500 30px system-ui, sans-serif';ctx.fillText(`วันที่ตรวจ ${model.dateLabel}`,70,155);
+  ctx.fillStyle=model.severity==='urgent'||model.severity==='alert'?'#a53f32':model.severity==='risk'?'#946113':'#176557';ctx.font='800 34px system-ui, sans-serif';
+  wrapCanvasText(ctx,model.status,930).slice(0,2).forEach((line,i)=>ctx.fillText(line,70,220+i*42));
+  let y=310;
+  for(const metric of model.metrics){
+    ctx.fillStyle='#f3f7f5';ctx.fillRect(60,y-48,960,102);
+    ctx.fillStyle='#526b65';ctx.font='700 29px system-ui, sans-serif';ctx.fillText(metric.label,85,y);
+    ctx.fillStyle='#17312d';ctx.font='800 34px system-ui, sans-serif';ctx.fillText(metric.value,350,y);
+    ctx.fillStyle='#526b65';ctx.font='500 25px system-ui, sans-serif';
+    wrapCanvasText(ctx,metric.detail,410).slice(0,2).forEach((line,i)=>ctx.fillText(line,585,y-5+i*31));
+    y+=120;
+  }
+  if(model.changes.length){ctx.fillStyle='#17312d';ctx.font='800 29px system-ui, sans-serif';ctx.fillText('เปลี่ยนแปลงจากครั้งก่อน',70,y+8);y+=50;ctx.fillStyle='#526b65';ctx.font='500 25px system-ui, sans-serif';wrapCanvasText(ctx,model.changes.join(' · '),930).slice(0,2).forEach((line,i)=>ctx.fillText(line,70,y+i*32));y+=78;}
+  ctx.fillStyle='#17312d';ctx.font='800 29px system-ui, sans-serif';ctx.fillText('สิ่งที่ควรทำต่อ',70,y);y+=42;ctx.fillStyle='#405e57';ctx.font='500 25px system-ui, sans-serif';
+  for(const action of model.actions.slice(0,3)){const lines=wrapCanvasText(ctx,`• ${action}`,900).slice(0,2);for(const line of lines){ctx.fillText(line,85,y);y+=32;}y+=9;}
+  ctx.fillStyle='#75857f';ctx.font='500 22px system-ui, sans-serif';ctx.fillText('ผลนี้เป็นการคัดกรองเบื้องต้น ไม่ใช่การวินิจฉัยโรค',70,1460);ctx.fillText('ภาพนี้ไม่แสดงชื่อ PID, HN, บ้าน หรือข้อมูลติดต่อ',70,1500);
+  return canvas;
+}
+async function shareHealthFeedback(){
+  if(!healthFeedbackModel)return;const button=$('#health-feedback-share');if(button)button.disabled=true;$('#ncd-error').textContent='';
+  try{
+    const canvas=createHealthFeedbackCanvas(healthFeedbackModel);const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png',0.94));if(!blob)throw new Error('สร้างภาพไม่สำเร็จ');
+    const file=new File([blob],`health-feedback-${Date.now()}.png`,{type:'image/png'});
+    if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({files:[file],title:'บัตรสรุปสุขภาพ'});}
+    else{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);}
+  }catch(error){if(error?.name!=='AbortError')$('#ncd-error').textContent=`ไม่สามารถแชร์ภาพได้: ${error.message}`;}
+  finally{if(button)button.disabled=false;}
+}
+
 function setMeasurementValue(form,name,value){
   const input=form.elements[name],range=form.querySelector(`[data-range-for="${name}"]`);if(!input)return;
   const min=Number(input.min),max=Number(input.max),step=Number(input.step||1),n=Math.min(max,Math.max(min,Number(value)));
@@ -196,7 +312,7 @@ function selectHealthPerson(index){
   $('#ncd-person-summary').innerHTML=`<strong>${esc(p.display_name)}</strong><span>${esc(p.age_years??'—')} ปี · ${esc(p.gender)} · ${esc(p.community||'—')}</span>`;
   const conditions=[];if(p.has_ht)conditions.push('<span class="condition-badge disease">มีประวัติ HT</span>');if(p.has_dm)conditions.push('<span class="condition-badge disease">มีประวัติ DM</span>');if(!p.known_ncd)conditions.push('<span class="condition-badge clear">ยังไม่พบ DM/HT ใน JHCIS</span>');$('#ncd-condition-badges').innerHTML=conditions.join('');
   const card=$('#ncd-screen-card'); card.hidden=!(Number(p.age_years)>=18); if(card.hidden){return;}
-  const form=$('#ncd-form'); form.reset(); form.elements.screened_on.value=localDate(); form.dataset.requestId=requestId(); $('#ncd-result').hidden=true; closeNcdSaveConfirmation(false); $('#ncd-error').textContent=''; setActiveNcdSection('ncd-section-measure',false);
+  const form=$('#ncd-form'); form.reset(); form.elements.screened_on.value=localDate(); form.dataset.requestId=requestId(); $('#ncd-result').hidden=true; healthFeedbackModel=null; closeHealthFeedbackCard(); closeNcdSaveConfirmation(false); $('#ncd-error').textContent=''; setActiveNcdSection('ncd-section-measure',false);
   renderPreviousPanel(p);
   form.elements.height_cm.value=p.previous_height_cm||'';
   setPreviousText('#hint-weight',previousHint(p.previous_weight_kg,'กก.'));setPreviousText('#hint-height',previousHint(p.previous_height_cm,'ซม.'));setPreviousText('#hint-waist',previousHint(p.previous_waist_cm,'ซม.'));setPreviousText('#hint-sbp',previousHint(p.previous_sbp));setPreviousText('#hint-dbp',previousHint(p.previous_dbp));setPreviousText('#hint-glucose',previousHint(p.previous_glucose_mg_dl,'mg/dL'));
@@ -230,7 +346,7 @@ async function saveHealthScreening(event){
   button.disabled=true;
   try{
     const {data:saved,error:saveError}=await supabase.rpc('save_health_ncd_screening_v3',payload); if(saveError)throw saveError;
-    result.innerHTML=`<strong>${esc(saved.ncd_status)}</strong><br>${esc(saved.bp_status)} · ${esc(saved.glucose_status)}<br><span class="mental-result">2Q: ${esc(mental2QLabel(saved.mental_2q_status,saved.mental_2q_result))}</span><br>${esc(saved.advice||'')}`; result.hidden=false; form.dataset.requestId=requestId(); showNcdSaveConfirmation();
+    result.innerHTML=`<strong>${esc(saved.ncd_status)}</strong><span>${esc(saved.bp_status)} · ${esc(saved.glucose_status)} · 2Q: ${esc(mental2QLabel(saved.mental_2q_status,saved.mental_2q_result))}</span>`; result.hidden=false; renderHealthFeedbackCard(buildHealthFeedbackModel(saved,mental,p,d)); form.dataset.requestId=requestId(); showNcdSaveConfirmation();
     const key=personKey(p); await Promise.all([loadHealthSummary(),loadHealthPeople()]); await loadHealthHistory(); const refreshed=healthPeople.find(x=>personKey(x)===key); if(refreshed){selectedHealthPerson=refreshed;renderPreviousPanel(refreshed);}
     result.scrollIntoView({behavior:'smooth',block:'nearest'});
   }catch(e){error.textContent=e.message;}finally{button.disabled=false;}
@@ -239,9 +355,10 @@ async function loadHealthModule(){
   const focus=$('#health-community-focus');focus.hidden=!healthCommunityFocus;focus.querySelector('strong').textContent=healthCommunityFocus||'';
   await loadHealthSummary(); await loadHealthPeople(); await loadHealthHistory(); healthLoaded=true;
   bindNcdSectionNav();
-  $('#ncd-form').onsubmit=saveHealthScreening; $('#ncd-close').onclick=()=>{closeNcdSaveConfirmation(false);$('#ncd-screen-card').hidden=true;selectedHealthPerson=null;};
+  $('#ncd-form').onsubmit=saveHealthScreening; $('#ncd-close').onclick=()=>{closeNcdSaveConfirmation(false);closeHealthFeedbackCard();healthFeedbackModel=null;$('#ncd-screen-card').hidden=true;selectedHealthPerson=null;};
   $('#ncd-clear-2q').onclick=()=>{$('#ncd-form').querySelectorAll('[name^="mental_2q_"]').forEach(el=>{el.checked=false;});renderMental2QPreview();};
-  const saveConfirmation=$('#ncd-save-confirmation');$('#ncd-save-confirmation-ok').onclick=()=>closeNcdSaveConfirmation();saveConfirmation.onclick=e=>{if(e.target===saveConfirmation)closeNcdSaveConfirmation();};saveConfirmation.onkeydown=e=>{if(e.key==='Escape')closeNcdSaveConfirmation();};
+  const saveConfirmation=$('#ncd-save-confirmation');$('#ncd-save-confirmation-ok').onclick=()=>{closeNcdSaveConfirmation(false);viewHealthFeedback();};$('#ncd-save-confirmation-close').onclick=()=>closeNcdSaveConfirmation();saveConfirmation.onclick=e=>{if(e.target===saveConfirmation)closeNcdSaveConfirmation();};saveConfirmation.onkeydown=e=>{if(e.key==='Escape')closeNcdSaveConfirmation();};
+  $('#health-feedback-share').onclick=shareHealthFeedback;$('#health-feedback-close').onclick=closeHealthFeedbackCard;
   $('#health-refresh').onclick=async()=>{healthLoaded=false;await loadHealthModule();};
   $('#health-clear-community').onclick=async()=>{healthCommunityFocus='';focus.hidden=true;await loadHealthPeople();};
   $('#health-filter').onchange=loadHealthPeople; $('#health-stage').onchange=loadHealthPeople;
