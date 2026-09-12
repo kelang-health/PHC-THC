@@ -1,15 +1,15 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.13';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.14';
 
 const supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:false,detectSessionInUrl:false}});
 const $=(s,r=document)=>r.querySelector(s);
 const OAUTH_STORAGE='phc.line.oauth.v2012';
-let pollTimer=null,countdownTimer=null,current=null,busy=false;
+let pollTimer=null,countdownTimer=null,oauthRefreshTimer=null,current=null,busy=false,oauthPreparePromise=null;
 
 function injectStyle(){
   if($('#line-login-v201-style'))return;
   const s=document.createElement('style');s.id='line-login-v201-style';s.textContent=`
-  .line-login-v201{display:grid;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid #dfe9e5}.line-login-or{display:flex;align-items:center;gap:10px;color:#72827d;font-size:.82rem;font-weight:800}.line-login-or:before,.line-login-or:after{content:"";height:1px;flex:1;background:#dfe9e5}.line-login-button{width:100%;min-height:58px;border:1px solid #8fc7b5;border-radius:14px;background:#e8f7f0;color:#0f604c;font:inherit;font-weight:950;cursor:pointer}.line-login-button:disabled{opacity:.58;cursor:wait}.line-login-help{margin:0;text-align:center;color:#657a73;font-size:.86rem;line-height:1.45}.line-login-state{display:grid;gap:9px;padding:12px;border:1px solid #cfe1da;border-radius:14px;background:#f8fbfa}.line-login-state[hidden]{display:none!important}.line-login-code{font-size:1.25rem;font-weight:950;letter-spacing:.06em;text-align:center;padding:11px;border:2px dashed #86bbaa;border-radius:12px;background:#fff}.line-login-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.line-login-actions button{min-height:48px}.line-login-status{margin:0;color:#557069;line-height:1.45}.line-login-status.error{color:#a23f34}.line-login-status.success{color:#12614e}.line-login-count{font-weight:900;color:#0b6f60}@media(max-width:640px){.line-login-button{min-height:60px;font-size:1.04rem}.line-login-actions{grid-template-columns:1fr}.line-login-code{font-size:1.18rem}}
+  .line-login-v201{display:grid;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid #dfe9e5}.line-login-or{display:flex;align-items:center;gap:10px;color:#72827d;font-size:.82rem;font-weight:800}.line-login-or:before,.line-login-or:after{content:"";height:1px;flex:1;background:#dfe9e5}.line-login-button{width:100%;min-height:58px;display:flex;align-items:center;justify-content:center;text-decoration:none;box-sizing:border-box;border:1px solid #8fc7b5;border-radius:14px;background:#e8f7f0;color:#0f604c;font:inherit;font-weight:950;cursor:pointer}.line-login-button:disabled,.line-login-button[aria-disabled="true"]{opacity:.58;cursor:wait;pointer-events:none}.line-login-help{margin:0;text-align:center;color:#657a73;font-size:.86rem;line-height:1.45}.line-login-state{display:grid;gap:9px;padding:12px;border:1px solid #cfe1da;border-radius:14px;background:#f8fbfa}.line-login-state[hidden]{display:none!important}.line-login-code{font-size:1.25rem;font-weight:950;letter-spacing:.06em;text-align:center;padding:11px;border:2px dashed #86bbaa;border-radius:12px;background:#fff}.line-login-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.line-login-actions button{min-height:48px}.line-login-status{margin:0;color:#557069;line-height:1.45}.line-login-status.error{color:#a23f34}.line-login-status.success{color:#12614e}.line-login-count{font-weight:900;color:#0b6f60}@media(max-width:640px){.line-login-button{min-height:60px;font-size:1.04rem}.line-login-actions{grid-template-columns:1fr}.line-login-code{font-size:1.18rem}}
   `;document.head.appendChild(s);
 }
 function headers(){return {'content-type':'application/json','apikey':SUPABASE_PUBLISHABLE_KEY,'authorization':`Bearer ${SUPABASE_PUBLISHABLE_KEY}`};}
@@ -21,7 +21,7 @@ async function callEdge(name,payload={}){
 }
 async function callCode(action,payload={}){return callEdge('line-auth',{action,...payload});}
 async function callOauth(action,payload={}){return callEdge('line-oauth',{action,...payload});}
-function stopTimers(){if(pollTimer){clearTimeout(pollTimer);pollTimer=null}if(countdownTimer){clearInterval(countdownTimer);countdownTimer=null}}
+function stopTimers(){if(pollTimer){clearTimeout(pollTimer);pollTimer=null}if(countdownTimer){clearInterval(countdownTimer);countdownTimer=null}if(oauthRefreshTimer){clearTimeout(oauthRefreshTimer);oauthRefreshTimer=null}}
 function stateBox(){return $('#line-login-state');}
 function reset(){stopTimers();current=null;busy=false;const btn=$('#line-login-start'),state=stateBox();if(btn){btn.disabled=false;btn.textContent='เข้าสู่ระบบด้วย LINE'}if(state){state.hidden=true;state.innerHTML=''}}
 function statusText(text,error=false){const e=$('#line-login-status');if(e){e.textContent=text;e.classList.toggle('error',error)}}
@@ -36,14 +36,53 @@ async function applySession(session){
   window.location.reload();
 }
 
-async function startDirectLineLogin(){
-  if(busy)return;busy=true;stopTimers();const btn=$('#line-login-start'),state=stateBox();btn.disabled=true;btn.textContent='กำลังเปิด LINE…';state.hidden=false;state.innerHTML='<p class="line-login-status">กำลังเตรียม LINE Login แบบกดครั้งเดียว…</p>';
-  try{
-    const data=await callOauth('start');
-    if(!data.configured){busy=false;btn.disabled=false;btn.textContent='เข้าสู่ระบบด้วย LINE';state.innerHTML='<p class="line-login-status">LINE Login แบบกดครั้งเดียวยังอยู่ระหว่างตั้งค่า ระบบจะใช้วิธียืนยันผ่าน LINE OA สำรองให้ก่อน</p>';await startCodeLogin(true);return;}
-    if(!data.authorize_url||!data.request_id||!data.browser_secret)throw new Error('OAUTH_START_INCOMPLETE');
-    saveOauth(data);state.innerHTML='<p class="line-login-status">กำลังพาไปยืนยันกับ LINE…</p>';window.location.assign(data.authorize_url);
-  }catch(e){state.innerHTML='<p class="line-login-status error">ยังไม่สามารถเปิด LINE Login ได้ กรุณาใช้การเข้าสู่ระบบปกติหรือลองใหม่</p>';btn.disabled=false;btn.textContent='เข้าสู่ระบบด้วย LINE';busy=false;}
+function hasOauthReturn(){try{const u=new URL(location.href);return u.searchParams.has('line_oauth')||u.searchParams.has('line_oauth_error')}catch{return false}}
+function isSmartphone(){return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent||'')}
+function scheduleOauthRefresh(data){
+  if(oauthRefreshTimer)clearTimeout(oauthRefreshTimer);
+  const exp=new Date(data?.expires_at||0).getTime();
+  const delay=Math.max(30000,Math.min(210000,exp-Date.now()-60000));
+  oauthRefreshTimer=setTimeout(()=>refreshPreparedOauth().catch(()=>{}),Number.isFinite(delay)?delay:180000);
+}
+async function refreshPreparedOauth(){
+  const link=$('#line-login-start');if(!link||link.tagName!=='A'||busy||hasOauthReturn())return;
+  const data=await callOauth('start');
+  if(!data.configured||!data.authorize_url||!data.request_id||!data.browser_secret)return;
+  saveOauth(data);link.href=data.authorize_url;scheduleOauthRefresh(data);
+}
+
+async function prepareDirectLineLogin(){
+  if(oauthPreparePromise)return oauthPreparePromise;
+  const btn=$('#line-login-start'),state=stateBox(),help=$('.line-login-help');
+  if(!btn||btn.tagName==='A')return;
+  btn.disabled=true;btn.textContent='กำลังเตรียม LINE…';btn.setAttribute('aria-disabled','true');
+  if(help)help.textContent='กำลังเตรียมการยืนยันตัวตนอย่างปลอดภัย…';
+  oauthPreparePromise=(async()=>{
+    try{
+      const data=await callOauth('start');
+      if(!data.configured){
+        btn.disabled=false;btn.removeAttribute('aria-disabled');btn.textContent='เข้าสู่ระบบด้วย LINE';
+        btn.onclick=()=>startCodeLogin(true);
+        if(help)help.textContent='LINE Login ยังตั้งค่าไม่ครบ · ใช้วิธียืนยันผ่าน LINE OA สำรองได้';
+        return data;
+      }
+      if(!data.authorize_url||!data.request_id||!data.browser_secret)throw new Error('OAUTH_START_INCOMPLETE');
+      saveOauth(data);
+      const link=document.createElement('a');
+      link.id='line-login-start';link.className='line-login-button';link.href=data.authorize_url;link.textContent='เข้าสู่ระบบด้วย LINE';
+      link.setAttribute('aria-label','เข้าสู่ระบบด้วย LINE');
+      link.addEventListener('click',()=>{busy=true;stopTimers();state.hidden=false;state.innerHTML='<p class="line-login-status">กำลังเปิด LINE เพื่อยืนยันตัวตน…</p>';});
+      btn.replaceWith(link);scheduleOauthRefresh(data);
+      if(help)help.textContent=isSmartphone()?'บนสมาร์ตโฟน แตะครั้งเดียวเพื่อเปิดแอป LINE และยืนยันตัวตน · หากแอปไม่เปิด ให้ลองจาก Safari/Chrome':'บนคอมพิวเตอร์ ใช้ LINE Login หรือ QR code ตามหน้าจอได้';
+      return data;
+    }catch(e){
+      btn.disabled=false;btn.removeAttribute('aria-disabled');btn.textContent='ลองเข้าสู่ระบบด้วย LINE อีกครั้ง';btn.onclick=prepareDirectLineLogin;
+      if(help)help.textContent='ยังเตรียม LINE Login ไม่สำเร็จ · Login ปกติยังใช้งานได้';
+      state.hidden=false;state.innerHTML='<p class="line-login-status error">ยังไม่สามารถเตรียม LINE Login ได้ กรุณาลองใหม่หรือเข้าสู่ระบบปกติ</p>';
+      return null;
+    }finally{oauthPreparePromise=null}
+  })();
+  return oauthPreparePromise;
 }
 
 async function resumeOauth(){
@@ -89,8 +128,11 @@ async function startCodeLogin(fromFallback=false){
 }
 function init(){
   injectStyle();const form=$('#login-form');if(!form||$('#line-login-v201'))return;
-  const box=document.createElement('section');box.id='line-login-v201';box.className='line-login-v201';box.innerHTML='<div class="line-login-or">หรือ</div><button type="button" class="line-login-button" id="line-login-start">เข้าสู่ระบบด้วย LINE</button><p class="line-login-help">สำหรับบัญชีที่เชื่อม LINE แล้ว · กดครั้งเดียว ไม่ต้องส่งรหัสเมื่อ LINE Login พร้อมใช้งาน</p><div class="line-login-state" id="line-login-state" hidden></div>';
-  form.insertAdjacentElement('afterend',box);$('#line-login-start').onclick=startDirectLineLogin;
-  window.addEventListener('pagehide',stopTimers,{once:true});resumeOauth().catch(()=>{});
+  const box=document.createElement('section');box.id='line-login-v201';box.className='line-login-v201';box.innerHTML='<div class="line-login-or">หรือ</div><button type="button" class="line-login-button" id="line-login-start" disabled aria-disabled="true">กำลังเตรียม LINE…</button><p class="line-login-help">กำลังเตรียมการยืนยันตัวตนอย่างปลอดภัย…</p><div class="line-login-state" id="line-login-state" hidden></div>';
+  form.insertAdjacentElement('afterend',box);$('#line-login-start').onclick=prepareDirectLineLogin;
+  window.addEventListener('pagehide',stopTimers,{once:true});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!hasOauthReturn())refreshPreparedOauth().catch(()=>{})});
+  if(hasOauthReturn())resumeOauth().catch(()=>{});else prepareDirectLineLogin().catch(()=>{});
 }
+
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();

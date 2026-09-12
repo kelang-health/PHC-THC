@@ -1,3 +1,8 @@
+## v2.0.14
+- Improve smartphone LINE Login: pre-create the OAuth transaction, then let the user tap the LINE authorization link directly so iOS Universal Links / Android App Links can open the installed LINE app when supported.
+- Remove JavaScript redirect to the LINE authorization URL from the normal login path.
+- Keep PC LINE Login/QR, normal username/password login, and LINE OA device-code fallback unchanged.
+
 ## v2.0.13
 - Add Admin LINE Login readiness/settings panel without exposing Channel Secret to the browser.
 - Report presence-only status for LINE Login Channel ID/Secret and the callback URL.
