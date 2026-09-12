@@ -169,3 +169,22 @@ td.good{background:var(--phc-green-bg)}td.warn{background:var(--phc-yellow-bg)}t
   #portal>.portal-nav button{min-height:56px;padding-left:1px;padding-right:1px}
   #portal>.portal-nav strong{font-size:.62rem!important}
 }
+
+
+/* v2.0.9 final mobile UI polish */
+#ncd-close{min-width:48px!important;min-height:48px!important;padding:8px 12px!important}
+@media(max-width:900px){
+  body:has(#portal:not([hidden])) .shell{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+  #portal>.portal-nav{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:7px 5px calc(7px + env(safe-area-inset-bottom))}
+  #portal>.portal-nav button{min-height:66px;padding:5px 2px;align-content:center}
+  #portal>.portal-nav .portal-nav-icon{width:30px;height:28px;flex-basis:28px;font-size:1.05rem}
+  #portal>.portal-nav strong{font-size:.76rem!important;line-height:1.14;white-space:normal;overflow:visible;text-overflow:clip;word-break:keep-all}
+}
+@media(max-width:640px){
+  #portal .eyebrow{display:none!important}
+}
+@media(max-width:390px){
+  #portal>.portal-nav{gap:3px;padding-left:3px;padding-right:3px}
+  #portal>.portal-nav button{min-height:64px}
+  #portal>.portal-nav strong{font-size:.74rem!important;line-height:1.12}
+}

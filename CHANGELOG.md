@@ -1,4 +1,11 @@
 
+## v2.0.9
+- Final mobile UI polish before closing field-test phase: keep five bottom-nav labels readable without shrinking below the elder-friendly target.
+- Render Field Work & Reporting tables as labeled cards on narrow screens while preserving desktop tables.
+- Standardize user-facing LINE wording to “LINE OA ของหน่วยงาน”.
+- Raise remaining small touch targets and make elderly 1–9 wizard tabs horizontally scrollable at 48px targets on narrow screens.
+
+
 ## v2.0.8
 - Treat every OSM-PHC screening recorded before 2026-10-01 as test-mode work and exclude it from production performance after go-live.
 - Show per-person test-reset controls across every age-screening route and the NCD form; preserve JHCIS/J-Report/3Doctor history.
@@ -42,7 +49,7 @@
 ## 2.0.1 — 2026-09-12
 
 - เพิ่มการเชื่อม LINE สำหรับบัญชี admin โดยใช้ workflow เดียวกับ user/staff
-- เพิ่ม LINE Login แบบรหัสใช้ครั้งเดียว 3 นาที สำหรับบัญชีที่เชื่อม NCD OA ไว้แล้ว; Supabase Auth/RLS ยังคงเป็นแหล่งยืนยันตัวตนหลัก
+- เพิ่ม LINE Login แบบรหัสใช้ครั้งเดียว 3 นาที สำหรับบัญชีที่เชื่อม LINE OA ของหน่วยงาน ไว้แล้ว; Supabase Auth/RLS ยังคงเป็นแหล่งยืนยันตัวตนหลัก
 - เพิ่ม LINE webhook รองรับ `LOGIN XXXXXXXX` และคง `LINK XXXXXXXX` สำหรับเชื่อมบัญชี
 - เพิ่ม LINE dispatch worker อัตโนมัติทุก 5 นาที และ health check สำหรับ Channel access token/Webhook
 - ไม่เก็บ LINE user ID ดิบใน browser และไม่ใช้ LINE user ID เป็นรหัสผ่าน
