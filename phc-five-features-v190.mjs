@@ -1,4 +1,4 @@
-const VERSION='1.9.0';
+const VERSION='2.0.0';
 let supabase=null,profile=null,activeOverlay=null,globalBound=false;
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

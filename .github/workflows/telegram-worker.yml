@@ -1,0 +1,49 @@
+name: OSM-PHC Telegram Worker
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+    - cron: '2 1 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Worker mode
+        required: true
+        default: outbox
+        type: choice
+        options:
+          - outbox
+          - daily_summary
+
+permissions:
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Invoke notification worker
+        env:
+          FUNCTION_URL: https://tgeezbwbrovfyjbeykrj.supabase.co/functions/v1/admin-notifications
+          PUBLIC_API_KEY: sb_publishable_bw0sKPthqc6Sl9xU8fdVpA_p2sZ4-N2
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_SCHEDULE: ${{ github.event.schedule }}
+          MANUAL_MODE: ${{ github.event.inputs.mode }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            MODE="${MANUAL_MODE:-outbox}"
+          elif [[ "$EVENT_SCHEDULE" == "2 1 * * *" ]]; then
+            MODE="daily_summary"
+          else
+            MODE="outbox"
+          fi
+          curl --fail --silent --show-error \
+            --retry 2 --retry-delay 3 \
+            -X POST "$FUNCTION_URL" \
+            -H 'content-type: application/json' \
+            -H "apikey: $PUBLIC_API_KEY" \
+            -H "authorization: Bearer $PUBLIC_API_KEY" \
+            --data "{\"mode\":\"$MODE\"}"

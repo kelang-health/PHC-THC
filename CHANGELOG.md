@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.0 — 2026-09-12
+
+- เพิ่ม Field Work & Reporting Center สำหรับ user / staff / admin พร้อม drill-down งานจากภาพรวม → ชุมชน → อสม. → รายบุคคล
+- เพิ่ม Unified Work View ครอบคลุม Growth, Child Development, NCD และ Elderly 9 domains พร้อมสถานะ due / partial / complete
+- แยก Operational Task Completion ออกจาก Follow-up Closure เพื่อไม่ลดคะแนน อสม. ที่พบความเสี่ยงมาก
+- เพิ่มงานติดตาม open / in_progress / done พร้อม resolution note และ Audit log
+- เพิ่มส่งออก Excel หลายชีตจาก Cloud ตามขอบเขตสิทธิ์ โดยไม่ส่งออก CID, HN, เบอร์โทร, ที่อยู่ หรือ LINE ID
+- เพิ่ม export views สำหรับ Local Reporting เพื่อใช้ Cloud → Local รายงานโดยไม่เขียนกลับ JHCIS
+
 ## 1.9.0 — 2026-09-12
 
 - เพิ่ม workflow “แจ้งเพิ่มสมาชิกบ้าน” พร้อม validation ฝั่ง browser + RPC, Thai CID checksum, masked display, encrypted storage, keyed hash, duplicate checks, Admin review และ audit trail

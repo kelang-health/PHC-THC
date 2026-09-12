@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>อสม. พลัส | งานสุขภาพชุมชน</title>
-  <link rel="stylesheet" href="./style.css?v=1.9.0">
+  <link rel="stylesheet" href="./style.css?v=2.0.0">
 </head>
 <body>
   <main class="shell">
@@ -41,7 +41,7 @@
         <button class="primary login-submit">เข้าสู่ระบบ</button>
         <p id="login-error" class="error"></p>
       </form>
-      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v1.9.0</footer>
+      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v2.0.0</footer>
     </section>
 
     <section id="blocked" class="card" hidden>
@@ -81,9 +81,15 @@
         <button type="button" data-portal-view="volunteers" data-roles="admin"><span class="portal-nav-icon">♧</span><span><strong class="portal-nav-label">อสม.</strong><small>ทะเบียนและภาระงาน</small></span></button>
         <button type="button" data-portal-view="houses" data-roles="staff user"><span class="portal-nav-icon">⌂</span><span><strong class="portal-nav-label">บ้านของฉัน</strong><small>เขตรับผิดชอบ</small></span></button>
         <button type="button" data-portal-view="health" data-roles="admin staff user"><span class="portal-nav-icon">✚</span><span><strong class="portal-nav-label">งานสุขภาพ</strong><small>NCD และ 2Q</small></span></button>
+        <button type="button" data-portal-view="work" data-roles="admin staff user"><span class="portal-nav-icon">▦</span><span><strong class="portal-nav-label">ผลงาน/ติดตาม</strong><small>งาน อสม. และรายงาน</small></span></button>
       </nav>
 
       <div id="stats" class="stats" data-portal-panel="overview"></div>
+
+
+      <section class="card" data-portal-panel="work" hidden>
+        <div data-field200-host><div class="muted">กำลังเตรียมศูนย์ติดตามงาน…</div></div>
+      </section>
 
       <section class="card" data-portal-panel="communities" hidden>
         <div class="section-head">
@@ -269,9 +275,9 @@
     </section>
   </main>
 
-  <script type="module" src="./login-keypad-v1837.mjs?v=1.9.0"></script>
+  <script type="module" src="./login-keypad-v1837.mjs?v=2.0.0"></script>
   <script type="module" src="./auth-security.mjs?v=1.8.28"></script>
-  <script type="module" src="./app.js?v=1.9.0"></script>
+  <script type="module" src="./app.js?v=2.0.0"></script>
 </body>
 </html>
 
