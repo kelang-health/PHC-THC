@@ -1,4 +1,10 @@
 
+## v2.0.8
+- Treat every OSM-PHC screening recorded before 2026-10-01 as test-mode work and exclude it from production performance after go-live.
+- Show per-person test-reset controls across every age-screening route and the NCD form; preserve JHCIS/J-Report/3Doctor history.
+- Archive reset test rows and audit every reset; add an Admin bulk reset preview/action before go-live only.
+- Allow pre-go-live test NCD results to unlock same-day elderly 9-domain testing.
+
 ## v2.0.7
 - Replace the generic elderly 9-domain Normal/Observation form with a mobile 1–9 Community Screening wizard for VHV/Staff/Admin.
 - Derive risk server-side from Mini-Cog, TUG/fall history, nutrition, vision, Finger rub, 2Q plus, urinary, ADL and oral-health inputs; VHV no longer chooses risk status directly.

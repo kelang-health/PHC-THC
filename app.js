@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.7';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.8';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -69,6 +69,8 @@ function configureHealthAdminUI(role){
 }
 
 function localDate(){return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'});}
+const GO_LIVE_V208='2026-10-01';
+function preGoLiveTestModeV208(){return localDate()<GO_LIVE_V208;}
 function formNumber(value){const n=Number(value);return Number.isFinite(n)?n:null;}
 function requestId(){return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;}
 
@@ -344,11 +346,15 @@ function bindNcdSectionNav(){
   nav.querySelectorAll('[data-ncd-section-target]').forEach(button=>button.onclick=()=>setActiveNcdSection(button.dataset.ncdSectionTarget,true));
 }
 
+function syncNcdTestResetV208(){const b=$('#ncd-reset-test');if(b)b.hidden=!(preGoLiveTestModeV208()&&selectedHealthPerson);}
+function routeForAgeV208(age){age=Number(age);return age<6?'child_0_5':age<15?'school_6_14':age<35?'youth_15_34':age<60?'ncd_35_59':'elderly_60_plus';}
+async function resetSelectedNcdTestV208(){const p=selectedHealthPerson;if(!p||!preGoLiveTestModeV208())return;if(!confirm(`รีเซทข้อมูลทดสอบของ ${p.display_name}?\n\nหากเป็นผู้สูงอายุ ระบบจะรีเซท NCD ทดสอบและ 9 ด้านของช่วงทดสอบร่วมกัน ประวัติเดิมจาก JHCIS / J-Report / 3Doctor จะไม่ถูกลบ`))return;const b=$('#ncd-reset-test');if(b)b.disabled=true;try{const {error}=await supabase.rpc('reset_person_test_screening_v208',{p_source_pcucode:p.source_pcucode,p_source_pid:Number(p.source_pid),p_route:routeForAgeV208(p.age_years),p_reason:'ผู้ใช้กดรีเซทข้อมูลทดสอบจากหน้า NCD'});if(error)throw error;$('#ncd-form').reset();$('#ncd-result').hidden=true;closeHealthFeedbackCard();healthFeedbackModel=null;await Promise.all([loadHealthSummary(),loadHealthPeople(),loadHealthHistory()]);const fresh=healthPeople.find(x=>personKey(x)===personKey(p));if(fresh){selectedHealthPerson=fresh;renderPreviousPanel(fresh)}alert('รีเซทข้อมูลทดสอบแล้ว');}catch(e){$('#ncd-error').textContent=e.message;}finally{if(b)b.disabled=false;syncNcdTestResetV208();}}
+
 function selectHealthPerson(index,forceNcd=false){
   const p=healthPeople[index]; if(!p)return; if(!forceNcd&&window.PHCFiveFeatures190?.openAgeScreening){window.PHCFiveFeatures190.openAgeScreening(p.source_pcucode,Number(p.source_pid),p.display_name);return;} selectedHealthPerson=p;
   $('#ncd-person-summary').innerHTML=`<strong>${esc(p.display_name)}</strong><span>${esc(p.age_years??'—')} ปี · ${esc(p.gender)} · ${esc(p.community||'—')}</span>`;
   const conditions=[];if(p.has_ht)conditions.push('<span class="condition-badge disease">มีประวัติ HT</span>');if(p.has_dm)conditions.push('<span class="condition-badge disease">มีประวัติ DM</span>');if(!p.known_ncd)conditions.push('<span class="condition-badge clear">ยังไม่พบ DM/HT ใน JHCIS</span>');if(p.has_cvd)conditions.push('<span class="condition-badge disease">มีประวัติ CVD · ไม่ใช้ Thai CV Risk</span>');else if(p.cvd_population_eligible&&Number(p.age_years)>=35&&Number(p.age_years)<=70)conditions.push('<span class="condition-badge clear">Thai CV Risk คำนวณอัตโนมัติ</span>');$('#ncd-condition-badges').innerHTML=conditions.join('');
-  const card=$('#ncd-screen-card'); card.hidden=!(Number(p.age_years)>=18); if(card.hidden){return;}
+  const card=$('#ncd-screen-card'); card.hidden=!(Number(p.age_years)>=18); syncNcdTestResetV208(); if(card.hidden){return;}
   const form=$('#ncd-form'); form.reset(); form.elements.screened_on.value=localDate(); form.dataset.requestId=requestId(); $('#ncd-result').hidden=true; healthFeedbackModel=null; closeHealthFeedbackCard(); closeNcdSaveConfirmation(false); $('#ncd-error').textContent=''; setActiveNcdSection('ncd-section-measure',false);
   renderPreviousPanel(p);
   form.elements.height_cm.value=p.previous_height_cm||'';
@@ -397,6 +403,7 @@ async function loadHealthModule(){
   bindNcdSectionNav();
   $('#ncd-form').onsubmit=saveHealthScreening; $('#ncd-close').onclick=()=>{closeNcdSaveConfirmation(false);closeHealthFeedbackCard();healthFeedbackModel=null;$('#ncd-screen-card').hidden=true;selectedHealthPerson=null;};
   $('#ncd-clear-2q').onclick=()=>{$('#ncd-form').querySelectorAll('[name^="mental_2q_"]').forEach(el=>{el.checked=false;});renderMental2QPreview();};
+  $('#ncd-reset-test').onclick=resetSelectedNcdTestV208;syncNcdTestResetV208();
   const saveConfirmation=$('#ncd-save-confirmation');$('#ncd-save-confirmation-ok').onclick=()=>{closeNcdSaveConfirmation(false);viewHealthFeedback();};$('#ncd-save-confirmation-close').onclick=()=>closeNcdSaveConfirmation();saveConfirmation.onclick=e=>{if(e.target===saveConfirmation)closeNcdSaveConfirmation();};saveConfirmation.onkeydown=e=>{if(e.key==='Escape')closeNcdSaveConfirmation();};
   $('#health-feedback-share').onclick=shareHealthFeedback;$('#health-feedback-close').onclick=closeHealthFeedbackCard;
   $('#health-refresh').onclick=async()=>{healthLoaded=false;await loadHealthModule();};
