@@ -1,4 +1,4 @@
-name: OSM-PHC Telegram Worker
+name: OSM-PHC Messaging Worker
 
 on:
   schedule:
@@ -47,3 +47,18 @@ jobs:
             -H "apikey: $PUBLIC_API_KEY" \
             -H "authorization: Bearer $PUBLIC_API_KEY" \
             --data "{\"mode\":\"$MODE\"}"
+
+      - name: Invoke LINE worker
+        env:
+          LINE_FUNCTION_URL: https://tgeezbwbrovfyjbeykrj.supabase.co/functions/v1/line-dispatch
+          PUBLIC_API_KEY: sb_publishable_bw0sKPthqc6Sl9xU8fdVpA_p2sZ4-N2
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            --retry 2 --retry-delay 3 \
+            -X POST "$LINE_FUNCTION_URL" \
+            -H 'content-type: application/json' \
+            -H "apikey: $PUBLIC_API_KEY" \
+            -H "authorization: Bearer $PUBLIC_API_KEY" \
+            --data '{"mode":"outbox"}'

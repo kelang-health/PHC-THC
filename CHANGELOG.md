@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.1 — 2026-09-12
+
+- เพิ่มการเชื่อม LINE สำหรับบัญชี admin โดยใช้ workflow เดียวกับ user/staff
+- เพิ่ม LINE Login แบบรหัสใช้ครั้งเดียว 3 นาที สำหรับบัญชีที่เชื่อม NCD OA ไว้แล้ว; Supabase Auth/RLS ยังคงเป็นแหล่งยืนยันตัวตนหลัก
+- เพิ่ม LINE webhook รองรับ `LOGIN XXXXXXXX` และคง `LINK XXXXXXXX` สำหรับเชื่อมบัญชี
+- เพิ่ม LINE dispatch worker อัตโนมัติทุก 5 นาที และ health check สำหรับ Channel access token/Webhook
+- ไม่เก็บ LINE user ID ดิบใน browser และไม่ใช้ LINE user ID เป็นรหัสผ่าน
+
 ## 2.0.0 — 2026-09-12
 
 - เพิ่ม Field Work & Reporting Center สำหรับ user / staff / admin พร้อม drill-down งานจากภาพรวม → ชุมชน → อสม. → รายบุคคล
