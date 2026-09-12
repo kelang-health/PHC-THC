@@ -1,3 +1,8 @@
+## 2.0.5 - 2026-09-12
+- Add appointment response controls for linked Admin/Staff/VHV accounts: accept, decline, acknowledge.
+- Show the saved appointment response on the overview using the existing Supabase Auth/RLS scope.
+- Complete messaging E2E workflow validation for LINE/Telegram transport and privacy guard.
+
 ## 2.0.4 - 2026-09-12
 - Add version-locked Department of Health child growth/nutrition interpretation from the JHCIS/HDC operational reference tables.
 - 0–5 years: W/A + H/A + W/H; 6–14 years: H/A + W/H using the DOH 6–19 B.E.2564 reference.
