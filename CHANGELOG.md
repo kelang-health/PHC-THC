@@ -1,3 +1,9 @@
+## 2.0.4 - 2026-09-12
+- Add version-locked Department of Health child growth/nutrition interpretation from the JHCIS/HDC operational reference tables.
+- 0–5 years: W/A + H/A + W/H; 6–14 years: H/A + W/H using the DOH 6–19 B.E.2564 reference.
+- Keep raw weight/height plus reference version and structured nutrition result for audit/history; do not replace the current DOH reference with BMI-for-age.
+- Include interpreted growth fields in Cloud → Local Excel export.
+
 ## 2.0.3 - 2026-09-12
 - Replace blocking native alerts after child growth/development saves with non-blocking auto-dismiss confirmation.
 - Keep clinically relevant development result visible inline after save.
