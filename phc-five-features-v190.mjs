@@ -1,4 +1,4 @@
-const VERSION='2.0.1';
+const VERSION='2.0.2';
 let supabase=null,profile=null,activeOverlay=null,globalBound=false;
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -14,6 +14,12 @@ function injectStyle(){if($('#phc190-style'))return;const s=document.createEleme
 function friendlyError(e){const m=String(e?.message||e||'');const map={INVALID_THAI_CITIZEN_ID:'เลขประจำตัวประชาชนไม่ถูกต้อง กรุณาตรวจสอบ 13 หลัก',DUPLICATE_MEMBER_REQUEST:'มีคำขอของบุคคลนี้อยู่ระหว่างตรวจสอบแล้ว',PERSON_ALREADY_EXISTS_REVIEW_LINK:'พบบุคคลนี้ในทะเบียนแล้ว กรุณาให้ผู้ดูแลระบบตรวจสอบการเชื่อม',HOUSE_OUT_OF_SCOPE:'บัญชีนี้ไม่มีสิทธิ์ดำเนินการกับบ้านนี้',ADMIN_REQUIRED:'ต้องใช้สิทธิ์ผู้ดูแลระบบ',NCD_SCREENING_REQUIRED_FIRST:'ต้องบันทึก NCD Screening ก่อนจึงทำ 9 ด้านต่อได้',NCD_SCREENING_REQUIRED_SAME_DAY:'ยังไม่พบ NCD Screening ของวันนี้ กรุณาบันทึก NCD ก่อน'};return map[m]||(/permission|rls|not authorized/i.test(m)?'ไม่มีสิทธิ์ดำเนินการในข้อมูลนี้':m.replace(/^.*?error:\s*/i,'')||'เกิดข้อผิดพลาด กรุณาลองใหม่')}
 function cidValid(cid){const v=String(cid||'').replace(/\s/g,'');if(!/^\d{13}$/.test(v))return false;let sum=0;for(let i=0;i<12;i++)sum+=Number(v[i])*(13-i);return ((11-(sum%11))%10)===Number(v[12])}
 function statusLabel(s){return({pending:'🟡 กำลังตรวจสอบ',verified:'🟢 ตรวจสอบแล้ว',needs_correction:'🟠 กรุณาตรวจสอบข้อมูล',rejected:'🔴 ไม่สามารถเพิ่มได้'})[s]||s}
+
+async function copyTextV202(value){
+  const text=String(value||'').trim();if(!text)return false;
+  try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);return true}}catch{}
+  try{const ta=document.createElement('textarea');ta.value=text;ta.setAttribute('readonly','');ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,text.length);const ok=document.execCommand('copy');ta.remove();return Boolean(ok)}catch{return false}
+}
 
 function openModal(title,subtitle=''){closeModal();const o=document.createElement('div');o.className='phc190-overlay';o.innerHTML=`<section class="phc190-modal" role="dialog" aria-modal="true"><div class="phc190-head"><div><small>OSM-PHC · v${VERSION}</small><h2>${esc(title)}</h2>${subtitle?`<div class="phc190-note">${esc(subtitle)}</div>`:''}</div><button class="phc190-close" type="button" aria-label="ปิด">×</button></div><div data-phc190-body></div></section>`;document.body.appendChild(o);document.body.style.overflow='hidden';o.querySelector('.phc190-close').onclick=closeModal;o.addEventListener('click',e=>{if(e.target===o)closeModal()});activeOverlay=o;return $('[data-phc190-body]',o)}
 function closeModal(){if(activeOverlay){activeOverlay.remove();activeOverlay=null}document.body.style.overflow=''}
@@ -115,7 +121,16 @@ async function renderOverview(){
   }
 }
 function showNotifications(rows){const body=openModal('การแจ้งเตือน Admin','ข้อความแจ้งเตือนเก็บเฉพาะข้อมูลสรุป ไม่แสดงเลขบัตรหรือรายละเอียดสุขภาพพร้อมตัวบุคคล');body.innerHTML=(rows||[]).map(r=>`<article class="phc190-request"><strong>${esc(r.title)}</strong><small>${esc(r.body)} · ${esc(fmt(r.created_at))}</small></article>`).join('')||'<div class="phc190-note">ยังไม่มีการแจ้งเตือน</div>'}
-async function createLineCode(){const body=openModal('เชื่อม LINE','รหัสใช้ครั้งเดียวและหมดอายุใน 10 นาที');body.innerHTML='<div class="phc190-note">กำลังสร้างรหัส…</div>';const {data,error}=await supabase.rpc('create_line_link_code_v190');body.innerHTML=error?`<div class="phc190-error">${esc(friendlyError(error))}</div>`:`<div class="phc190-note">ส่งข้อความนี้ไปที่ LINE OA ของหน่วยงาน</div><div class="phc190-code">LINK ${esc(data.code)}</div><div class="phc190-note">หลัง LINE ยืนยันสำเร็จ กลับมาเปิดหน้า “ภาพรวม” อีกครั้งเพื่อดูสถานะ</div>`}
+async function createLineCode(){
+  const body=openModal('เชื่อม LINE','รหัสใช้ครั้งเดียวและหมดอายุใน 10 นาที');
+  body.innerHTML='<div class="phc190-note">กำลังสร้างรหัส…</div>';
+  const {data,error}=await supabase.rpc('create_line_link_code_v190');
+  if(error){body.innerHTML=`<div class="phc190-error">${esc(friendlyError(error))}</div>`;return}
+  const linkText=`LINK ${String(data.code||'')}`;
+  body.innerHTML=`<div class="phc190-note">ส่งข้อความนี้ไปที่ LINE OA ของหน่วยงาน</div><div class="phc190-code" data-line-link-code>${esc(linkText)}</div><button type="button" class="phc190-primary" data-copy-line-link>คัดลอกรหัส LINE</button><div class="phc190-note" data-copy-line-status>หลัง LINE ยืนยันสำเร็จ กลับมาเปิดหน้า “ภาพรวม” อีกครั้งเพื่อดูสถานะ</div>`;
+  const btn=body.querySelector('[data-copy-line-link]'),status=body.querySelector('[data-copy-line-status]');
+  btn.onclick=async()=>{const ok=await copyTextV202(linkText);if(ok){btn.textContent='✓ คัดลอกแล้ว';status.textContent='คัดลอกแล้ว นำข้อความไปวางใน NCD OA ได้ทันที';setTimeout(()=>{if(document.body.contains(btn))btn.textContent='คัดลอกรหัส LINE'},1600)}else{status.textContent='คัดลอกอัตโนมัติไม่ได้ กรุณากดค้างที่รหัสเพื่อคัดลอก'}};
+}
 
 function bindGlobal(){if(globalBound)return;globalBound=true;document.addEventListener('click',e=>{const b=e.target.closest?.('[data-phc190-screen]');if(b){e.preventDefault();e.stopPropagation();openAgeScreening(b.dataset.pcucode,Number(b.dataset.pid),b.dataset.name||'').catch(x=>alert(friendlyError(x)));return}if(e.target.closest?.('[data-portal-view="overview"]'))setTimeout(()=>renderOverview().catch(()=>{}),100)},true)}
 async function start(){const ver=$('.login-version');if(ver)ver.textContent=`Cloud v${VERSION}`;profile=await loadProfile();window.PHCFiveFeatures190={renderHouseMemberRequests,openAgeScreening,renderAdminMemberQueue,refreshOverview:renderOverview};bindGlobal();if(!profile?.active)return;await renderOverview()}

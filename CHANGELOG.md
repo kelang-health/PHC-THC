@@ -1,3 +1,9 @@
+# v2.0.2 — 2026-09-12
+
+- Compact mobile bottom navigation into one 5-item row.
+- Add one-tap copy button for `LINK XXXXXXXX` when linking LINE accounts.
+- Keep the existing 10-minute account-link code lifetime and LINE Login 3-minute approval lifetime unchanged.
+
 # Changelog
 
 ## 2.0.1 — 2026-09-12
