@@ -1,3 +1,9 @@
+## v2.0.12
+- Add one-tap LINE Login through LINE Login OAuth/OpenID Connect for users already linked to OSM-PHC.
+- Keep Supabase Auth/profile as the authorization source; LINE identity only maps to an existing active user_line_links record.
+- Use a short-lived state/nonce/browser-secret exchange; raw LINE user ID never returns to the browser.
+- Keep the existing LINE OA LOGIN code flow as an automatic fallback until LINE Login channel credentials are configured.
+
 ## v2.0.11
 - Restore defensive previous NCD screening fallback so JHCIS/J-Report previous measurements remain visible when the worklist projection is missing them.
 - Keep the previous-body reuse action for height, weight and waist only; BP/glucose are never auto-reused.
