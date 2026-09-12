@@ -1,3 +1,8 @@
+
+## v2.0.6
+- DSPM remains a simple 5-domain preliminary screen for VHV; abnormal results create staff/admin follow-up automatically and appear in reporting.
+- Added admin-controlled optional 15–34 screening campaign with start/end dates and NCD / mental-health toggles.
+- Campaign work is excluded from primary Operational Task Completion. NCD campaign is limited to adults 18–34; mental-health 2Q is available 15–34.
 ## 2.0.5 - 2026-09-12
 - Add appointment response controls for linked Admin/Staff/VHV accounts: accept, decline, acknowledge.
 - Show the saved appointment response on the overview using the existing Supabase Auth/RLS scope.
