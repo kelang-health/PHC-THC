@@ -1,4 +1,4 @@
-const VERSION='2.0.9';
+const VERSION='2.0.10';
 let supabase=null,profile=null,activeOverlay=null,globalBound=false,toastTimer=null;
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -206,8 +206,10 @@ async function openAdminCommunication(){
   const fg=body.querySelector('[data-line-group]');fg.onsubmit=async e=>{e.preventDefault();const err=fg.querySelector('[data-err]');err.textContent='';const ids=[...fg.elements.members.selectedOptions].map(o=>o.value);if(!ids.length){err.textContent='เลือกสมาชิกอย่างน้อย 1 คน';return}const {error}=await supabase.rpc('admin_save_line_group_v190',{p_group_id:null,p_name:fg.elements.name.value,p_user_ids:ids});if(error)err.textContent=friendlyError(error);else{alert('บันทึกกลุ่มแล้ว');closeModal();await openAdminCommunication()}};
 }
 async function renderOverview(){
-  const panel=$('[data-portal-panel="overview"]');if(!panel||!profile?.active)return;
-  let root=$('[data-phc190-overview]');if(!root){root=document.createElement('section');root.className='phc190-overview';root.dataset.phc190Overview='1';panel.insertAdjacentElement('afterend',root)}
+  const panel=$('[data-portal-panel="work"]');if(!panel||!profile?.active)return;
+  let root=$('[data-phc190-overview]');
+  if(!root){root=document.createElement('section');root.className='phc190-overview';root.dataset.phc190Overview='1'}
+  if(root.parentElement!==panel){const fieldHost=panel.querySelector('[data-field200-host]');if(fieldHost)panel.insertBefore(root,fieldHost);else panel.prepend(root)}
   if(profile.role==='admin'){
     const [q,l,n,me,tr]=await Promise.all([supabase.rpc('admin_member_request_queue_v190',{p_status:'pending'}),supabase.rpc('admin_line_overview_v190'),supabase.rpc('admin_notification_center_v190',{p_limit:5}),supabase.rpc('my_line_status_v190'),preGoLiveV208()?supabase.rpc('test_reset_preview_v208'):Promise.resolve({data:null})]);
     const myLineConnected=Boolean(me.data?.connected),testReset=tr.data||null;
@@ -229,11 +231,11 @@ async function createLineCode(){
   const {data,error}=await supabase.rpc('create_line_link_code_v190');
   if(error){body.innerHTML=`<div class="phc190-error">${esc(friendlyError(error))}</div>`;return}
   const linkText=`LINK ${String(data.code||'')}`;
-  body.innerHTML=`<div class="phc190-note">ส่งข้อความนี้ไปที่ LINE OA ของหน่วยงาน</div><div class="phc190-code" data-line-link-code>${esc(linkText)}</div><button type="button" class="phc190-primary" data-copy-line-link>คัดลอกรหัส LINE</button><div class="phc190-note" data-copy-line-status>หลัง LINE ยืนยันสำเร็จ กลับมาเปิดหน้า “ภาพรวม” อีกครั้งเพื่อดูสถานะ</div>`;
+  body.innerHTML=`<div class="phc190-note">ส่งข้อความนี้ไปที่ LINE OA ของหน่วยงาน</div><div class="phc190-code" data-line-link-code>${esc(linkText)}</div><button type="button" class="phc190-primary" data-copy-line-link>คัดลอกรหัส LINE</button><div class="phc190-note" data-copy-line-status>หลัง LINE ยืนยันสำเร็จ กลับมาเปิดเมนู “ผลงาน/ติดตาม” อีกครั้งเพื่อดูสถานะ</div>`;
   const btn=body.querySelector('[data-copy-line-link]'),status=body.querySelector('[data-copy-line-status]');
   btn.onclick=async()=>{const ok=await copyTextV202(linkText);if(ok){btn.textContent='✓ คัดลอกแล้ว';status.textContent='คัดลอกแล้ว นำข้อความไปวางใน LINE OA ของหน่วยงานได้ทันที';setTimeout(()=>{if(document.body.contains(btn))btn.textContent='คัดลอกรหัส LINE'},1600)}else{status.textContent='คัดลอกอัตโนมัติไม่ได้ กรุณากดค้างที่รหัสเพื่อคัดลอก'}};
 }
 
-function bindGlobal(){if(globalBound)return;globalBound=true;document.addEventListener('click',e=>{const b=e.target.closest?.('[data-phc190-screen]');if(b){e.preventDefault();e.stopPropagation();openAgeScreening(b.dataset.pcucode,Number(b.dataset.pid),b.dataset.name||'').catch(x=>alert(friendlyError(x)));return}if(e.target.closest?.('[data-portal-view="overview"]'))setTimeout(()=>renderOverview().catch(()=>{}),100)},true)}
+function bindGlobal(){if(globalBound)return;globalBound=true;document.addEventListener('click',e=>{const b=e.target.closest?.('[data-phc190-screen]');if(b){e.preventDefault();e.stopPropagation();openAgeScreening(b.dataset.pcucode,Number(b.dataset.pid),b.dataset.name||'').catch(x=>alert(friendlyError(x)));return}if(e.target.closest?.('[data-portal-view="work"]'))setTimeout(()=>renderOverview().catch(()=>{}),100)},true)}
 async function start(){const ver=$('.login-version');if(ver)ver.textContent=`Cloud v${VERSION}`;profile=await loadProfile();window.PHCFiveFeatures190={renderHouseMemberRequests,openAgeScreening,renderAdminMemberQueue,refreshOverview:renderOverview};bindGlobal();if(!profile?.active)return;await renderOverview()}
 export async function initPHCFiveFeatures190(url,key){if(window.__PHC_FIVE_FEATURES_190__)return;window.__PHC_FIVE_FEATURES_190__=true;injectStyle();const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');supabase=createClient(url,key,{auth:{persistSession:true,autoRefreshToken:false,detectSessionInUrl:false}});supabase.auth.onAuthStateChange(()=>setTimeout(()=>start().catch(()=>{}),0));if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else await start()}

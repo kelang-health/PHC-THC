@@ -1,4 +1,10 @@
 
+## v2.0.10
+- Fix Operation Center panel scope: “ศูนย์ปฏิบัติการ” is now mounted inside the `ผลงาน/ติดตาม` (`work`) panel only.
+- Prevent the Operation Center from leaking across overview/community/volunteer/health tabs by keeping it as a child of the hidden work panel.
+- Refresh Operation Center actions when opening `ผลงาน/ติดตาม`; LINE-link guidance now points back to that menu.
+
+
 ## v2.0.9
 - Final mobile UI polish before closing field-test phase: keep five bottom-nav labels readable without shrinking below the elder-friendly target.
 - Render Field Work & Reporting tables as labeled cards on narrow screens while preserving desktop tables.
