@@ -1,3 +1,9 @@
+## v2.0.11
+- Restore defensive previous NCD screening fallback so JHCIS/J-Report previous measurements remain visible when the worklist projection is missing them.
+- Keep the previous-body reuse action for height, weight and waist only; BP/glucose are never auto-reused.
+- Move NCD save action to the physical end of the form (non-sticky) to stop covering mobile working space.
+- Disable NCD save until all required measurement/behavior fields are complete; 2Q remains optional.
+
 
 ## v2.0.10
 - Fix Operation Center panel scope: “ศูนย์ปฏิบัติการ” is now mounted inside the `ผลงาน/ติดตาม` (`work`) panel only.

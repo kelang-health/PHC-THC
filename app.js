@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.10';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.11';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -132,10 +132,17 @@ async function loadHealthHistory(){
 function fmtPrevious(value,unit=''){return value===null||value===undefined||value===''?'—':`${value}${unit?` ${unit}`:''}`;}
 function setPreviousText(id,value){const el=$(id);if(el)el.textContent=value;}
 function renderPreviousPanel(p){
-  const panel=$('#ncd-previous-panel'),has=Boolean(p.previous_screened_on);
-  panel.hidden=!has;
-  if(!has)return;
-  setPreviousText('#ncd-previous-date',healthDateLabel(p.previous_screened_on));
+  const panel=$('#ncd-previous-panel'),grid=$('#ncd-previous-grid'),empty=$('#ncd-previous-empty');
+  const has=Boolean(p.previous_screened_on||p.previous_weight_kg||p.previous_height_cm||p.previous_waist_cm||p.previous_sbp||p.previous_dbp||p.previous_glucose_mg_dl||p.previous_bmi);
+  panel.hidden=false;
+  if(grid)grid.hidden=!has;if(empty)empty.hidden=has;
+  if(!has){
+    setPreviousText('#ncd-previous-date','ยังไม่พบประวัติเดิม');
+    setPreviousText('#ncd-previous-source','ตรวจสอบแล้ว');
+    const be=$('#ncd-previous-behavior');if(be){be.hidden=true;be.textContent='';}
+    return;
+  }
+  setPreviousText('#ncd-previous-date',p.previous_screened_on?healthDateLabel(p.previous_screened_on):'มีค่าจากประวัติเดิม');
   setPreviousText('#ncd-previous-source',p.previous_source||'ประวัติเดิม');
   setPreviousText('#prev-weight',fmtPrevious(p.previous_weight_kg,'กก.'));
   setPreviousText('#prev-height',fmtPrevious(p.previous_height_cm,'ซม.'));
@@ -147,13 +154,70 @@ function renderPreviousPanel(p){
   const be=$('#ncd-previous-behavior');be.hidden=!b.length;be.textContent=b.join(' · ');
 }
 function previousHint(value,unit=''){return value===null||value===undefined||value===''?'':'ครั้งก่อน '+value+(unit?' '+unit:'');}
+
+function ncdRequiredComplete(form){
+  if(!form)return false;
+  const required=['screened_on','weight_kg','height_cm','waist_cm','sbp','dbp','glucose_mg_dl'];
+  if(required.some(name=>!String(form.elements[name]?.value||'').trim()))return false;
+  if(!form.querySelector('[name="glucose_type"]:checked'))return false;
+  const smoke=form.querySelector('[name="smoking_state"]:checked')?.value;
+  const alcohol=form.querySelector('[name="alcohol_state"]:checked')?.value;
+  if(!smoke||!alcohol||!form.querySelector('[name="exercise_frequency"]:checked'))return false;
+  if(smoke==='yes'&&!form.querySelector('[name="smoking_frequency"]:checked'))return false;
+  if(alcohol==='yes'&&!form.querySelector('[name="alcohol_frequency"]:checked'))return false;
+  return form.checkValidity();
+}
+function syncNcdSubmitState(form=$('#ncd-form')){
+  const button=$('#ncd-submit'),hint=$('#ncd-submit-hint');if(!button||!form)return;
+  const ready=ncdRequiredComplete(form);
+  button.disabled=!ready;
+  button.setAttribute('aria-disabled',String(!ready));
+  if(hint)hint.textContent=ready?'ข้อมูลที่จำเป็นครบแล้ว · ตรวจสอบแล้วกดบันทึก':'กรอกข้อมูลที่จำเป็นใน ค่าที่วัด และพฤติกรรม ให้ครบก่อนบันทึก';
+}
+async function hydratePreviousScreening(p){
+  if(!p?.source_pcucode||p?.source_pid==null)return p;
+  const dateValue=v=>{const n=Date.parse(String(v||''));return Number.isFinite(n)?n:0;};
+  let best={
+    screened_on:p.previous_screened_on||null,weight_kg:p.previous_weight_kg,height_cm:p.previous_height_cm,
+    waist_cm:p.previous_waist_cm,sbp:p.previous_sbp,dbp:p.previous_dbp,glucose_mg_dl:p.previous_glucose_mg_dl,
+    bmi:p.previous_bmi,source:p.previous_source||'',smoking:p.previous_smoking||'',alcohol:p.previous_alcohol||'',exercise:p.previous_exercise||''
+  };
+  try{
+    const {data,error}=await supabase.from('health_persons')
+      .select('previous_screened_on,previous_weight_kg,previous_height_cm,previous_waist_cm,previous_sbp,previous_dbp,previous_glucose_mg_dl,previous_bmi,previous_source')
+      .eq('source_pcucode',p.source_pcucode).eq('source_pid',Number(p.source_pid)).maybeSingle();
+    if(!error&&data&&dateValue(data.previous_screened_on)>=dateValue(best.screened_on))best={...best,
+      screened_on:data.previous_screened_on,weight_kg:data.previous_weight_kg,height_cm:data.previous_height_cm,waist_cm:data.previous_waist_cm,
+      sbp:data.previous_sbp,dbp:data.previous_dbp,glucose_mg_dl:data.previous_glucose_mg_dl,bmi:data.previous_bmi,source:data.previous_source||'JHCIS / J-Report'};
+  }catch{}
+  // Test-mode OSM-PHC records remain historical reference only. They never count as FY2570 output,
+  // but keeping the latest values visible prevents the field form from appearing to have lost history.
+  try{
+    const {data,error}=await supabase.from('health_ncd_history')
+      .select('screened_on,weight_kg,height_cm,waist_cm,sbp,dbp,glucose_mg_dl,bmi,smoking_frequency,alcohol_frequency,exercise_frequency,source_label,recorded_at')
+      .eq('source_pcucode',p.source_pcucode).eq('source_pid',Number(p.source_pid))
+      .order('screened_on',{ascending:false}).order('recorded_at',{ascending:false}).limit(1).maybeSingle();
+    if(!error&&data&&dateValue(data.screened_on)>=dateValue(best.screened_on))best={
+      screened_on:data.screened_on,weight_kg:data.weight_kg,height_cm:data.height_cm,waist_cm:data.waist_cm,
+      sbp:data.sbp,dbp:data.dbp,glucose_mg_dl:data.glucose_mg_dl,bmi:data.bmi,source:data.source_label||'อสม. พลัส',
+      smoking:data.smoking_frequency||'',alcohol:data.alcohol_frequency||'',exercise:data.exercise_frequency||''};
+  }catch{}
+  Object.assign(p,{
+    previous_screened_on:best.screened_on||null,previous_weight_kg:best.weight_kg??null,previous_height_cm:best.height_cm??null,
+    previous_waist_cm:best.waist_cm??null,previous_sbp:best.sbp??null,previous_dbp:best.dbp??null,
+    previous_glucose_mg_dl:best.glucose_mg_dl??null,previous_bmi:best.bmi??null,previous_source:best.source||'',
+    previous_smoking:best.smoking||'',previous_alcohol:best.alcohol||'',previous_exercise:best.exercise||''
+  });
+  return p;
+}
+
 function syncBehaviorPanels(form){
   const smoke=form.querySelector('[name="smoking_state"]:checked')?.value;
   const alc=form.querySelector('[name="alcohol_state"]:checked')?.value;
   const sw=$('#smoking-frequency-wrap'),aw=$('#alcohol-frequency-wrap');
   sw.hidden=smoke!=='yes';aw.hidden=alc!=='yes';
   const syncFrequency=(name,enabled)=>{const choices=[...form.querySelectorAll(`[name="${name}"]`)];choices.forEach((choice,index)=>{choice.required=enabled&&index===0;if(!enabled)choice.checked=false;});};
-  syncFrequency('smoking_frequency',smoke==='yes');syncFrequency('alcohol_frequency',alc==='yes');
+  syncFrequency('smoking_frequency',smoke==='yes');syncFrequency('alcohol_frequency',alc==='yes');syncNcdSubmitState(form);
 }
 function renderNcdPreview(){
   const form=$('#ncd-form');if(!form||!selectedHealthPerson)return;
@@ -350,8 +414,8 @@ function syncNcdTestResetV208(){const b=$('#ncd-reset-test');if(b)b.hidden=!(pre
 function routeForAgeV208(age){age=Number(age);return age<6?'child_0_5':age<15?'school_6_14':age<35?'youth_15_34':age<60?'ncd_35_59':'elderly_60_plus';}
 async function resetSelectedNcdTestV208(){const p=selectedHealthPerson;if(!p||!preGoLiveTestModeV208())return;if(!confirm(`รีเซทข้อมูลทดสอบของ ${p.display_name}?\n\nหากเป็นผู้สูงอายุ ระบบจะรีเซท NCD ทดสอบและ 9 ด้านของช่วงทดสอบร่วมกัน ประวัติเดิมจาก JHCIS / J-Report / 3Doctor จะไม่ถูกลบ`))return;const b=$('#ncd-reset-test');if(b)b.disabled=true;try{const {error}=await supabase.rpc('reset_person_test_screening_v208',{p_source_pcucode:p.source_pcucode,p_source_pid:Number(p.source_pid),p_route:routeForAgeV208(p.age_years),p_reason:'ผู้ใช้กดรีเซทข้อมูลทดสอบจากหน้า NCD'});if(error)throw error;$('#ncd-form').reset();$('#ncd-result').hidden=true;closeHealthFeedbackCard();healthFeedbackModel=null;await Promise.all([loadHealthSummary(),loadHealthPeople(),loadHealthHistory()]);const fresh=healthPeople.find(x=>personKey(x)===personKey(p));if(fresh){selectedHealthPerson=fresh;renderPreviousPanel(fresh)}alert('รีเซทข้อมูลทดสอบแล้ว');}catch(e){$('#ncd-error').textContent=e.message;}finally{if(b)b.disabled=false;syncNcdTestResetV208();}}
 
-function selectHealthPerson(index,forceNcd=false){
-  const p=healthPeople[index]; if(!p)return; if(!forceNcd&&window.PHCFiveFeatures190?.openAgeScreening){window.PHCFiveFeatures190.openAgeScreening(p.source_pcucode,Number(p.source_pid),p.display_name);return;} selectedHealthPerson=p;
+async function selectHealthPerson(index,forceNcd=false){
+  const p=healthPeople[index]; if(!p)return; if(!forceNcd&&window.PHCFiveFeatures190?.openAgeScreening){window.PHCFiveFeatures190.openAgeScreening(p.source_pcucode,Number(p.source_pid),p.display_name);return;} await hydratePreviousScreening(p); selectedHealthPerson=p;
   $('#ncd-person-summary').innerHTML=`<strong>${esc(p.display_name)}</strong><span>${esc(p.age_years??'—')} ปี · ${esc(p.gender)} · ${esc(p.community||'—')}</span>`;
   const conditions=[];if(p.has_ht)conditions.push('<span class="condition-badge disease">มีประวัติ HT</span>');if(p.has_dm)conditions.push('<span class="condition-badge disease">มีประวัติ DM</span>');if(!p.known_ncd)conditions.push('<span class="condition-badge clear">ยังไม่พบ DM/HT ใน JHCIS</span>');if(p.has_cvd)conditions.push('<span class="condition-badge disease">มีประวัติ CVD · ไม่ใช้ Thai CV Risk</span>');else if(p.cvd_population_eligible&&Number(p.age_years)>=35&&Number(p.age_years)<=70)conditions.push('<span class="condition-badge clear">Thai CV Risk คำนวณอัตโนมัติ</span>');$('#ncd-condition-badges').innerHTML=conditions.join('');
   const card=$('#ncd-screen-card'); card.hidden=!(Number(p.age_years)>=18); syncNcdTestResetV208(); if(card.hidden){return;}
@@ -362,9 +426,10 @@ function selectHealthPerson(index,forceNcd=false){
   bindMeasurementControls(form);
   form.querySelectorAll('[data-range-for]').forEach(range=>{const input=form.elements[range.dataset.rangeFor];if(input?.value)range.value=String(Math.min(Number(range.max),Math.max(Number(range.min),Number(input.value))));});
   const previousBody=$('#ncd-use-previous-body'),hasPreviousBody=[p.previous_weight_kg,p.previous_height_cm,p.previous_waist_cm].some(v=>v!==null&&v!==undefined&&v!=='');
-  previousBody.hidden=!hasPreviousBody;previousBody.onclick=()=>{[['weight_kg',p.previous_weight_kg],['height_cm',p.previous_height_cm],['waist_cm',p.previous_waist_cm]].forEach(([name,value])=>{if(value!==null&&value!==undefined&&value!=='')setMeasurementValue(form,name,value);});};
-  syncBehaviorPanels(form);renderNcdPreview();renderMental2QPreview();
-  form.querySelectorAll('input,select').forEach(el=>{el.oninput=()=>{renderNcdPreview();renderMental2QPreview();};el.onchange=()=>{renderNcdPreview();renderMental2QPreview();};});
+  previousBody.hidden=false;previousBody.disabled=!hasPreviousBody;previousBody.textContent=hasPreviousBody?'ใช้ส่วนสูง น้ำหนัก และรอบเอวครั้งก่อน':'ยังไม่มีส่วนสูง น้ำหนัก และรอบเอวครั้งก่อน';
+  previousBody.onclick=()=>{if(!hasPreviousBody)return;[['weight_kg',p.previous_weight_kg],['height_cm',p.previous_height_cm],['waist_cm',p.previous_waist_cm]].forEach(([name,value])=>{if(value!==null&&value!==undefined&&value!=='')setMeasurementValue(form,name,value);});syncNcdSubmitState(form);};
+  syncBehaviorPanels(form);renderNcdPreview();renderMental2QPreview();syncNcdSubmitState(form);
+  form.querySelectorAll('input,select').forEach(el=>{el.oninput=()=>{renderNcdPreview();renderMental2QPreview();syncNcdSubmitState(form);};el.onchange=()=>{renderNcdPreview();renderMental2QPreview();syncNcdSubmitState(form);};});
   card.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function closeNcdSaveConfirmation(restoreFocus=true){
@@ -376,6 +441,7 @@ function showNcdSaveConfirmation(){
 async function saveHealthScreening(event){
   event.preventDefault(); const form=event.currentTarget,error=$('#ncd-error'),result=$('#ncd-result'),button=$('#ncd-submit');
   error.textContent=''; result.hidden=true; if(!selectedHealthPerson){error.textContent='กรุณาเลือกประชาชนจากรายการงาน';return;}
+  syncNcdSubmitState(form);if(!ncdRequiredComplete(form)){error.textContent='กรุณากรอกข้อมูลที่จำเป็นให้ครบก่อนบันทึก';form.reportValidity();return;}
   if(!form.reportValidity())return;
   const d=new FormData(form),p=selectedHealthPerson;
   const smokeState=d.get('smoking_state'),alcoholState=d.get('alcohol_state'),glucoseType=d.get('glucose_type');
@@ -617,4 +683,4 @@ restorePortalNavPreference();
 refreshAuth();
 
 
-window.PHCOpenLegacyNcd190=(pcucode,pid)=>{const i=healthPeople.findIndex(p=>String(p.source_pcucode)===String(pcucode)&&Number(p.source_pid)===Number(pid));if(i<0)return false;selectHealthPerson(i,true);return true;};
+window.PHCOpenLegacyNcd190=(pcucode,pid)=>{const i=healthPeople.findIndex(p=>String(p.source_pcucode)===String(pcucode)&&Number(p.source_pid)===Number(pid));if(i<0)return false;selectHealthPerson(i,true).catch(e=>{const x=$('#ncd-error');if(x)x.textContent=e.message;});return true;};

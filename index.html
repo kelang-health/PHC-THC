@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>อสม. พลัส | งานสุขภาพชุมชน</title>
-  <link rel="stylesheet" href="./style.css?v=2.0.9">
+  <link rel="stylesheet" href="./style.css?v=2.0.11">
 </head>
 <body>
   <main class="shell">
@@ -41,7 +41,7 @@
         <button class="primary login-submit">เข้าสู่ระบบ</button>
         <p id="login-error" class="error"></p>
       </form>
-      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v2.0.10</footer>
+      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v2.0.11</footer>
     </section>
 
     <section id="blocked" class="card" hidden>
@@ -190,7 +190,8 @@
               <div><span class="previous-label">ค่าคัดกรองครั้งก่อน</span><strong id="ncd-previous-date">—</strong></div>
               <span id="ncd-previous-source" class="source-pill"></span>
             </div>
-            <div class="previous-grid">
+            <p id="ncd-previous-empty" class="previous-empty" hidden>ยังไม่พบข้อมูลคัดกรองเดิมของบุคคลนี้ ระบบตรวจแล้วและจะไม่เติมค่าแทนให้เอง</p>
+            <div id="ncd-previous-grid" class="previous-grid">
               <div><small>น้ำหนัก</small><strong id="prev-weight">—</strong></div>
               <div><small>ส่วนสูง</small><strong id="prev-height">—</strong></div>
               <div><small>รอบเอว</small><strong id="prev-waist">—</strong></div>
@@ -238,7 +239,7 @@
               <label>หมายเหตุ<input name="note" maxlength="1000" placeholder="ใส่เฉพาะข้อมูลที่จำเป็น"></label>
             </section>
 
-            <div class="ncd-save-bar"><button id="ncd-submit" class="primary">บันทึกผลคัดกรอง</button><button id="ncd-reset-test" type="button" class="secondary" hidden>รีเซทข้อมูลทดสอบ</button><p id="ncd-error" class="error"></p></div><p class="clinical-note">ก่อน 1 ต.ค. 2569 เป็นโหมดทดสอบ ผลใหม่ไม่ถูกนับเป็นผลงานจริง และการรีเซทจะไม่ลบประวัติเดิมจาก JHCIS / J-Report / 3Doctor</p>
+            <div class="ncd-save-bar"><p id="ncd-submit-hint" class="ncd-submit-hint">กรอกข้อมูลที่จำเป็นใน ค่าที่วัด และพฤติกรรม ให้ครบก่อนบันทึก</p><button id="ncd-submit" class="primary" disabled aria-disabled="true">บันทึกผลคัดกรอง</button><button id="ncd-reset-test" type="button" class="secondary" hidden>รีเซทข้อมูลทดสอบ</button><p id="ncd-error" class="error"></p></div><p class="clinical-note">ก่อน 1 ต.ค. 2569 เป็นโหมดทดสอบ ผลใหม่ไม่ถูกนับเป็นผลงานจริง และการรีเซทจะไม่ลบประวัติเดิมจาก JHCIS / J-Report / 3Doctor</p>
           </form>
           <div id="ncd-result" class="notice compact-result" hidden></div>
           <section id="health-feedback-card" class="health-feedback-card" aria-labelledby="health-feedback-title" hidden>
@@ -278,7 +279,7 @@
   <script type="module" src="./login-keypad-v1837.mjs?v=2.0.0"></script>
   <script type="module" src="./auth-security.mjs?v=1.8.28"></script>
   <script type="module" src="./line-login-v201.mjs?v=2.0.9"></script>
-  <script type="module" src="./app.js?v=2.0.10"></script>
+  <script type="module" src="./app.js?v=2.0.11"></script>
 </body>
 </html>
 

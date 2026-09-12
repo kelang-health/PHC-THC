@@ -188,3 +188,16 @@ td.good{background:var(--phc-green-bg)}td.warn{background:var(--phc-yellow-bg)}t
   #portal>.portal-nav button{min-height:64px}
   #portal>.portal-nav strong{font-size:.74rem!important;line-height:1.12}
 }
+
+
+/* v2.0.11 NCD history + bottom-only guarded save */
+.ncd-save-bar{position:static!important;bottom:auto!important;z-index:auto!important;margin-top:6px;padding:14px 12px!important;background:#f7fbf9!important;border:1px solid #d6e5df!important;border-radius:15px!important;backdrop-filter:none!important;box-shadow:none!important}
+.ncd-submit-hint{margin:0 0 8px;text-align:center;color:#5f736c;font-size:.9rem;font-weight:750;line-height:1.45}
+#ncd-submit:disabled{cursor:not-allowed;opacity:.48;transform:none!important;box-shadow:none!important;background:#7fa99f!important;border-color:#7fa99f!important}
+#ncd-submit:not(:disabled){min-height:60px}
+@media(max-width:640px){.ncd-save-bar{margin-top:8px;padding:13px 10px!important}.ncd-submit-hint{font-size:.88rem}}
+
+
+/* v2.0.11 previous history visibility */
+.previous-empty{margin:4px 0 0;padding:11px 12px;border:1px dashed #c8dcd5;border-radius:12px;background:#f8fbfa;color:#5f736c;font-size:.9rem;line-height:1.5}
+.previous-fill:disabled{cursor:not-allowed;opacity:.62;background:#f1f5f3;color:#6f817b;border-color:#d6e2de;box-shadow:none}
