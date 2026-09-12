@@ -27,6 +27,8 @@ if (typeof window !== 'undefined') {
       initSystemAboutNote1829();
       const { initCommunityHouseholdQuality1831 } = await import('./community-household-quality-v1831.mjs?v=1.8.63');
       await initCommunityHouseholdQuality1831(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+      const { initPHCFiveFeatures190 } = await import('./phc-five-features-v190.mjs?v=1.9.0');
+      await initPHCFiveFeatures190(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     })
     .catch(error => console.error('Community GIS/house/mobile workflow modules load failed', error));
 }
