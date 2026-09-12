@@ -1,4 +1,10 @@
 
+## v2.0.7
+- Replace the generic elderly 9-domain Normal/Observation form with a mobile 1–9 Community Screening wizard for VHV/Staff/Admin.
+- Derive risk server-side from Mini-Cog, TUG/fall history, nutrition, vision, Finger rub, 2Q plus, urinary, ADL and oral-health inputs; VHV no longer chooses risk status directly.
+- Auto-create Staff/Admin follow-up for risk results, with red priority for the 2Q-plus suicide-risk item; screening notifications remain in-app and do not use Telegram.
+- Preserve per-domain save/resume and a final 9-domain summary.
+
 ## v2.0.6
 - DSPM remains a simple 5-domain preliminary screen for VHV; abnormal results create staff/admin follow-up automatically and appear in reporting.
 - Added admin-controlled optional 15–34 screening campaign with start/end dates and NCD / mental-health toggles.
