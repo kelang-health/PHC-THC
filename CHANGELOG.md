@@ -1,3 +1,9 @@
+## v2.0.13
+- Add Admin LINE Login readiness/settings panel without exposing Channel Secret to the browser.
+- Report presence-only status for LINE Login Channel ID/Secret and the callback URL.
+- Keep normal login and LINE OA LOGIN-code fallback while one-tap OAuth is not configured.
+- Allow the known production app origin to reach the fallback flow even before APP_BASE_URL is stored as an Edge Secret.
+
 ## v2.0.12
 - Add one-tap LINE Login through LINE Login OAuth/OpenID Connect for users already linked to OSM-PHC.
 - Keep Supabase Auth/profile as the authorization source; LINE identity only maps to an existing active user_line_links record.
