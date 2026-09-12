@@ -1,3 +1,8 @@
+## 2.0.3 - 2026-09-12
+- Replace blocking native alerts after child growth/development saves with non-blocking auto-dismiss confirmation.
+- Keep clinically relevant development result visible inline after save.
+- Child nutrition remains raw-only until an approved growth reference dataset is installed.
+
 # v2.0.2 — 2026-09-12
 
 - Compact mobile bottom navigation into one 5-item row.
