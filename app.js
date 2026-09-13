@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.32';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.33';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -25,7 +25,13 @@ let portalVolunteerRows = [];
 let communityRequestId = 0;
 let healthCommunityFocus = '';
 let careScopeMode = 'self';
+let careScopeVolunteerPid = null;
+let staffVolunteerOptionsV2033 = [];
 let healthAssignmentFilter = 'all';
+let healthPageOffset = 0;
+let healthHasMore = false;
+let healthAbortController = null;
+let healthRequestSequence = 0;
 let healthActiveViewName = 'health_person_worklist_active_v1847';
 let healthTargetSettingsV2026 = null;
 const HEALTH_WORKLIST_BASE_COLUMNS='source_pcucode,source_pid,hcode,house_no,moo,community,volunteer_pid,display_name,gender,birth_date,age_years,life_stage,has_ht,has_dm,known_ncd,ncd_target,latest_screened_on,latest_ncd_status,latest_severity,screened_current_fy,previous_screened_on,previous_weight_kg,previous_height_cm,previous_waist_cm,previous_sbp,previous_dbp,previous_glucose_mg_dl,previous_bmi,previous_source,previous_smoking,previous_alcohol,previous_exercise';
@@ -33,12 +39,13 @@ const HEALTH_TARGET_FAST_COLUMNS=HEALTH_WORKLIST_BASE_COLUMNS+',has_cvd,cvd_popu
 function healthWorklistColumns(){return healthActiveViewName==='health_person_worklist_active_v1847'?HEALTH_WORKLIST_BASE_COLUMNS+',has_cvd,cvd_population_eligible,screening_plan_date,screening_age_months,screening_route,screening_route_label,screening_dspm_target_months,field_target_enabled,screening_plan_updated_at':HEALTH_WORKLIST_BASE_COLUMNS;}
 function healthWorklistSchemaFallbackAllowed(error){const code=String(error?.code||'');const message=String(error?.message||'').toLowerCase();return ['42703','42P01','PGRST204','PGRST205'].includes(code)||message.includes('does not exist')||message.includes('schema cache');}
 const PORTAL_NAV_STORAGE = 'phc.portal.nav-collapsed';
-const CLOUD_RELEASE_VERSION = '2.0.32';
+const HEALTH_PAGE_SIZE_V2033 = 50;
+const CLOUD_RELEASE_VERSION = '2.0.33';
 const CLOUD_BRAND_LOGO_URL = `${SUPABASE_URL}/storage/v1/object/public/osm-public-assets/branding/logo`;
 
 function configureCloudBrandLogo(){
   const image=$('#cloud-login-logo');if(!image)return;
-  const fallback='./logo.svg?v=2.0.32';
+  const fallback='./logo.svg?v=2.0.33';
   image.onerror=()=>{image.onerror=null;image.src=fallback;};
   image.src=`${CLOUD_BRAND_LOGO_URL}?t=${Math.floor(Date.now()/300000)}`;
 }
@@ -128,19 +135,34 @@ function bindReportSnapshotAdminV2031(){const b=$('#report-snapshot-refresh');if
 
 function effectivePerformanceScope(){
   if(currentProfile?.role==='admin')return 'all';
-  if(currentProfile?.role==='staff')return careScopeMode==='community'?'community':'self';
+  if(currentProfile?.role==='staff')return ['self','volunteer','community'].includes(careScopeMode)?careScopeMode:'self';
   return 'self';
+}
+function renderStaffVolunteerOptionsV2033(){
+  const select=$('#performance-owner');if(!select)return;
+  const current=String(careScopeVolunteerPid??'');
+  select.innerHTML=staffVolunteerOptionsV2033.map(v=>`<option value="${esc(v.volunteer_pid)}">${esc(v.display_name||'ไม่ระบุชื่อ')}</option>`).join('');
+  if(current&&staffVolunteerOptionsV2033.some(v=>String(v.volunteer_pid)===current))select.value=current;
+  else if(staffVolunteerOptionsV2033.length){careScopeVolunteerPid=Number(staffVolunteerOptionsV2033[0].volunteer_pid);select.value=String(careScopeVolunteerPid);}
+}
+async function loadStaffVolunteerOptionsV2033(){
+  if(currentProfile?.role!=='staff')return [];
+  const {data,error}=await supabase.rpc('staff_volunteer_scope_v2033');if(error)throw error;
+  staffVolunteerOptionsV2033=Array.isArray(data)?data:[];renderStaffVolunteerOptionsV2033();return staffVolunteerOptionsV2033;
 }
 function syncHealthAssignmentControl(){
   const wrap=$('#health-assignment-wrap'),select=$('#health-assignment');
-  const enabled=currentProfile?.role==='staff'&&effectivePerformanceScope()==='community';
+  const isAdmin=currentProfile?.role==='admin';
+  const enabled=isAdmin||(currentProfile?.role==='staff'&&effectivePerformanceScope()==='community');
   if(wrap)wrap.hidden=!enabled;
   if(!enabled){healthAssignmentFilter='all';if(select)select.value='all';return;}
-  if(!['all','assigned','fallback'].includes(healthAssignmentFilter))healthAssignmentFilter='all';
+  const allowed=isAdmin?['all','assigned','fallback','unresolved']:['all','assigned','fallback'];
+  if(!allowed.includes(healthAssignmentFilter))healthAssignmentFilter='all';
+  const unresolved=select?.querySelector('option[value="unresolved"]');if(unresolved)unresolved.hidden=!isAdmin;
   if(select)select.value=healthAssignmentFilter;
 }
 function syncPerformanceScopeUI(){
-  const control=$('#performance-scope-control'),note=$('#performance-scope-note');
+  const control=$('#performance-scope-control'),note=$('#performance-scope-note'),ownerWrap=$('#performance-owner-wrap');
   if(control){
     control.hidden=currentProfile?.role!=='staff';
     control.querySelectorAll('[data-performance-scope]').forEach(button=>{
@@ -149,26 +171,33 @@ function syncPerformanceScopeUI(){
       button.setAttribute('aria-pressed',String(active));
     });
   }
+  if(ownerWrap)ownerWrap.hidden=!(currentProfile?.role==='staff'&&effectivePerformanceScope()==='volunteer');
+  renderStaffVolunteerOptionsV2033();
   if(note){
-    if(currentProfile?.role==='staff')note.textContent=effectivePerformanceScope()==='community'?'แสดงผลงานรวมชุมชน '+(currentProfile.community||'ที่ได้รับมอบหมาย')+' · รวม อสม. ในขอบเขตสิทธิ์':'แสดงเฉพาะผลงานจากบ้านและประชาชนที่ฉันรับผิดชอบ';
+    if(currentProfile?.role==='staff')note.textContent=effectivePerformanceScope()==='community'?'แสดงผลงานรวมชุมชน '+(currentProfile.community||'ที่ได้รับมอบหมาย')+' · รวมงาน Staff ดูแลแทน':effectivePerformanceScope()==='volunteer'?'แสดงเฉพาะงานของ อสม. ที่เลือก โดยตรวจสิทธิ์จากชุมชนบนเซิร์ฟเวอร์':'แสดงเฉพาะผลงานจากบ้านและประชาชนที่ฉันรับผิดชอบ';
     else if(currentProfile?.role==='user')note.textContent='แสดงเฉพาะผลงานจากบ้านและประชาชนที่ฉันรับผิดชอบ';
     else note.textContent='แสดงผลงานทุกพื้นที่ตามขอบเขตสิทธิ์เจ้าหน้าที่';
   }
   syncHealthAssignmentControl();
 }
-function setPerformanceScope(next){
+async function setPerformanceScope(next){
   if(currentProfile?.role!=='staff')return;
-  careScopeMode=next==='community'?'community':'self';
+  careScopeMode=['self','volunteer','community'].includes(next)?next:'self';
+  if(careScopeMode==='volunteer'&&!staffVolunteerOptionsV2033.length){try{await loadStaffVolunteerOptionsV2033();}catch(e){careScopeMode='self';const note=$('#performance-scope-note');if(note)note.textContent=e.message;}}
+  if(careScopeMode==='volunteer'&&!careScopeVolunteerPid&&staffVolunteerOptionsV2033.length)careScopeVolunteerPid=Number(staffVolunteerOptionsV2033[0].volunteer_pid);
+  if(careScopeMode==='volunteer'&&!careScopeVolunteerPid)careScopeMode='self';
   if(careScopeMode!=='community')healthAssignmentFilter='all';
-  try{localStorage.setItem('phc.care.scope',careScopeMode);localStorage.setItem('phc.field.scope',careScopeMode);}catch{}
+  try{localStorage.setItem('phc.care.scope',careScopeMode);localStorage.setItem('phc.field.scope',careScopeMode);if(careScopeVolunteerPid)localStorage.setItem('phc.care.volunteer',String(careScopeVolunteerPid));}catch{}
   syncPerformanceScopeUI();
-  document.dispatchEvent(new CustomEvent('phc:care-scope-changed',{detail:{scope:careScopeMode,source:'performance'}}));
+  document.dispatchEvent(new CustomEvent('phc:care-scope-changed',{detail:{scope:careScopeMode,volunteer_pid:careScopeVolunteerPid,source:'performance'}}));
+  await loadHealthSummary();if(healthLoaded)await loadHealthPeople();
 }
 function bindPerformanceScopeControls(){
   const control=$('#performance-scope-control');
   if(!control||control.dataset.bound==='1')return;
   control.dataset.bound='1';
   control.querySelectorAll('[data-performance-scope]').forEach(button=>button.onclick=()=>setPerformanceScope(button.dataset.performanceScope));
+  const owner=$('#performance-owner');if(owner)owner.onchange=async()=>{careScopeVolunteerPid=Number(owner.value)||null;if(careScopeMode==='volunteer')await setPerformanceScope('volunteer');};
 }
 function bindHealthPerformanceControls(){
   const refresh=$('#health-refresh');if(!refresh||refresh.dataset.bound==='1')return;
@@ -192,10 +221,22 @@ function personKey(p){return `${p.source_pcucode}:${p.source_pid}`;}
 function healthClass(severity){return severity==='urgent'?'bad':severity==='alert'?'attention':severity==='risk'?'warn':severity==='normal'?'good':'';}
 function formatHealthValue(value,suffix=''){return value===null||value===undefined||value===''?'—':`${value}${suffix}`;}
 function healthDateLabel(value){if(!value)return 'ยังไม่มีประวัติคัดกรอง';try{return new Date(value+'T00:00:00').toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});}catch{return value;}}
-function confirmRepeatNcdV2028(person){const last=String(person?.latest_screened_on||'').slice(0,10);if(!last)return true;const label=healthDateLabel(last);return confirm(`${person?.display_name||'ประชาชนรายนี้'} คัดกรอง NCD แล้วเมื่อวันที่ ${label}\n\nต้องการคัดกรองซ้ำหรือไม่?`);}
+function confirmRepeatNcdV2033(person){
+  const last=String(person?.latest_screened_on||'').slice(0,10);if(!last)return Promise.resolve(true);
+  const sameDay=last===localDate(),label=healthDateLabel(last);
+  return new Promise(resolve=>{
+    document.querySelector('.repeat-screening-dialog')?.remove();
+    const overlay=document.createElement('div');overlay.className='repeat-screening-dialog';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','repeat-screening-title');
+    overlay.innerHTML=`<section class="repeat-screening-card ${sameDay?'same-day':''}"><div class="repeat-screening-icon">${sameDay?'!':'↻'}</div><h2 id="repeat-screening-title">${sameDay?'มีผลคัดกรองของวันนี้แล้ว':'พบประวัติคัดกรองเดิม'}</h2><p><strong>${esc(person?.display_name||'บุคคลนี้')}</strong> คัดกรองแล้วเมื่อวันที่ ${esc(label)}</p><p>${sameDay?'หากดำเนินการต่อ ระบบจะบันทึกผลวันนี้เพิ่มเป็นอีกรายการ และไม่ทับผลเดิม':'ต้องการคัดกรองซ้ำหรือไม่? ผลใหม่จะถูกเก็บเพิ่มในประวัติและไม่ทับผลเดิม'}</p><div class="repeat-screening-actions"><button type="button" class="secondary" data-repeat-cancel>ยกเลิก</button><button type="button" class="primary" data-repeat-confirm>คัดกรองซ้ำ</button></div></section>`;
+    const finish=value=>{overlay.remove();resolve(value);};
+    overlay.querySelector('[data-repeat-cancel]').onclick=()=>finish(false);overlay.querySelector('[data-repeat-confirm]').onclick=()=>finish(true);
+    overlay.onclick=e=>{if(e.target===overlay)finish(false);};overlay.onkeydown=e=>{if(e.key==='Escape')finish(false);};document.body.append(overlay);overlay.querySelector('[data-repeat-cancel]').focus();
+  });
+}
 async function loadHealthSummary(){
-  let {data,error}=await supabase.rpc('report_snapshot_v2031',{p_report_key:'care',p_scope:careScopeMode});
-  if(error||!data){const live=await supabase.rpc('care_dashboard_v1861',{p_scope:careScopeMode});data=live.data;error=live.error;}
+  let {data,error}=await supabase.rpc('report_snapshot_v2033',{p_report_key:'care',p_scope:effectivePerformanceScope(),p_owner_pid:careScopeVolunteerPid});
+  if((error||!data)&&effectivePerformanceScope()!=='volunteer'){const legacy=await supabase.rpc('report_snapshot_v2031',{p_report_key:'care',p_scope:careScopeMode});data=legacy.data;error=legacy.error;}
+  if((error||!data)&&effectivePerformanceScope()!=='volunteer'){const live=await supabase.rpc('care_dashboard_v1861',{p_scope:careScopeMode});data=live.data;error=live.error;}
   if(error)throw error;const x=data||{};
   $('#health-stats').innerHTML=[
     [x.people,'ประชาชนในสิทธิ์'],[x.ncd_targets,'เป้าหมาย NCD 35+'],[x.ncd_done,'คัดกรองแล้วปีงบฯ'],[x.ncd_due,'คงเหลือ'],[x.known_ncd,'DM/HT เดิม']
@@ -232,25 +273,30 @@ async function loadFastHealthTargetsV2030(stage,raw){
   }
   throw lastError||new Error('ไม่สามารถโหลดเป้าหมายคัดกรองได้');
 }
-function assignmentRpcUnavailableV2032(error){
+function assignmentRpcUnavailableV2033(error){
   const code=String(error?.code||'');const message=String(error?.message||'').toLowerCase();
-  return ['42883','PGRST202','PGRST204'].includes(code)||message.includes('health_worklist_assignment_json_v2032')||message.includes('could not find the function');
+  return ['42883','PGRST202','PGRST204'].includes(code)||message.includes('health_worklist_assignment_json_v2033')||message.includes('could not find the function');
 }
-async function loadScopedHealthPeopleV2032(filter,stage,raw){
+async function loadScopedHealthPeopleV2033(filter,stage,raw,offset=0,signal=null){
   const term=String(raw||'').replace(/[%_,()]/g,'').slice(0,60).trim();
-  const args={p_scope:careScopeMode,p_filter:filter,p_stage:stage||null,p_search:term||null,p_community:healthCommunityFocus||null,p_assignment:healthAssignmentFilter,p_limit:300};
-  const {data,error}=await supabase.rpc('health_worklist_assignment_json_v2032',args);
-  if(error)throw error;return Array.isArray(data)?data:[];
+  const args={p_scope:effectivePerformanceScope(),p_filter:filter,p_stage:stage||null,p_search:term||null,p_community:healthCommunityFocus||null,p_assignment:healthAssignmentFilter,p_owner_pid:careScopeVolunteerPid,p_limit:HEALTH_PAGE_SIZE_V2033,p_offset:offset};
+  let request=supabase.rpc('health_worklist_assignment_json_v2033',args);if(signal&&typeof request.abortSignal==='function')request=request.abortSignal(signal);
+  const {data,error}=await request;if(error)throw error;
+  if(Array.isArray(data))return {rows:data,has_more:data.length>=HEALTH_PAGE_SIZE_V2033};
+  return {rows:Array.isArray(data?.rows)?data.rows:[],has_more:Boolean(data?.has_more)};
 }
-async function loadHealthPeople(){
+async function loadHealthPeople(options={}){
+  const append=Boolean(options?.append);if(!append)healthPageOffset=0;
+  healthAbortController?.abort();healthAbortController=new AbortController();const requestSequence=++healthRequestSequence;
   let filter=$('#health-filter').value;
   if(filter==='all'&&currentProfile?.role!=='admin'){filter='field_targets';$('#health-filter').value=filter;}
   syncHealthTargetButtons();syncHealthAssignmentControl();
   const stage=$('#health-stage').value,raw=$('#health-search').value.trim();
-  let data=null,error=null,usedAssignmentRpc=false;
-  try{data=await loadScopedHealthPeopleV2032(filter,stage,raw);usedAssignmentRpc=true;}
+  let data=null,error=null,usedAssignmentRpc=false,pageResult=null;
+  try{pageResult=await loadScopedHealthPeopleV2033(filter,stage,raw,healthPageOffset,healthAbortController.signal);data=pageResult.rows;usedAssignmentRpc=true;}
   catch(e){
-    if(!assignmentRpcUnavailableV2032(e)||healthAssignmentFilter!=='all')throw e;
+    if(e?.name==='AbortError'||requestSequence!==healthRequestSequence)return;
+    if(!assignmentRpcUnavailableV2033(e)||healthAssignmentFilter!=='all'||effectivePerformanceScope()==='volunteer')throw e;
     const fastTarget=filter==='field_targets';
     if(fastTarget){try{data=await loadFastHealthTargetsV2030(stage,raw);}catch(inner){error=inner;}}
     else{
@@ -262,18 +308,21 @@ async function loadHealthPeople(){
       const res=await q;data=res.data;error=res.error;
     }
   }
+  if(requestSequence!==healthRequestSequence)return;
   if(error&&!usedAssignmentRpc&&healthWorklistSchemaFallbackAllowed(error)&&healthActiveViewName==='health_person_worklist_active_v1847'){healthActiveViewName='health_person_worklist_active_v1841';return loadHealthPeople();}
   if(error&&!usedAssignmentRpc&&healthWorklistSchemaFallbackAllowed(error)&&healthActiveViewName==='health_person_worklist_active_v1841'){healthActiveViewName='health_person_worklist';return loadHealthPeople();}
   if(error)throw error;
-  healthPeople=(data||[]).map(p=>({...p,has_cvd:Boolean(p.has_cvd),cvd_population_eligible:Boolean(p.cvd_population_eligible)}));
+  const pageRows=(data||[]).map(p=>({...p,has_cvd:Boolean(p.has_cvd),cvd_population_eligible:Boolean(p.cvd_population_eligible)}));
+  healthPeople=append?[...healthPeople,...pageRows]:pageRows;healthPageOffset=healthPeople.length;healthHasMore=usedAssignmentRpc?Boolean(pageResult?.has_more):false;
   $('#health-person-body').innerHTML=healthPeople.map((p,i)=>{
     const status=p.latest_ncd_status||(p.known_ncd?'มี DM/HT เดิม':'ยังไม่มีผล');
     const fallback=p.assignment_status==='staff_fallback';
     const assignment=fallback?`<small class="assignment-fallback">${esc(p.assignment_label||'ยังไม่มีผู้รับผิดชอบ · Staff ดูแลชั่วคราว')}</small>`:(currentProfile?.role==='staff'&&careScopeMode==='community'&&p.assignment_status==='assigned'?'<small class="assignment-ok">มีผู้รับผิดชอบ</small>':'');
     return `<tr><td><button type="button" class="health-person-name" data-health-person="${i}">${esc(p.display_name)}</button><small>${p.known_ncd?`โรคเดิม: ${p.has_ht?'HT ':''}${p.has_dm?'DM':''}`:'ยังไม่พบ DM/HT ใน personchronic'}</small></td><td>${esc(p.age_years??'—')} ปี<small>${esc(p.life_stage||'—')}</small></td><td>บ้าน ${esc(p.house_no||p.hcode)}<small>หมู่ ${esc(p.moo||'—')} · ${esc(p.community||'—')}</small>${assignment}</td><td class="${healthClass(p.latest_severity)}">${esc(status)}<small>${p.latest_screened_on?esc(healthDateLabel(p.latest_screened_on)):''}</small></td><td><button type="button" class="row-open" data-phc190-screen data-pcucode="${esc(p.source_pcucode)}" data-pid="${esc(p.source_pid)}" data-name="${esc(p.display_name)}" data-plan-date="${esc(p.screening_plan_date||'')}" data-age-years="${esc(p.age_years??'')}" data-age-months="${esc(p.screening_age_months??'')}" data-screen-route="${esc(p.screening_route||'')}" data-route-label="${esc(p.screening_route_label||'')}" data-dspm-target="${esc(p.screening_dspm_target_months??'')}" data-latest-screened="${esc(p.latest_screened_on||'')}">คัดกรอง</button></td></tr>`;
   }).join('')||'<tr><td colspan="5">ไม่พบประชาชนตามตัวกรอง</td></tr>';
-  const fallbackNote=healthAssignmentFilter==='fallback'?' · แสดงเฉพาะประชาชนที่ยังไม่มี อสม./บัญชีใช้งาน และ Staff ต้องดูแลชั่วคราว':'';
-  $('#health-list-note').textContent=`แสดง ${num(healthPeople.length)} ราย${healthPeople.length>=300?' (สูงสุด 300 ราย ใช้ค้นหาเพื่อเจาะจง)':''}${fallbackNote}`;
+  const fallbackNote=healthAssignmentFilter==='fallback'?' · แสดงเฉพาะประชาชนที่ Staff ต้องดูแลแทน':healthAssignmentFilter==='unresolved'?' · คิวไม่ทราบชุมชนสำหรับ Admin ตรวจสอบ':'';
+  $('#health-list-note').textContent=`แสดง ${num(healthPeople.length)} ราย · โหลดครั้งละ ${HEALTH_PAGE_SIZE_V2033} ราย${fallbackNote}`;
+  const more=$('#health-load-more');if(more){more.hidden=!healthHasMore;more.disabled=false;more.textContent='โหลดรายชื่อเพิ่ม';}
   document.querySelectorAll('[data-health-person]').forEach(b=>b.onclick=()=>selectHealthPerson(Number(b.dataset.healthPerson)));
 }
 async function loadHealthHistory(){
@@ -647,7 +696,7 @@ async function saveHealthScreening(event){
 async function loadHealthModule(){
   const focus=$('#health-community-focus');focus.hidden=!healthCommunityFocus;focus.querySelector('strong').textContent=healthCommunityFocus||'';
   if(!healthLoaded)$('#health-filter').value='field_targets';
-  $('#health-target-scope-note').textContent=currentProfile?.role==='staff'?(careScopeMode==='community'?`ชุมชน ${currentProfile.community||'ที่ได้รับมอบหมาย'} · รวมประชาชนที่ยังไม่มี อสม./บัญชีใช้งาน โดย Staff ดูแลชั่วคราว`:'บ้านและประชาชนที่ฉันรับผิดชอบ') : currentProfile?.role==='user'?'บ้านในความรับผิดชอบ · แสดงงานที่ผูกไว้ก่อน':'ทุกพื้นที่ · เลือกดูเป้าหมายทั้งหมดได้';
+  $('#health-target-scope-note').textContent=currentProfile?.role==='staff'?(careScopeMode==='community'?`ชุมชน ${currentProfile.community||'ที่ได้รับมอบหมาย'} · รวมประชาชนที่ Staff ต้องดูแลแทน`:careScopeMode==='volunteer'?'งานของ อสม. ที่เลือกในชุมชนเดียวกัน':'บ้านและประชาชนที่ฉันรับผิดชอบ') : currentProfile?.role==='user'?'บ้านในความรับผิดชอบ · แสดงงานที่ผูกไว้ก่อน':'ทุกพื้นที่ · เลือกดูเป้าหมายทั้งหมดได้';
   syncHealthAssignmentControl();
   syncHealthTargetButtons();
   if(currentProfile?.role==='admin')loadHealthTargetSettingsV2026().catch(e=>{const x=$('#health-target-admin-status');if(x)x.textContent=e.message;});
@@ -666,6 +715,7 @@ async function loadHealthModule(){
   $('#health-view-linked-targets').onclick=()=>setHealthTargetFilter('field_targets'); $('#health-view-all-targets').onclick=()=>setHealthTargetFilter('targets');
   $('#health-filter').onchange=()=>{syncHealthTargetButtons();return loadHealthPeople();}; $('#health-stage').onchange=loadHealthPeople;
   const assignmentSelect=$('#health-assignment');if(assignmentSelect)assignmentSelect.onchange=()=>{healthAssignmentFilter=assignmentSelect.value||'all';return loadHealthPeople();};
+  const loadMore=$('#health-load-more');if(loadMore)loadMore.onclick=async()=>{loadMore.disabled=true;loadMore.textContent='กำลังโหลด…';try{await loadHealthPeople({append:true});}catch(e){$('#health-list-note').textContent=e.message;loadMore.disabled=false;}};
   $('#health-search').oninput=()=>{clearTimeout(healthSearchTimer);healthSearchTimer=setTimeout(()=>loadHealthPeople().catch(e=>$('#health-list-note').textContent=e.message),300);};
 }
 
@@ -761,8 +811,9 @@ async function loadPortal(session, requestId){
     renderAuthView('blocked'); return;
   }
   if(profile.role==='staff'){
-    try{const saved=localStorage.getItem('phc.care.scope')||localStorage.getItem('phc.field.scope');careScopeMode=saved==='community'?'community':'self';}
+    try{const saved=localStorage.getItem('phc.care.scope')||localStorage.getItem('phc.field.scope');careScopeMode=['self','volunteer','community'].includes(saved)?saved:'self';careScopeVolunteerPid=Number(localStorage.getItem('phc.care.volunteer'))||null;}
     catch{careScopeMode='self';}
+    try{await loadStaffVolunteerOptionsV2033();}catch{if(careScopeMode==='volunteer')careScopeMode='self';}
   }else careScopeMode=profile.role==='admin'?'all':'self';
   healthAssignmentFilter='all';
   let master=[],communities=[],workload=[],myHouses=[];
@@ -916,10 +967,11 @@ supabase.auth.onAuthStateChange((event,session)=>{
   }
 });
 document.addEventListener('phc:care-scope-changed',async event=>{
-  const next=event.detail?.scope;careScopeMode=next==='community'?'community':next==='all'?'all':'self';
+  if(event.detail?.source==='performance')return;
+  const next=event.detail?.scope;careScopeMode=['self','volunteer','community','all'].includes(next)?next:'self';careScopeVolunteerPid=Number(event.detail?.volunteer_pid)||careScopeVolunteerPid;
   if(currentProfile?.role==='user')careScopeMode='self';
   if(currentProfile?.role==='admin')careScopeMode='all';
-  if(currentProfile?.role==='staff'){try{localStorage.setItem('phc.care.scope',careScopeMode);localStorage.setItem('phc.field.scope',careScopeMode);}catch{}}
+  if(currentProfile?.role==='staff'){try{localStorage.setItem('phc.care.scope',careScopeMode);localStorage.setItem('phc.field.scope',careScopeMode);if(careScopeVolunteerPid)localStorage.setItem('phc.care.volunteer',String(careScopeVolunteerPid));}catch{}}
   if(careScopeMode!=='community')healthAssignmentFilter='all';
   syncPerformanceScopeUI();
   syncHealthAssignmentControl();
@@ -933,4 +985,4 @@ configureCloudBrandLogo();
 refreshAuth();
 
 
-window.PHCOpenLegacyNcd190=(pcucode,pid)=>{const i=healthPeople.findIndex(p=>String(p.source_pcucode)===String(pcucode)&&Number(p.source_pid)===Number(pid));if(i<0)return false;const person=healthPeople[i];if(!confirmRepeatNcdV2028(person))return true;selectHealthPerson(i,true).catch(e=>{const x=$('#ncd-error');if(x)x.textContent=e.message;});return true;};
+window.PHCOpenLegacyNcd190=(pcucode,pid)=>{const i=healthPeople.findIndex(p=>String(p.source_pcucode)===String(pcucode)&&Number(p.source_pid)===Number(pid));if(i<0)return false;const person=healthPeople[i];(async()=>{if(!await confirmRepeatNcdV2033(person))return;await selectHealthPerson(i,true);})().catch(e=>{const x=$('#ncd-error');if(x)x.textContent=e.message;});return true;};

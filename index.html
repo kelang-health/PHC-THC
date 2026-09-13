@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>อสม. พลัส | งานสุขภาพชุมชน</title>
-  <link rel="stylesheet" href="./style.css?v=2.0.32">
+  <link rel="stylesheet" href="./style.css?v=2.0.33">
 </head>
 <body>
   <main class="shell">
@@ -26,7 +26,7 @@
 
     <section id="login-card" class="card auth-card login-card">
       <div class="login-intro">
-        <img id="cloud-login-logo" class="cloud-login-logo" src="./logo.svg?v=2.0.32" alt="โลโก้ อสม. พลัส">
+        <img id="cloud-login-logo" class="cloud-login-logo" src="./logo.svg?v=2.0.33" alt="โลโก้ อสม. พลัส">
         <p class="eyebrow">SECURE ACCESS</p>
         <h2>เข้าสู่ระบบ อสม. พลัส</h2>
         <p class="login-agency"><span>ศูนย์บริการสาธารณสุขบ้านโทกหัวช้าง</span><span>เทศบาลเมืองเขลางค์นคร</span></p>
@@ -42,7 +42,7 @@
         <button class="primary login-submit">เข้าสู่ระบบ</button>
         <p id="login-error" class="error"></p>
       </form>
-      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v2.0.32</footer>
+      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v2.0.33</footer>
     </section>
 
     <section id="blocked" class="card" hidden>
@@ -94,9 +94,11 @@
             <div><p class="eyebrow">HEALTH PERFORMANCE</p><h2 id="health-performance-title">ผลงานสุขภาพของพื้นที่</h2></div>
             <div id="performance-scope-control" class="performance-scope-control" role="group" aria-label="ขอบเขตผลงาน" hidden>
               <button type="button" data-performance-scope="self" class="active" aria-pressed="true">ผลงานของฉัน</button>
+              <button type="button" data-performance-scope="volunteer" aria-pressed="false">ราย อสม.</button>
               <button type="button" data-performance-scope="community" aria-pressed="false">ผลงานชุมชน</button>
             </div>
           </div>
+          <label id="performance-owner-wrap" class="performance-owner-wrap" hidden>เลือก อสม. ในชุมชน<select id="performance-owner" aria-label="เลือก อสม. ที่ต้องการดูงาน"></select></label>
           <p id="performance-scope-note" class="muted performance-scope-note"></p>
           <div id="health-admin-intro" class="health-admin-intro" hidden>
             <p class="muted">สรุปจากฐานเดียวกับ อสม. พลัส ตามขอบเขตสิทธิ์ของบัญชี</p>
@@ -181,13 +183,14 @@
         <div class="health-toolbar">
           <label>งานที่ต้องดู<select id="health-filter"><option value="field_targets">เป้าหมายพร้อมคัดกรอง</option><option value="due">NCD ยังไม่คัดกรอง</option><option value="targets">เป้าหมาย NCD 35+</option><option value="known">ผู้มี DM/HT เดิม</option><option value="all">ประชาชนทั้งหมดในสิทธิ์ (Admin)</option></select></label>
           <label>กลุ่มวัย<select id="health-stage"><option value="">ทุกกลุ่มวัย</option><option>เด็กปฐมวัย</option><option>เด็กวัยเรียน</option><option>วัยรุ่นและเยาวชน</option><option>วัยทำงาน</option><option>ผู้สูงอายุ</option></select></label>
-          <label id="health-assignment-wrap" hidden>ผู้รับผิดชอบ<select id="health-assignment"><option value="all">ทุกคนในชุมชน</option><option value="assigned">มี อสม./บัญชีใช้งานดูแล</option><option value="fallback">Staff ดูแลแทน · ยังไม่มีผู้รับผิดชอบ</option></select></label>
+          <label id="health-assignment-wrap" hidden>ผู้รับผิดชอบ<select id="health-assignment"><option value="all">ทั้งหมดตามสิทธิ์</option><option value="assigned">มี อสม./บัญชีใช้งานดูแล</option><option value="fallback">Staff ดูแลแทน · ยังไม่มีผู้รับผิดชอบ</option><option value="unresolved">ไม่ทราบชุมชน · Admin ตรวจสอบ</option></select></label>
           <label class="health-search">ค้นหาชื่อ<input id="health-search" type="search" placeholder="พิมพ์ชื่อประชาชน"></label>
         </div>
         <div id="health-field-status" class="health-field-status" hidden role="status" aria-live="polite"></div>
         <div id="health-person-list" class="table-wrap">
           <table class="health-table"><thead><tr><th>ประชาชน</th><th>อายุ/กลุ่มวัย</th><th>บ้าน</th><th>สถานะ NCD</th><th>งาน</th></tr></thead><tbody id="health-person-body"></tbody></table>
         </div>
+        <button id="health-load-more" type="button" class="secondary health-load-more" hidden>โหลดรายชื่อเพิ่ม</button>
         <p id="health-list-note" class="muted"></p>
 
         <section id="ncd-screen-card" class="nested-card ncd-mobile-card" hidden>
@@ -300,7 +303,7 @@
   <script type="module" src="./auth-security.mjs?v=1.8.28"></script>
   <script type="module" src="./line-login-v201.mjs?v=2.0.31"></script>
   <script type="module" src="./line-login-settings-v2013.mjs?v=2.0.31"></script>
-  <script type="module" src="./app.js?v=2.0.32"></script>
+  <script type="module" src="./app.js?v=2.0.33"></script>
 </body>
 </html>
 
