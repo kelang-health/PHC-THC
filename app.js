@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.28';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.29';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -644,10 +644,37 @@ async function openCommunity(index){
   }catch(error){if(request===communityRequestId)workspace.innerHTML=`<p class="error">${esc(error.message)}</p>`;}
 }
 
+const PORTAL_QUERY_BUDGET_MS_V2029=2500;
+async function safePortalQueryV2029(label,promise,fallback=[]){
+  let timer=null;
+  try{
+    const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('PORTAL_QUERY_BUDGET_EXCEEDED')),PORTAL_QUERY_BUDGET_MS_V2029);});
+    const result=await Promise.race([promise,timeout]);
+    if(result?.error)throw result.error;
+    return result?.data??fallback;
+  }catch(error){console.warn(`[portal ${label}]`,error?.message||error);return fallback;}
+  finally{if(timer)clearTimeout(timer);}
+}
+function summarizeMyHousesV2029(rows,fallbackCommunity=''){
+  const map=new Map();
+  for(const h of rows||[]){
+    const community=String(h.community||fallbackCommunity||'ไม่ระบุ').trim()||'ไม่ระบุ';
+    if(!map.has(community))map.set(community,{community,moo:h.moo||null,houses:0,assigned_houses:0,review_houses:0,outside_tambon:0,missing_coordinates:0,volunteers_with_work:1});
+    const x=map.get(community);x.houses+=1;x.assigned_houses+=h.volunteer_pid!=null?1:0;x.review_houses+=h.review_required?1:0;x.missing_coordinates+=(h.latitude==null||h.longitude==null)?1:0;
+  }
+  return [...map.values()];
+}
+
 async function getProfile(userId){
-  const { data, error } = await supabase.from('profiles').select('user_id,display_name,role,community,volunteer_pid,active,must_change_password').eq('user_id', userId).maybeSingle();
-  if(error) throw error;
-  return data;
+  let lastError=null;
+  for(let attempt=0;attempt<2;attempt++){
+    const {data,error}=await supabase.from('profiles').select('user_id,display_name,role,community,volunteer_pid,active,must_change_password').eq('user_id',userId).maybeSingle();
+    if(!error)return data;
+    lastError=error;
+    if(!String(error?.message||'').toLowerCase().includes('statement timeout')||attempt===1)break;
+    await new Promise(resolve=>setTimeout(resolve,220));
+  }
+  throw lastError||new Error('ไม่สามารถอ่านโปรไฟล์ได้');
 }
 
 async function loadPortal(session, requestId){
@@ -661,15 +688,36 @@ async function loadPortal(session, requestId){
     try{const saved=localStorage.getItem('phc.care.scope')||localStorage.getItem('phc.field.scope');careScopeMode=saved==='community'?'community':'self';}
     catch{careScopeMode='self';}
   }else careScopeMode=profile.role==='admin'?'all':'self';
-  const [{data: master, error: mErr}, {data: communities, error: cErr}, {data: workload, error: wErr}] = await Promise.all([
-    supabase.from('communities').select('name,moo,active').eq('active', true).order('moo').order('name'),
-    supabase.from('community_report_summary').select('*').order('community'),
-    supabase.from('volunteer_workload').select('*').order('community').order('display_name')
-  ]);
-  if(requestId !== authRequestId || passwordPanelOpen) return;
-  if(mErr) throw mErr; if(cErr) throw cErr; if(wErr) throw wErr;
-  let myHouses=[];
-  if(['user','staff'].includes(profile.role)&&profile.volunteer_pid!=null){const {data,error}=await supabase.rpc('my_household_cards_v1860');if(error)throw error;myHouses=data||[];}
+  let master=[],communities=[],workload=[],myHouses=[];
+  if(profile.role==='admin'){
+    [master,communities,workload]=await Promise.all([
+      safePortalQueryV2029('communities',supabase.from('communities').select('name,moo,active').eq('active',true).order('moo').order('name'),[]),
+      safePortalQueryV2029('community summary',supabase.from('community_report_summary').select('*').order('community'),[]),
+      safePortalQueryV2029('volunteer workload',supabase.from('volunteer_workload').select('*').order('community').order('display_name'),[])
+    ]);
+  }else{
+    let masterQuery=supabase.from('communities').select('name,moo,active').eq('active',true);
+    if(profile.community)masterQuery=masterQuery.eq('name',profile.community);
+    const fallbackMaster=profile.community?[{name:profile.community,moo:null,active:true}]:[];
+    const housePromise=profile.volunteer_pid!=null?safePortalQueryV2029('my houses',supabase.rpc('my_household_cards_v1860'),[]):Promise.resolve([]);
+    if(profile.role==='staff'){
+      let summaryQuery=supabase.from('community_report_summary').select('*');
+      let workloadQuery=supabase.from('volunteer_workload').select('*');
+      if(profile.community){summaryQuery=summaryQuery.eq('community',profile.community);workloadQuery=workloadQuery.eq('community',profile.community);}
+      [master,myHouses,communities,workload]=await Promise.all([
+        safePortalQueryV2029('communities',masterQuery,fallbackMaster),housePromise,
+        safePortalQueryV2029('staff community summary',summaryQuery,[]),
+        safePortalQueryV2029('staff volunteer workload',workloadQuery,[])
+      ]);
+      if(!master.length)master=fallbackMaster;
+      if(!communities.length&&myHouses.length)communities=summarizeMyHousesV2029(myHouses,profile.community);
+    }else{
+      [master,myHouses]=await Promise.all([safePortalQueryV2029('communities',masterQuery,fallbackMaster),housePromise]);
+      if(!master.length)master=fallbackMaster;
+      communities=summarizeMyHousesV2029(myHouses,profile.community);
+      workload=[];
+    }
+  }
   if(requestId !== authRequestId || passwordPanelOpen) return;
 
   const activeNames = new Set((master || []).map(x => x.name));
