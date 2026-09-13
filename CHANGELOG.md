@@ -1,3 +1,9 @@
+## v2.0.22
+- จำกัดข้อความ/ปุ่มโหมดทดสอบและการรีเซ็ตรายบุคคลให้ Admin เท่านั้น ทั้ง UI และฐานข้อมูล
+- แยก NCD save ออกจาก post-save dashboard refresh: บันทึกสำเร็จแล้วจะไม่แสดง timeout จากรายงานเป็นข้อผิดพลาดการบันทึก
+- รีเฟรชรายชื่อ/ประวัติ/สรุปแบบเบื้องหลังทีละงาน ลด query พร้อมกันหลังบันทึก
+- เพิ่มดัชนี health audit และ recent NCD สำหรับเส้นทางบันทึก/รีเฟรชที่พบบ่อย
+
 ## v2.0.21
 - ซ่อม View health_person_worklist_active_v1847 ให้มี has_cvd/cvd_population_eligible และ reload PostgREST schema
 - ปรับ Health worklist fallback ให้เลือกคอลัมน์ตาม View รุ่นจริง ไม่เกิด column does not exist ซ้ำ

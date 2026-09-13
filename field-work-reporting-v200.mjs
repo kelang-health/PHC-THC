@@ -1,4 +1,4 @@
-const VERSION='2.0.21';
+const VERSION='2.0.22';
 let supabase=null,profile=null,scope='self',loading=false,observer=null,lastDashboard=null;
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -33,7 +33,7 @@ function prepareMobileTableCards(root=document){
 }
 
 function renderDashboard(d){lastDashboard=d;const host=$('[data-field200-host]');if(!host)return;host.innerHTML=`<div class="field200">
-<div class="field200-head"><div><p class="eyebrow">FIELD WORK & REPORTING CENTER</p><h2>ติดตามงาน อสม. และผลคัดกรอง</h2><p>${esc(d.scope_label)} · รอบข้อมูลเริ่ม ${esc(fmtDate(d.period_start))}${d.period_mode==='test'?' · โหมดทดสอบก่อน 1 ต.ค. 2569':''}</p></div></div>
+<div class="field200-head"><div><p class="eyebrow">FIELD WORK & REPORTING CENTER</p><h2>ติดตามงาน อสม. และผลคัดกรอง</h2><p>${esc(d.scope_label)} · รอบข้อมูลเริ่ม ${esc(fmtDate(d.period_start))}${profile?.role==='admin'&&d.period_mode==='test'?' · โหมดทดสอบก่อน 1 ต.ค. 2569':''}</p></div></div>
 <div class="field200-kpis"><article class="field200-kpi"><small>งานเป้าหมาย</small><strong>${num(d.target_tasks)}</strong></article><article class="field200-kpi"><small>ทำเสร็จ</small><strong>${num(d.complete_tasks)}</strong></article><article class="field200-kpi warn"><small>ทำบางส่วน</small><strong>${num(d.partial_tasks)}</strong></article><article class="field200-kpi warn"><small>คงเหลือ</small><strong>${num(d.due_tasks)}</strong></article><article class="field200-kpi bad"><small>ติดตามเปิดอยู่</small><strong>${num(d.followup_open)}</strong></article></div>
 <div class="field200-progress"><div class="field200-progress-head"><div><small>Operational Task Completion</small><strong>${num(d.complete_tasks)} / ${num(d.target_tasks)} งาน</strong></div><b>${pct(d.coverage_percent)}</b></div><div class="field200-bar"><i style="width:${Math.min(100,Number(d.coverage_percent||0))}%"></i></div></div>
 <div class="field200-note">${esc(d.metric_note)} · รายการติดตามแยกจาก Coverage เพื่อไม่ให้ อสม. ที่พบความเสี่ยงมากถูกตีความว่าผลงานต่ำ</div>
