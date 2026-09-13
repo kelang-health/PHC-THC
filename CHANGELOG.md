@@ -1,3 +1,8 @@
+## v2.0.16
+- Improve iOS Safari guidance when LINE Universal Link does not hand off to the LINE app.
+- Make the web-login fallback more explicit: “ใช้ LINE ผ่านเว็บแทน (หากแอปไม่เปิด)”.
+- Keep Android/PC flows and existing OAuth fallback behavior unchanged.
+
 ## v2.0.15
 - Harden LINE Login across iOS, Android, LINE in-app browser, and common external/in-app browsers.
 - Keep the primary user-tap authorization link for Universal Links / App Links; do not use JavaScript redirect for app handoff.

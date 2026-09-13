@@ -50,7 +50,7 @@ function browserEnvironment(){
   let note='',warn=false;
   if(line)note='เปิดจาก LINE อยู่แล้ว · ระบบจะใช้ LINE ยืนยันตัวตนโดยตรงเมื่ออุปกรณ์รองรับ';
   else if(constrained){note='เบราว์เซอร์ในแอปนี้อาจบล็อกการเปิด LINE · ถ้าแอปไม่เปิด ให้ใช้ LINE ผ่านเว็บ หรือเปิดหน้านี้ด้วย Safari/Chrome';warn=true;}
-  else if(iosSafari)note='iPhone/iPad · แตะครั้งเดียว ระบบจะพยายามเปิดแอป LINE ผ่าน Universal Link';
+  else if(iosSafari)note='iPhone/iPad · แตะ “เปิด LINE เพื่อเข้าสู่ระบบ” ก่อน หากหน้า LINE เปิดแต่แอปไม่เปิด ให้กดค้างที่ “เข้าสู่ระบบด้วยแอป LINE” แล้วเลือก “เปิดใน LINE” หรือย้อนกลับมาใช้ LINE ผ่านเว็บแทน';
   else if(ios){note='iPhone/iPad · LINE Auto login รองรับ Safari ได้ดีที่สุด หากไม่เปิดแอปให้ใช้ LINE ผ่านเว็บหรือเปิดด้วย Safari';warn=true;}
   else if(androidChrome)note='Android · แตะครั้งเดียว ระบบจะพยายามเปิดแอป LINE ผ่าน App Link';
   else if(android)note='Android · ระบบจะพยายามเปิดแอป LINE หาก browser รองรับ หากไม่สำเร็จสามารถใช้ LINE ผ่านเว็บได้';
@@ -76,7 +76,7 @@ function renderPreparedOauth(btn,data,help){
   link.addEventListener('click',()=>{busy=true;stopTimers();state.hidden=false;state.innerHTML='<p class="line-login-status">กำลังเปิด LINE เพื่อยืนยันตัวตน… หากไม่เปิดแอป คุณยังสามารถย้อนกลับมาใช้ LINE ผ่านเว็บได้</p>';});
   ready.appendChild(link);
   if(env.mobile){
-    const web=document.createElement('a');web.id='line-login-web';web.className='line-login-web';web.href=webLoginUrl(data.authorize_url);web.textContent='ใช้ LINE ผ่านเว็บแทน';
+    const web=document.createElement('a');web.id='line-login-web';web.className='line-login-web';web.href=webLoginUrl(data.authorize_url);web.textContent='ใช้ LINE ผ่านเว็บแทน (หากแอปไม่เปิด)';
     web.addEventListener('click',()=>{busy=true;stopTimers();state.hidden=false;state.innerHTML='<p class="line-login-status">กำลังเปิด LINE Login ผ่านเว็บ โดยปิด Auto login สำหรับรอบนี้…</p>';});
     ready.appendChild(web);
   }
