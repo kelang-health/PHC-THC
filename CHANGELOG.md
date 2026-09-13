@@ -1,3 +1,9 @@
+## v2.0.17
+- Add an explicit “ใช้ระบบ LINE เดิม” option alongside LINE app and LINE web login.
+- Preserve the existing LINE OA LOGIN-code flow as a user-selectable fallback, not only an automatic emergency fallback.
+- Safely switch from prepared OAuth UI to the legacy LINE OA flow without leaving a stale OAuth browser state.
+- Keep normal username/password login unchanged.
+
 ## v2.0.16
 - Improve iOS Safari guidance when LINE Universal Link does not hand off to the LINE app.
 - Make the web-login fallback more explicit: “ใช้ LINE ผ่านเว็บแทน (หากแอปไม่เปิด)”.

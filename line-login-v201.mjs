@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.15';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.17';
 
 const supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:false,detectSessionInUrl:false}});
 const $=(s,r=document)=>r.querySelector(s);
@@ -9,7 +9,7 @@ let pollTimer=null,countdownTimer=null,oauthRefreshTimer=null,current=null,busy=
 function injectStyle(){
   if($('#line-login-v201-style'))return;
   const s=document.createElement('style');s.id='line-login-v201-style';s.textContent=`
-  .line-login-v201{display:grid;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid #dfe9e5}.line-login-or{display:flex;align-items:center;gap:10px;color:#72827d;font-size:.82rem;font-weight:800}.line-login-or:before,.line-login-or:after{content:"";height:1px;flex:1;background:#dfe9e5}.line-login-ready{display:grid;gap:8px}.line-login-button{width:100%;min-height:58px;display:flex;align-items:center;justify-content:center;text-decoration:none;box-sizing:border-box;border:1px solid #8fc7b5;border-radius:14px;background:#e8f7f0;color:#0f604c;font:inherit;font-weight:950;cursor:pointer}.line-login-button:disabled,.line-login-button[aria-disabled="true"]{opacity:.58;cursor:wait;pointer-events:none}.line-login-web{width:100%;min-height:48px;border:1px solid #c9d9d3;border-radius:12px;background:#fff;color:#49655d;text-decoration:none;display:flex;align-items:center;justify-content:center;font:inherit;font-weight:850;box-sizing:border-box}.line-login-help{margin:0;text-align:center;color:#657a73;font-size:.86rem;line-height:1.45}.line-login-browser-note{margin:0;padding:8px 10px;border-radius:11px;background:#f4f8f6;color:#58716a;font-size:.8rem;line-height:1.45;text-align:center}.line-login-browser-note.warn{background:#fff7df;color:#765c12}.line-login-state{display:grid;gap:9px;padding:12px;border:1px solid #cfe1da;border-radius:14px;background:#f8fbfa}.line-login-state[hidden]{display:none!important}.line-login-code{font-size:1.25rem;font-weight:950;letter-spacing:.06em;text-align:center;padding:11px;border:2px dashed #86bbaa;border-radius:12px;background:#fff}.line-login-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.line-login-actions button{min-height:48px}.line-login-status{margin:0;color:#557069;line-height:1.45}.line-login-status.error{color:#a23f34}.line-login-status.success{color:#12614e}.line-login-count{font-weight:900;color:#0b6f60}@media(max-width:640px){.line-login-button{min-height:60px;font-size:1.04rem}.line-login-web{min-height:50px}.line-login-actions{grid-template-columns:1fr}.line-login-code{font-size:1.18rem}}
+  .line-login-v201{display:grid;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid #dfe9e5}.line-login-or{display:flex;align-items:center;gap:10px;color:#72827d;font-size:.82rem;font-weight:800}.line-login-or:before,.line-login-or:after{content:"";height:1px;flex:1;background:#dfe9e5}.line-login-ready{display:grid;gap:8px}.line-login-button{width:100%;min-height:58px;display:flex;align-items:center;justify-content:center;text-decoration:none;box-sizing:border-box;border:1px solid #8fc7b5;border-radius:14px;background:#e8f7f0;color:#0f604c;font:inherit;font-weight:950;cursor:pointer}.line-login-button:disabled,.line-login-button[aria-disabled="true"]{opacity:.58;cursor:wait;pointer-events:none}.line-login-web{width:100%;min-height:48px;border:1px solid #c9d9d3;border-radius:12px;background:#fff;color:#49655d;text-decoration:none;display:flex;align-items:center;justify-content:center;font:inherit;font-weight:850;box-sizing:border-box}.line-login-legacy{width:100%;min-height:48px;border:1px dashed #9bb8ae;border-radius:12px;background:#f8fbfa;color:#315f52;display:flex;align-items:center;justify-content:center;font:inherit;font-weight:850;box-sizing:border-box;cursor:pointer}.line-login-help{margin:0;text-align:center;color:#657a73;font-size:.86rem;line-height:1.45}.line-login-browser-note{margin:0;padding:8px 10px;border-radius:11px;background:#f4f8f6;color:#58716a;font-size:.8rem;line-height:1.45;text-align:center}.line-login-browser-note.warn{background:#fff7df;color:#765c12}.line-login-state{display:grid;gap:9px;padding:12px;border:1px solid #cfe1da;border-radius:14px;background:#f8fbfa}.line-login-state[hidden]{display:none!important}.line-login-code{font-size:1.25rem;font-weight:950;letter-spacing:.06em;text-align:center;padding:11px;border:2px dashed #86bbaa;border-radius:12px;background:#fff}.line-login-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.line-login-actions button{min-height:48px}.line-login-status{margin:0;color:#557069;line-height:1.45}.line-login-status.error{color:#a23f34}.line-login-status.success{color:#12614e}.line-login-count{font-weight:900;color:#0b6f60}@media(max-width:640px){.line-login-button{min-height:60px;font-size:1.04rem}.line-login-web{min-height:50px}.line-login-legacy{min-height:50px}.line-login-actions{grid-template-columns:1fr}.line-login-code{font-size:1.18rem}}
   `;document.head.appendChild(s);
 }
 function headers(){return {'content-type':'application/json','apikey':SUPABASE_PUBLISHABLE_KEY,'authorization':`Bearer ${SUPABASE_PUBLISHABLE_KEY}`};}
@@ -23,7 +23,7 @@ async function callCode(action,payload={}){return callEdge('line-auth',{action,.
 async function callOauth(action,payload={}){return callEdge('line-oauth',{action,...payload});}
 function stopTimers(){if(pollTimer){clearTimeout(pollTimer);pollTimer=null}if(countdownTimer){clearInterval(countdownTimer);countdownTimer=null}if(oauthRefreshTimer){clearTimeout(oauthRefreshTimer);oauthRefreshTimer=null}}
 function stateBox(){return $('#line-login-state');}
-function reset(){stopTimers();current=null;busy=false;const btn=$('#line-login-start'),state=stateBox();if(btn){btn.disabled=false;btn.textContent='เข้าสู่ระบบด้วย LINE'}if(state){state.hidden=true;state.innerHTML=''}}
+function reset(){stopTimers();current=null;busy=false;const btn=$('#line-login-start'),state=stateBox();if(btn){btn.disabled=false;btn.textContent='เข้าสู่ระบบด้วย LINE';btn.onclick=prepareDirectLineLogin}if(state){state.hidden=true;state.innerHTML=''}}
 function statusText(text,error=false){const e=$('#line-login-status');if(e){e.textContent=text;e.classList.toggle('error',error)}}
 function cleanOauthQuery(){try{const u=new URL(location.href);u.searchParams.delete('line_oauth');u.searchParams.delete('request_id');u.searchParams.delete('line_oauth_error');history.replaceState({},'',u.pathname+(u.search?u.search:'')+u.hash);}catch{}}
 function saveOauth(data){try{sessionStorage.setItem(OAUTH_STORAGE,JSON.stringify({request_id:data.request_id,browser_secret:data.browser_secret,expires_at:data.expires_at}))}catch{}}
@@ -80,9 +80,12 @@ function renderPreparedOauth(btn,data,help){
     web.addEventListener('click',()=>{busy=true;stopTimers();state.hidden=false;state.innerHTML='<p class="line-login-status">กำลังเปิด LINE Login ผ่านเว็บ โดยปิด Auto login สำหรับรอบนี้…</p>';});
     ready.appendChild(web);
   }
+  const legacy=document.createElement('button');legacy.type='button';legacy.id='line-login-legacy';legacy.className='line-login-legacy';legacy.textContent='ใช้ระบบ LINE เดิม (ส่งรหัสผ่าน LINE OA)';
+  legacy.addEventListener('click',()=>{busy=false;stopTimers();clearOauth();startCodeLogin(false).catch(()=>{})});
+  ready.appendChild(legacy);
   const note=document.createElement('p');note.className=`line-login-browser-note${env.warn?' warn':''}`;note.textContent=env.note;ready.appendChild(note);
   btn.replaceWith(ready);
-  if(help)help.textContent=env.mobile?'แนะนำ: แตะ “เปิด LINE เพื่อเข้าสู่ระบบ” ก่อน · มี Web Login สำรองสำหรับ browser ที่เปิดแอป LINE ไม่ได้':'LINE Login พร้อมใช้งาน';
+  if(help)help.textContent=env.mobile?'เลือกได้ 3 วิธี: เปิดแอป LINE · ใช้ LINE ผ่านเว็บ · ใช้ระบบ LINE เดิม':'เลือกได้: LINE Login/QR หรือใช้ระบบ LINE เดิม';
   scheduleOauthRefresh(data);
 }
 
@@ -142,7 +145,7 @@ async function resumeOauth(){
 }
 
 function startCountdown(expiresAt){
-  const render=()=>{const el=$('#line-login-countdown');if(!el)return;const sec=Math.max(0,Math.ceil((new Date(expiresAt).getTime()-Date.now())/1000));el.textContent=`${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`;if(sec<=0){statusText('รหัสหมดอายุ กรุณาสร้างรหัสใหม่',true);stopTimers();busy=false;current=null;const btn=$('#line-login-start');if(btn){btn.disabled=false;btn.textContent='เข้าสู่ระบบด้วย LINE'}}};
+  const render=()=>{const el=$('#line-login-countdown');if(!el)return;const sec=Math.max(0,Math.ceil((new Date(expiresAt).getTime()-Date.now())/1000));el.textContent=`${Math.floor(sec/60)}:${String(sec%60).padStart(2,'0')}`;if(sec<=0){statusText('รหัสหมดอายุ กรุณาสร้างรหัสใหม่',true);stopTimers();busy=false;current=null;const btn=$('#line-login-start');if(btn){btn.disabled=false;btn.textContent='เข้าสู่ระบบด้วย LINE';btn.onclick=prepareDirectLineLogin}}};
   render();countdownTimer=setInterval(render,1000);
 }
 async function poll(){
@@ -150,18 +153,26 @@ async function poll(){
   try{
     const data=await callCode('poll',{request_id:current.request_id,browser_secret:current.browser_secret});
     if(data.status==='approved'&&data.session?.access_token&&data.session?.refresh_token){stopTimers();statusText('ยืนยันจาก LINE แล้ว กำลังเข้าสู่ระบบ…');await applySession(data.session);return;}
-    if(['expired','consumed','not_found'].includes(data.status)){statusText(data.status==='expired'?'รหัสหมดอายุ กรุณาสร้างใหม่':'คำขอนี้ไม่สามารถใช้งานต่อได้ กรุณาสร้างใหม่',true);stopTimers();busy=false;current=null;const btn=$('#line-login-start');if(btn){btn.disabled=false;btn.textContent='เข้าสู่ระบบด้วย LINE'}return;}
+    if(['expired','consumed','not_found'].includes(data.status)){statusText(data.status==='expired'?'รหัสหมดอายุ กรุณาสร้างใหม่':'คำขอนี้ไม่สามารถใช้งานต่อได้ กรุณาสร้างใหม่',true);stopTimers();busy=false;current=null;const btn=$('#line-login-start');if(btn){btn.disabled=false;btn.textContent='เข้าสู่ระบบด้วย LINE';btn.onclick=prepareDirectLineLogin}return;}
     pollTimer=setTimeout(poll,2000);
   }catch(e){statusText('ยังตรวจสอบ LINE ไม่สำเร็จ ระบบจะลองใหม่อัตโนมัติ');pollTimer=setTimeout(poll,3500);}
 }
+function ensureLineActionButton(){
+  let btn=$('#line-login-start');
+  const ready=btn?.closest?.('.line-login-ready');
+  if(ready){
+    const fresh=document.createElement('button');fresh.type='button';fresh.id='line-login-start';fresh.className='line-login-button';fresh.textContent='เข้าสู่ระบบด้วย LINE';fresh.onclick=prepareDirectLineLogin;ready.replaceWith(fresh);btn=fresh;
+  }
+  return btn;
+}
 async function startCodeLogin(fromFallback=false){
-  if(busy)return;busy=true;stopTimers();const btn=$('#line-login-start'),state=stateBox();btn.disabled=true;btn.textContent='กำลังสร้างรหัสสำรอง…';state.hidden=false;state.innerHTML='<p class="line-login-status">กำลังเตรียมการยืนยันผ่าน LINE OA…</p>';
+  if(busy)return;busy=true;stopTimers();clearOauth();const btn=ensureLineActionButton(),state=stateBox();if(!btn){busy=false;return;}btn.onclick=null;btn.disabled=true;btn.textContent='กำลังสร้างรหัส LINE แบบเดิม…';state.hidden=false;state.innerHTML='<p class="line-login-status">กำลังเตรียมระบบ LINE แบบเดิมผ่าน LINE OA…</p>';
   try{
     const data=await callCode('start');current=data;
-    state.innerHTML=`<p class="line-login-status" id="line-login-status">${fromFallback?'โหมดสำรอง: ':''}เปิด LINE OA ของหน่วยงาน แล้วส่งข้อความนี้ภายใน <span class="line-login-count" id="line-login-countdown">3:00</span></p><div class="line-login-code" id="line-login-code">LOGIN ${String(data.code||'')}</div><div class="line-login-actions"><button type="button" class="secondary" id="line-login-copy">คัดลอกรหัส</button><button type="button" class="secondary" id="line-login-cancel">ยกเลิก</button></div><p class="line-login-status">เมื่อ LINE ตอบว่าอนุมัติแล้ว หน้านี้จะเข้าสู่ระบบอัตโนมัติ</p>`;
+    state.innerHTML=`<p class="line-login-status" id="line-login-status">${fromFallback?'โหมดสำรอง: ':'LINE แบบเดิม: '}เปิด LINE OA ของหน่วยงาน แล้วส่งข้อความนี้ภายใน <span class="line-login-count" id="line-login-countdown">3:00</span></p><div class="line-login-code" id="line-login-code">LOGIN ${String(data.code||'')}</div><div class="line-login-actions"><button type="button" class="secondary" id="line-login-copy">คัดลอกรหัส</button><button type="button" class="secondary" id="line-login-cancel">ยกเลิก</button></div><p class="line-login-status">เมื่อ LINE ตอบว่าอนุมัติแล้ว หน้านี้จะเข้าสู่ระบบอัตโนมัติ</p>`;
     $('#line-login-copy').onclick=async()=>{try{await navigator.clipboard.writeText(`LOGIN ${data.code}`);statusText('คัดลอกรหัสแล้ว นำไปส่งที่ LINE OA ของหน่วยงาน')}catch{statusText('คัดลอกอัตโนมัติไม่ได้ กรุณากดค้างที่รหัสเพื่อคัดลอก',true)}};
-    $('#line-login-cancel').onclick=reset;btn.textContent='กำลังรอการยืนยันจาก LINE';startCountdown(data.expires_at);pollTimer=setTimeout(poll,1200);
-  }catch(e){state.innerHTML='<p class="line-login-status error">ยังไม่สามารถเริ่ม LINE Login ได้ กรุณาลองใหม่</p>';btn.disabled=false;btn.textContent='เข้าสู่ระบบด้วย LINE';busy=false;}
+    $('#line-login-cancel').onclick=()=>{reset();prepareDirectLineLogin().catch(()=>{})};btn.textContent='กำลังรอการยืนยันจาก LINE';startCountdown(data.expires_at);pollTimer=setTimeout(poll,1200);
+  }catch(e){state.innerHTML='<p class="line-login-status error">ยังไม่สามารถเริ่มระบบ LINE แบบเดิมได้ กรุณาลองใหม่หรือเข้าสู่ระบบปกติ</p>';btn.disabled=false;btn.textContent='เข้าสู่ระบบด้วย LINE';btn.onclick=prepareDirectLineLogin;busy=false;}
 }
 function init(){
   injectStyle();const form=$('#login-form');if(!form||$('#line-login-v201'))return;
