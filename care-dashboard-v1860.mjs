@@ -1,4 +1,4 @@
-const VERSION='2.0.31';
+const VERSION='2.0.32';
 let supabase=null,profile=null,observer=null,loading=false,scope='self';
 const $=(s,r=document)=>r.querySelector(s);
 const num=v=>Number(v||0).toLocaleString('th-TH');
@@ -14,13 +14,16 @@ async function loadProfile(){const {data:{session}}=await supabase.auth.getSessi
 function roleScope(){if(profile?.role==='admin')return'all';if(profile?.role==='staff')return scope==='community'?'community':'self';return'self';}
 function broadcastScope(){window.__PHC_CARE_SCOPE__=roleScope();document.dispatchEvent(new CustomEvent('phc:care-scope-changed',{detail:{scope:roleScope()}}));}
 function openPanel(name){const b=$(`#portal-nav [data-portal-view="${name}"]`);if(b&&!b.hidden){b.click();return true;}return false;}
-function openHealth(filter='all',stage=''){broadcastScope();openPanel('health');setTimeout(()=>{const f=$('#health-filter'),st=$('#health-stage');if(f){f.value=filter;f.dispatchEvent(new Event('change',{bubbles:true}));}if(st){st.value=stage;st.dispatchEvent(new Event('change',{bubbles:true}));}},180);}
+function openHealth(filter='all',stage='',assignment='all'){broadcastScope();openPanel('health');setTimeout(()=>{const f=$('#health-filter'),st=$('#health-stage'),a=$('#health-assignment');if(f){f.value=filter;f.dispatchEvent(new Event('change',{bubbles:true}));}if(st){st.value=stage;st.dispatchEvent(new Event('change',{bubbles:true}));}if(a){a.value=assignment;a.dispatchEvent(new Event('change',{bubbles:true}));}},180);}
 function metricRefCard(label,item){if(!item||item.target==null||item.result==null)return'';const p=Number(item.percentage||0);return `<article class="care60-ref-card"><small>${esc(label)}</small><strong>${num(item.result)} / ${num(item.target)}</strong><b>${Number.isFinite(p)?p.toFixed(1):'0.0'}%</b></article>`;}
 function render(d){
   const host=$('#stats');if(!host)return;
   host.classList.add('care60-host');
   const target=Number(d.ncd_targets||0),done=Number(d.ncd_done||0),pct=target?Math.round(done*1000/target)/10:0;
   const scopeToggle=profile.role==='staff'?`<div class="care60-scope" role="group" aria-label="ขอบเขตข้อมูล"><button type="button" data-care60-scope="self" class="${scope==='self'?'active':''}">ของฉัน</button><button type="button" data-care60-scope="community" class="${scope==='community'?'active':''}">ชุมชนของฉัน</button></div>`:'';
+  const assignment=d.assignment_summary||null;
+  const fallbackPeople=Number(assignment?.fallback_people||0),noVolunteer=Number(assignment?.no_volunteer_people||0),noActiveUser=Number(assignment?.no_active_user_people||0);
+  const fallbackButton=profile.role==='staff'&&scope==='community'?`<button type="button" class="${fallbackPeople>0?'bad':''}" data-care60-fallback>👥 Staff ดูแลแทน ${num(fallbackPeople)} คน · ไม่มี อสม. ${num(noVolunteer)} · ยังไม่มีบัญชีใช้งาน ${num(noActiveUser)}</button>`:'';
   const h=d.hdc_reference||null;
   const hdcBlock=(profile.role==='admin'&&h)?`<section class="care60-section care60-hdc"><div class="care60-section-head"><h3>เทียบตัวชี้วัด HDC ปี ${esc(h.fiscal_year_be||'')}</h3><small>ภาพรวมหน่วยบริการ ${esc(h.hospcode||'')}</small></div><div class="care60-ref-grid">${metricRefCard('ประเมิน ADL ผู้สูงอายุ',h.elderly_adl)}${metricRefCard('คัดกรองผู้สูงอายุ 9 ด้าน',h.elderly_9_domains)}${metricRefCard('คัดกรองเบาหวาน',h.dm_screen)}${metricRefCard('คัดกรองความดัน',h.ht_screen)}</div><div class="care60-note">แหล่งอ้างอิง: MoPH Open Data ผ่าน hdc-app · เป็นยอดรวมทางการระดับหน่วยบริการ จึงอาจไม่เท่ารายชื่อปฏิบัติงาน JHCIS/J-Report หลังการตัดซ้ำและประมวลผลส่วนกลาง</div></section>`:'';
   host.innerHTML=`<section class="care60">
@@ -47,14 +50,15 @@ function render(d){
       <article><span class="ico">🛏️</span><strong>${num(d.bedridden_people)}</strong><small>ติดเตียง · ADL ล่าสุด</small></article>
     </div><div class="care60-note">ADL ล่าสุดที่พบ ${num(d.adl_assessed_people)} คน · ติดสังคม ${num(d.social_people)} คน · ใช้รหัส SPECIALPP 1B1280/1B1281/1B1282 ตามนิยาม HDC</div></section>
     ${hdcBlock}
-    <section class="care60-section"><h3>งานที่ต้องทำต่อ</h3><div class="care60-next"><button type="button" class="map" data-care60-open="houses">📍 ไม่มีพิกัด ${num(d.missing_coordinates)} หลัง · ต้องตรวจ ${num(d.review_houses)} หลัง</button><button type="button" data-care60-health="due">🟡 NCD คงเหลือ ${num(d.ncd_due)} คน</button><button type="button" class="bad" data-care60-health="all">🔴 ผลคัดกรองที่ควรติดตาม ${num(d.urgent_attention)} คน</button></div></section>
+    <section class="care60-section"><h3>งานที่ต้องทำต่อ</h3><div class="care60-next"><button type="button" class="map" data-care60-open="houses">📍 ไม่มีพิกัด ${num(d.missing_coordinates)} หลัง · ต้องตรวจ ${num(d.review_houses)} หลัง</button><button type="button" data-care60-health="due">🟡 NCD คงเหลือ ${num(d.ncd_due)} คน</button><button type="button" class="bad" data-care60-health="all">🔴 ผลคัดกรองที่ควรติดตาม ${num(d.urgent_attention)} คน</button>${fallbackButton}</div></section>
   </section>`;
   host.querySelectorAll('[data-care60-scope]').forEach(b=>b.onclick=async()=>{scope=b.dataset.care60Scope;try{localStorage.setItem('phc.care.scope',scope);}catch{}broadcastScope();await load();});
   host.querySelectorAll('[data-care60-open]').forEach(b=>b.onclick=()=>{const name=b.dataset.care60Open;if(name==='houses'&&!openPanel('houses'))openPanel('communities');});
   host.querySelectorAll('[data-care60-health]').forEach(b=>b.onclick=()=>openHealth(b.dataset.care60Health||'all',''));
+  host.querySelector('[data-care60-fallback]')?.addEventListener('click',()=>openHealth('field_targets','','fallback'));
   host.querySelectorAll('[data-care60-stage]').forEach(b=>b.onclick=()=>openHealth('field_targets',b.dataset.care60Stage));
 }
-async function load(){if(loading||!profile?.active)return;loading=true;try{let {data,error}=await supabase.rpc('report_snapshot_v2031',{p_report_key:'care',p_scope:roleScope()});if(error||!data){const live=await supabase.rpc('care_dashboard_v1861',{p_scope:roleScope()});data=live.data;error=live.error;}if(error)throw error;render(data||{});}catch(e){const host=$('#stats');if(host)host.innerHTML=`<article class="stat"><small>Dashboard</small><strong>โหลดไม่สำเร็จ</strong><span>${esc(e.message)}</span></article>`;}finally{loading=false;}}
+async function load(){if(loading||!profile?.active)return;loading=true;try{let {data,error}=await supabase.rpc('report_snapshot_v2031',{p_report_key:'care',p_scope:roleScope()});if(error||!data){const live=await supabase.rpc('care_dashboard_v1861',{p_scope:roleScope()});data=live.data;error=live.error;}if(error)throw error;data=data||{};if(profile?.role==='staff'&&roleScope()==='community'){const a=await supabase.rpc('assignment_summary_v2032',{p_scope:'community'});if(!a.error&&a.data)data={...data,assignment_summary:a.data};}render(data);}catch(e){const host=$('#stats');if(host)host.innerHTML=`<article class="stat"><small>Dashboard</small><strong>โหลดไม่สำเร็จ</strong><span>${esc(e.message)}</span></article>`;}finally{loading=false;}}
 async function enhance(){profile=await loadProfile();if(!profile?.active)return;if(profile.role==='staff'){try{const saved=localStorage.getItem('phc.care.scope')||localStorage.getItem('phc.field.scope');scope=saved==='community'?'community':'self';}catch{scope='self';}}else scope=profile.role==='admin'?'all':'self';broadcastScope();await load();}
 async function syncSharedScope(event){if(profile?.role!=='staff')return;const next=event.detail?.scope==='community'?'community':'self';if(scope===next)return;scope=next;try{localStorage.setItem('phc.care.scope',scope);localStorage.setItem('phc.field.scope',scope);}catch{}const overview=$('[data-portal-panel="overview"]');if(overview&&!overview.hidden)await load();}
 function start(){setVersion();const portal=$('#portal');if(!portal)return;observer?.disconnect();observer=new MutationObserver(()=>{const overview=$('[data-portal-panel="overview"]');if(overview&&!overview.hidden)setTimeout(()=>enhance().catch(()=>{}),80);});observer.observe(portal,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden']});document.addEventListener('phc:care-scope-changed',event=>{syncSharedScope(event).catch(()=>{})});document.addEventListener('phc:report-snapshot-refreshed',()=>load().catch(()=>{}));setTimeout(()=>enhance().catch(()=>{}),350);}

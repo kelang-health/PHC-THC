@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>อสม. พลัส | งานสุขภาพชุมชน</title>
-  <link rel="stylesheet" href="./style.css?v=2.0.31">
+  <link rel="stylesheet" href="./style.css?v=2.0.32">
 </head>
 <body>
   <main class="shell">
@@ -26,7 +26,7 @@
 
     <section id="login-card" class="card auth-card login-card">
       <div class="login-intro">
-        <img id="cloud-login-logo" class="cloud-login-logo" src="./logo.svg?v=2.0.31" alt="โลโก้ อสม. พลัส">
+        <img id="cloud-login-logo" class="cloud-login-logo" src="./logo.svg?v=2.0.32" alt="โลโก้ อสม. พลัส">
         <p class="eyebrow">SECURE ACCESS</p>
         <h2>เข้าสู่ระบบ อสม. พลัส</h2>
         <p class="login-agency"><span>ศูนย์บริการสาธารณสุขบ้านโทกหัวช้าง</span><span>เทศบาลเมืองเขลางค์นคร</span></p>
@@ -42,7 +42,7 @@
         <button class="primary login-submit">เข้าสู่ระบบ</button>
         <p id="login-error" class="error"></p>
       </form>
-      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v2.0.31</footer>
+      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v2.0.32</footer>
     </section>
 
     <section id="blocked" class="card" hidden>
@@ -181,6 +181,7 @@
         <div class="health-toolbar">
           <label>งานที่ต้องดู<select id="health-filter"><option value="field_targets">เป้าหมายพร้อมคัดกรอง</option><option value="due">NCD ยังไม่คัดกรอง</option><option value="targets">เป้าหมาย NCD 35+</option><option value="known">ผู้มี DM/HT เดิม</option><option value="all">ประชาชนทั้งหมดในสิทธิ์ (Admin)</option></select></label>
           <label>กลุ่มวัย<select id="health-stage"><option value="">ทุกกลุ่มวัย</option><option>เด็กปฐมวัย</option><option>เด็กวัยเรียน</option><option>วัยรุ่นและเยาวชน</option><option>วัยทำงาน</option><option>ผู้สูงอายุ</option></select></label>
+          <label id="health-assignment-wrap" hidden>ผู้รับผิดชอบ<select id="health-assignment"><option value="all">ทุกคนในชุมชน</option><option value="assigned">มี อสม./บัญชีใช้งานดูแล</option><option value="fallback">Staff ดูแลแทน · ยังไม่มีผู้รับผิดชอบ</option></select></label>
           <label class="health-search">ค้นหาชื่อ<input id="health-search" type="search" placeholder="พิมพ์ชื่อประชาชน"></label>
         </div>
         <div id="health-field-status" class="health-field-status" hidden role="status" aria-live="polite"></div>
@@ -299,7 +300,7 @@
   <script type="module" src="./auth-security.mjs?v=1.8.28"></script>
   <script type="module" src="./line-login-v201.mjs?v=2.0.31"></script>
   <script type="module" src="./line-login-settings-v2013.mjs?v=2.0.31"></script>
-  <script type="module" src="./app.js?v=2.0.31"></script>
+  <script type="module" src="./app.js?v=2.0.32"></script>
 </body>
 </html>
 
