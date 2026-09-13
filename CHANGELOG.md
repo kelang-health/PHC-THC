@@ -1,3 +1,9 @@
+## v2.0.26
+- Population target aligned to JHCIS typelive 1/3 + nation 99.
+- Default field list uses precomputed age 35+ targets for fast mobile response.
+- Admin can enable/disable 0-5, 6-14 and 15-34 target groups; age 35+ remains always enabled.
+- Added slim target worklist to avoid heavy history joins on first load.
+
 ## v2.0.25
 - กำหนดนิยามประชากร operational กลางของระบบเป็น JHCIS `person.typelive` = 1 หรือ 3 เท่านั้น
 - ปรับ Health Worklist, NCD base eligibility, Field Work และ Screening Plan ให้ใช้ฐานประชากรเดียวกัน
