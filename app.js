@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.26';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.27';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -66,7 +66,13 @@ function configurePortalNav(role){
     b.onclick=async()=>{
       setPortalView(b.dataset.portalView);
       if(b.dataset.portalView==='work'){try{bindHealthPerformanceControls();bindPerformanceScopeControls();syncPerformanceScopeUI();await loadHealthSummary();}catch(e){const box=$('#health-stats');if(box)box.innerHTML=`<article class="stat"><small>อ่านสรุปผลงานไม่สำเร็จ</small><strong>—</strong></article>`;}}
-      if(b.dataset.portalView==='health'&&!healthLoaded){try{await loadHealthModule();}catch(e){$('#health-person-body').innerHTML=`<tr><td colspan="5">${esc(e.message)}</td></tr>`;}}
+      if(b.dataset.portalView==='health'){
+        const filter=$('#health-filter'),stage=$('#health-stage');
+        if(filter)filter.value='field_targets';
+        if(stage)stage.value='';
+        syncHealthTargetButtons();
+        try{if(!healthLoaded)await loadHealthModule();else await loadHealthPeople();}catch(e){$('#health-person-body').innerHTML=`<tr><td colspan="5">${esc(e.message)}</td></tr>`;}
+      }
     };
   });
   // Preserve the panel the user is currently working in during session refreshes.
@@ -77,6 +83,8 @@ function configureHealthAdminUI(role){
   const adminIntro=$('#health-admin-intro'),targetAdmin=$('#health-target-admin');
   if(adminIntro)adminIntro.hidden=role!=='admin';
   if(targetAdmin)targetAdmin.hidden=role!=='admin';
+  const allOption=$('#health-filter option[value="all"]');
+  if(allOption){allOption.hidden=role!=='admin';allOption.disabled=role!=='admin';}
   bindHealthPerformanceControls();
   bindPerformanceScopeControls();
   bindHealthTargetAdminV2026();
@@ -176,7 +184,9 @@ async function setHealthTargetFilter(filter){
   $('#health-filter').value=filter;syncHealthTargetButtons();await loadHealthPeople();
 }
 async function loadHealthPeople(){
-  const filter=$('#health-filter').value;syncHealthTargetButtons();const stage=$('#health-stage').value,raw=$('#health-search').value.trim();
+  let filter=$('#health-filter').value;
+  if(filter==='all'&&currentProfile?.role!=='admin'){filter='field_targets';$('#health-filter').value=filter;}
+  syncHealthTargetButtons();const stage=$('#health-stage').value,raw=$('#health-search').value.trim();
   const fastTarget=filter==='field_targets',source=fastTarget?'health_screening_target_worklist_v2026':healthActiveViewName;
   let q=supabase.from(source).select(fastTarget?HEALTH_TARGET_FAST_COLUMNS:healthWorklistColumns()).order('community').order('hcode').order('display_name').limit(300);
   if(healthCommunityFocus)q=q.eq('community',healthCommunityFocus);

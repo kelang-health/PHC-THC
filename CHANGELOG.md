@@ -1,3 +1,8 @@
+## v2.0.27
+- Health now opens the precomputed target list by default on every entry; User/Staff cannot fall through to the unrestricted all-population filter.
+- Care Dashboard age-group shortcuts use the Admin-enabled target worklist instead of bypassing target configuration.
+- With default settings, people under 35 stay hidden until Admin explicitly enables their age group.
+
 ## v2.0.26
 - Population target aligned to JHCIS typelive 1/3 + nation 99.
 - Default field list uses precomputed age 35+ targets for fast mobile response.

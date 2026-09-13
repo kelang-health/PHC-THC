@@ -1,4 +1,4 @@
-const VERSION='2.0.26';
+const VERSION='2.0.27';
 let supabase=null,profile=null,observer=null,loading=false,scope='self';
 const $=(s,r=document)=>r.querySelector(s);
 const num=v=>Number(v||0).toLocaleString('th-TH');
@@ -51,7 +51,7 @@ function render(d){
   host.querySelectorAll('[data-care60-scope]').forEach(b=>b.onclick=async()=>{scope=b.dataset.care60Scope;try{localStorage.setItem('phc.care.scope',scope);}catch{}broadcastScope();await load();});
   host.querySelectorAll('[data-care60-open]').forEach(b=>b.onclick=()=>{const name=b.dataset.care60Open;if(name==='houses'&&!openPanel('houses'))openPanel('communities');});
   host.querySelectorAll('[data-care60-health]').forEach(b=>b.onclick=()=>openHealth(b.dataset.care60Health||'all',''));
-  host.querySelectorAll('[data-care60-stage]').forEach(b=>b.onclick=()=>openHealth('all',b.dataset.care60Stage));
+  host.querySelectorAll('[data-care60-stage]').forEach(b=>b.onclick=()=>openHealth('field_targets',b.dataset.care60Stage));
 }
 async function load(){if(loading||!profile?.active)return;loading=true;try{const {data,error}=await supabase.rpc('care_dashboard_v1861',{p_scope:roleScope()});if(error)throw error;render(data||{});}catch(e){const host=$('#stats');if(host)host.innerHTML=`<article class="stat"><small>Dashboard</small><strong>โหลดไม่สำเร็จ</strong><span>${esc(e.message)}</span></article>`;}finally{loading=false;}}
 async function enhance(){profile=await loadProfile();if(!profile?.active)return;if(profile.role==='staff'){try{const saved=localStorage.getItem('phc.care.scope')||localStorage.getItem('phc.field.scope');scope=saved==='community'?'community':'self';}catch{scope='self';}}else scope=profile.role==='admin'?'all':'self';broadcastScope();await load();}
