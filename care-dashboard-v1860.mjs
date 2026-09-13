@@ -1,4 +1,4 @@
-const VERSION='2.0.27';
+const VERSION='2.0.28';
 let supabase=null,profile=null,observer=null,loading=false,scope='self';
 const $=(s,r=document)=>r.querySelector(s);
 const num=v=>Number(v||0).toLocaleString('th-TH');

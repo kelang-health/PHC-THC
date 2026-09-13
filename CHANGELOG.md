@@ -1,3 +1,8 @@
+## v2.0.28
+- Warn before opening an NCD screening when the person already has a recorded screening date.
+- Show the latest screening date in Thai format and ask whether the user wants to screen again.
+- Cancelling the warning keeps the prior result intact and does not open a new NCD form; elderly same-day flow to 9 domains remains unaffected.
+
 ## v2.0.27
 - Health now opens the precomputed target list by default on every entry; User/Staff cannot fall through to the unrestricted all-population filter.
 - Care Dashboard age-group shortcuts use the Admin-enabled target worklist instead of bypassing target configuration.

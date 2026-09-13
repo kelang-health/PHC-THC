@@ -1,4 +1,4 @@
-const VERSION='2.0.27';
+const VERSION='2.0.28';
 
 function injectStyle(){
   if(document.getElementById('system-about-note-v1829-style')) return;

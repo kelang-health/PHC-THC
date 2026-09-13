@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.27';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.28';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -159,6 +159,7 @@ function personKey(p){return `${p.source_pcucode}:${p.source_pid}`;}
 function healthClass(severity){return severity==='urgent'?'bad':severity==='alert'?'attention':severity==='risk'?'warn':severity==='normal'?'good':'';}
 function formatHealthValue(value,suffix=''){return value===null||value===undefined||value===''?'—':`${value}${suffix}`;}
 function healthDateLabel(value){if(!value)return 'ยังไม่มีประวัติคัดกรอง';try{return new Date(value+'T00:00:00').toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});}catch{return value;}}
+function confirmRepeatNcdV2028(person){const last=String(person?.latest_screened_on||'').slice(0,10);if(!last)return true;const label=healthDateLabel(last);return confirm(`${person?.display_name||'ประชาชนรายนี้'} คัดกรอง NCD แล้วเมื่อวันที่ ${label}\n\nต้องการคัดกรองซ้ำหรือไม่?`);}
 async function loadHealthSummary(){
   const {data,error}=await supabase.rpc('care_dashboard_v1860',{p_scope:careScopeMode});
   if(error)throw error;const x=data||{};
@@ -802,4 +803,4 @@ restorePortalNavPreference();
 refreshAuth();
 
 
-window.PHCOpenLegacyNcd190=(pcucode,pid)=>{const i=healthPeople.findIndex(p=>String(p.source_pcucode)===String(pcucode)&&Number(p.source_pid)===Number(pid));if(i<0)return false;selectHealthPerson(i,true).catch(e=>{const x=$('#ncd-error');if(x)x.textContent=e.message;});return true;};
+window.PHCOpenLegacyNcd190=(pcucode,pid)=>{const i=healthPeople.findIndex(p=>String(p.source_pcucode)===String(pcucode)&&Number(p.source_pid)===Number(pid));if(i<0)return false;const person=healthPeople[i];if(!confirmRepeatNcdV2028(person))return true;selectHealthPerson(i,true).catch(e=>{const x=$('#ncd-error');if(x)x.textContent=e.message;});return true;};
