@@ -32,6 +32,14 @@ const HEALTH_TARGET_FAST_COLUMNS=HEALTH_WORKLIST_BASE_COLUMNS+',has_cvd,cvd_popu
 function healthWorklistColumns(){return healthActiveViewName==='health_person_worklist_active_v1847'?HEALTH_WORKLIST_BASE_COLUMNS+',has_cvd,cvd_population_eligible,screening_plan_date,screening_age_months,screening_route,screening_route_label,screening_dspm_target_months,field_target_enabled,screening_plan_updated_at':HEALTH_WORKLIST_BASE_COLUMNS;}
 function healthWorklistSchemaFallbackAllowed(error){const code=String(error?.code||'');const message=String(error?.message||'').toLowerCase();return ['42703','42P01','PGRST204','PGRST205'].includes(code)||message.includes('does not exist')||message.includes('schema cache');}
 const PORTAL_NAV_STORAGE = 'phc.portal.nav-collapsed';
+const CLOUD_BRAND_LOGO_URL = `${SUPABASE_URL}/storage/v1/object/public/osm-public-assets/branding/logo`;
+
+function configureCloudBrandLogo(){
+  const image=$('#cloud-login-logo');if(!image)return;
+  const fallback='./logo.svg?v=2.0.31';
+  image.onerror=()=>{image.onerror=null;image.src=fallback;};
+  image.src=`${CLOUD_BRAND_LOGO_URL}?t=${Math.floor(Date.now()/300000)}`;
+}
 
 function show(el, visible=true){ if(el) el.hidden = !visible; }
 function renderAuthView(view){
@@ -872,6 +880,7 @@ document.addEventListener('phc:care-scope-changed',async event=>{
 $('#portal-nav-toggle').addEventListener('click',()=>setPortalNavCollapsed(!$('#portal').classList.contains('nav-collapsed')));
 $('#ncd-form').addEventListener('change',event=>{if(event.target.matches('[name="smoking_state"],[name="alcohol_state"]'))syncBehaviorPanels(event.currentTarget);});
 restorePortalNavPreference();
+configureCloudBrandLogo();
 refreshAuth();
 
 
