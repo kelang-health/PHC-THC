@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.19';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.20';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -60,7 +60,7 @@ function configurePortalNav(role){
     const label=b.querySelector('.portal-nav-label'),roleLabelText=labels[role]?.[b.dataset.portalView];if(label&&roleLabelText)label.textContent=roleLabelText;
     b.onclick=async()=>{
       setPortalView(b.dataset.portalView);
-      if(b.dataset.portalView==='work'){try{bindHealthPerformanceControls();await loadHealthSummary();}catch(e){const box=$('#health-stats');if(box)box.innerHTML=`<article class="stat"><small>อ่านสรุปผลงานไม่สำเร็จ</small><strong>—</strong></article>`;}}
+      if(b.dataset.portalView==='work'){try{bindHealthPerformanceControls();bindPerformanceScopeControls();syncPerformanceScopeUI();await loadHealthSummary();}catch(e){const box=$('#health-stats');if(box)box.innerHTML=`<article class="stat"><small>อ่านสรุปผลงานไม่สำเร็จ</small><strong>—</strong></article>`;}}
       if(b.dataset.portalView==='health'&&!healthLoaded){try{await loadHealthModule();}catch(e){$('#health-person-body').innerHTML=`<tr><td colspan="5">${esc(e.message)}</td></tr>`;}}
     };
   });
@@ -72,6 +72,42 @@ function configureHealthAdminUI(role){
   const adminIntro=$('#health-admin-intro');
   if(adminIntro)adminIntro.hidden=role!=='admin';
   bindHealthPerformanceControls();
+  bindPerformanceScopeControls();
+  syncPerformanceScopeUI();
+}
+function effectivePerformanceScope(){
+  if(currentProfile?.role==='admin')return 'all';
+  if(currentProfile?.role==='staff')return careScopeMode==='community'?'community':'self';
+  return 'self';
+}
+function syncPerformanceScopeUI(){
+  const control=$('#performance-scope-control'),note=$('#performance-scope-note');
+  if(control){
+    control.hidden=currentProfile?.role!=='staff';
+    control.querySelectorAll('[data-performance-scope]').forEach(button=>{
+      const active=button.dataset.performanceScope===effectivePerformanceScope();
+      button.classList.toggle('active',active);
+      button.setAttribute('aria-pressed',String(active));
+    });
+  }
+  if(note){
+    if(currentProfile?.role==='staff')note.textContent=effectivePerformanceScope()==='community'?'แสดงผลงานรวมชุมชน '+(currentProfile.community||'ที่ได้รับมอบหมาย')+' · รวม อสม. ในขอบเขตสิทธิ์':'แสดงเฉพาะผลงานจากบ้านและประชาชนที่ฉันรับผิดชอบ';
+    else if(currentProfile?.role==='user')note.textContent='แสดงเฉพาะผลงานจากบ้านและประชาชนที่ฉันรับผิดชอบ';
+    else note.textContent='แสดงผลงานทุกพื้นที่ตามขอบเขตสิทธิ์เจ้าหน้าที่';
+  }
+}
+function setPerformanceScope(next){
+  if(currentProfile?.role!=='staff')return;
+  careScopeMode=next==='community'?'community':'self';
+  try{localStorage.setItem('phc.care.scope',careScopeMode);localStorage.setItem('phc.field.scope',careScopeMode);}catch{}
+  syncPerformanceScopeUI();
+  document.dispatchEvent(new CustomEvent('phc:care-scope-changed',{detail:{scope:careScopeMode,source:'performance'}}));
+}
+function bindPerformanceScopeControls(){
+  const control=$('#performance-scope-control');
+  if(!control||control.dataset.bound==='1')return;
+  control.dataset.bound='1';
+  control.querySelectorAll('[data-performance-scope]').forEach(button=>button.onclick=()=>setPerformanceScope(button.dataset.performanceScope));
 }
 function bindHealthPerformanceControls(){
   const refresh=$('#health-refresh');if(!refresh||refresh.dataset.bound==='1')return;
@@ -580,6 +616,10 @@ async function loadPortal(session, requestId){
   if(!profile || !profile.active){
     renderAuthView('blocked'); return;
   }
+  if(profile.role==='staff'){
+    try{const saved=localStorage.getItem('phc.care.scope')||localStorage.getItem('phc.field.scope');careScopeMode=saved==='community'?'community':'self';}
+    catch{careScopeMode='self';}
+  }else careScopeMode=profile.role==='admin'?'all':'self';
   const [{data: master, error: mErr}, {data: communities, error: cErr}, {data: workload, error: wErr}] = await Promise.all([
     supabase.from('communities').select('name,moo,active').eq('active', true).order('moo').order('name'),
     supabase.from('community_report_summary').select('*').order('community'),
@@ -712,6 +752,8 @@ document.addEventListener('phc:care-scope-changed',async event=>{
   const next=event.detail?.scope;careScopeMode=next==='community'?'community':next==='all'?'all':'self';
   if(currentProfile?.role==='user')careScopeMode='self';
   if(currentProfile?.role==='admin')careScopeMode='all';
+  if(currentProfile?.role==='staff'){try{localStorage.setItem('phc.care.scope',careScopeMode);localStorage.setItem('phc.field.scope',careScopeMode);}catch{}}
+  syncPerformanceScopeUI();
   try{await loadHealthSummary();if(healthLoaded)await loadHealthPeople();}catch{}
 });
 $('#portal-nav-toggle').addEventListener('click',()=>setPortalNavCollapsed(!$('#portal').classList.contains('nav-collapsed')));

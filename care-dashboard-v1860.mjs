@@ -1,4 +1,4 @@
-const VERSION='2.0.0';
+const VERSION='2.0.20';
 let supabase=null,profile=null,observer=null,loading=false,scope='self';
 const $=(s,r=document)=>r.querySelector(s);
 const num=v=>Number(v||0).toLocaleString('th-TH');
@@ -54,6 +54,7 @@ function render(d){
   host.querySelectorAll('[data-care60-stage]').forEach(b=>b.onclick=()=>openHealth('all',b.dataset.care60Stage));
 }
 async function load(){if(loading||!profile?.active)return;loading=true;try{const {data,error}=await supabase.rpc('care_dashboard_v1861',{p_scope:roleScope()});if(error)throw error;render(data||{});}catch(e){const host=$('#stats');if(host)host.innerHTML=`<article class="stat"><small>Dashboard</small><strong>โหลดไม่สำเร็จ</strong><span>${esc(e.message)}</span></article>`;}finally{loading=false;}}
-async function enhance(){profile=await loadProfile();if(!profile?.active)return;if(profile.role==='staff'){try{const saved=localStorage.getItem('phc.care.scope');scope=saved==='community'?'community':'self';}catch{scope='self';}}else scope=profile.role==='admin'?'all':'self';broadcastScope();await load();}
-function start(){setVersion();const portal=$('#portal');if(!portal)return;observer?.disconnect();observer=new MutationObserver(()=>{const overview=$('[data-portal-panel="overview"]');if(overview&&!overview.hidden)setTimeout(()=>enhance().catch(()=>{}),80);});observer.observe(portal,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden']});setTimeout(()=>enhance().catch(()=>{}),350);}
+async function enhance(){profile=await loadProfile();if(!profile?.active)return;if(profile.role==='staff'){try{const saved=localStorage.getItem('phc.care.scope')||localStorage.getItem('phc.field.scope');scope=saved==='community'?'community':'self';}catch{scope='self';}}else scope=profile.role==='admin'?'all':'self';broadcastScope();await load();}
+async function syncSharedScope(event){if(profile?.role!=='staff')return;const next=event.detail?.scope==='community'?'community':'self';if(scope===next)return;scope=next;try{localStorage.setItem('phc.care.scope',scope);localStorage.setItem('phc.field.scope',scope);}catch{}const overview=$('[data-portal-panel="overview"]');if(overview&&!overview.hidden)await load();}
+function start(){setVersion();const portal=$('#portal');if(!portal)return;observer?.disconnect();observer=new MutationObserver(()=>{const overview=$('[data-portal-panel="overview"]');if(overview&&!overview.hidden)setTimeout(()=>enhance().catch(()=>{}),80);});observer.observe(portal,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden']});document.addEventListener('phc:care-scope-changed',event=>{syncSharedScope(event).catch(()=>{})});setTimeout(()=>enhance().catch(()=>{}),350);}
 export async function initCareDashboard1860(url,key){if(window.__PHC_CARE_DASHBOARD_1860__)return;window.__PHC_CARE_DASHBOARD_1860__=true;injectStyle();const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');supabase=createClient(url,key,{auth:{persistSession:true,autoRefreshToken:false,detectSessionInUrl:false}});if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();}

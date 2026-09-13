@@ -1,3 +1,9 @@
+## v2.0.20
+- Add a single Staff-only performance scope selector: “ผลงานของฉัน” and “ผลงานชุมชน”.
+- Synchronize the selected scope across health performance, field-work reporting, and the overview care dashboard.
+- Keep User fixed to self scope and Admin fixed to all permitted areas; RLS permissions are unchanged.
+- Remove the duplicate Staff scope selector inside the field-work reporting block.
+
 ## v2.0.19
 - Move the health-area summary from the Health menu into the renamed “ผลงาน” menu.
 - Make Health open directly at population selection and the screening worklist.

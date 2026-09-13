@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>อสม. พลัส | งานสุขภาพชุมชน</title>
-  <link rel="stylesheet" href="./style.css?v=2.0.19">
+  <link rel="stylesheet" href="./style.css?v=2.0.20">
 </head>
 <body>
   <main class="shell">
@@ -41,7 +41,7 @@
         <button class="primary login-submit">เข้าสู่ระบบ</button>
         <p id="login-error" class="error"></p>
       </form>
-      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v2.0.19</footer>
+      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v2.0.20</footer>
     </section>
 
     <section id="blocked" class="card" hidden>
@@ -89,9 +89,14 @@
 
       <section class="card" data-portal-panel="work" hidden>
         <section class="health-performance-overview" aria-labelledby="health-performance-title">
-          <div class="section-head health-center-heading">
+          <div class="section-head health-center-heading performance-scope-head">
             <div><p class="eyebrow">HEALTH PERFORMANCE</p><h2 id="health-performance-title">ผลงานสุขภาพของพื้นที่</h2></div>
+            <div id="performance-scope-control" class="performance-scope-control" role="group" aria-label="ขอบเขตผลงาน" hidden>
+              <button type="button" data-performance-scope="self" class="active" aria-pressed="true">ผลงานของฉัน</button>
+              <button type="button" data-performance-scope="community" aria-pressed="false">ผลงานชุมชน</button>
+            </div>
           </div>
+          <p id="performance-scope-note" class="muted performance-scope-note"></p>
           <div id="health-admin-intro" class="health-admin-intro" hidden>
             <p class="muted">สรุปจากฐานเดียวกับ อสม. พลัส ตามขอบเขตสิทธิ์ของบัญชี</p>
             <button id="health-refresh" type="button" class="secondary">รีเฟรชข้อมูล</button>
@@ -281,9 +286,9 @@
 
   <script type="module" src="./login-keypad-v1837.mjs?v=2.0.0"></script>
   <script type="module" src="./auth-security.mjs?v=1.8.28"></script>
-  <script type="module" src="./line-login-v201.mjs?v=2.0.19"></script>
-  <script type="module" src="./line-login-settings-v2013.mjs?v=2.0.19"></script>
-  <script type="module" src="./app.js?v=2.0.19"></script>
+  <script type="module" src="./line-login-v201.mjs?v=2.0.20"></script>
+  <script type="module" src="./line-login-settings-v2013.mjs?v=2.0.20"></script>
+  <script type="module" src="./app.js?v=2.0.20"></script>
 </body>
 </html>
 
