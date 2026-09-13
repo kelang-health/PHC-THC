@@ -1,3 +1,9 @@
+## v2.0.19
+- Move the health-area summary from the Health menu into the renamed “ผลงาน” menu.
+- Make Health open directly at population selection and the screening worklist.
+- After a successful NCD save, close the form, refresh the worklist, scroll to the remaining people, and focus the next screening action.
+- Keep risk/urgent feedback visible above the worklist while avoiding a blocking post-save dialog during field work.
+
 ## v2.0.18
 - Compact the mobile LINE login area so buttons stay balanced and labels do not wrap awkwardly.
 - Shorten the three LINE choices to “เปิดแอป LINE”, “LINE ผ่านเว็บ”, and “LINE เดิม (LINE OA)”.

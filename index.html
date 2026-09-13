@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>อสม. พลัส | งานสุขภาพชุมชน</title>
-  <link rel="stylesheet" href="./style.css?v=2.0.18">
+  <link rel="stylesheet" href="./style.css?v=2.0.19">
 </head>
 <body>
   <main class="shell">
@@ -41,7 +41,7 @@
         <button class="primary login-submit">เข้าสู่ระบบ</button>
         <p id="login-error" class="error"></p>
       </form>
-      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v2.0.18</footer>
+      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v2.0.19</footer>
     </section>
 
     <section id="blocked" class="card" hidden>
@@ -81,13 +81,30 @@
         <button type="button" data-portal-view="volunteers" data-roles="admin"><span class="portal-nav-icon">♧</span><span><strong class="portal-nav-label">อสม.</strong><small>ทะเบียนและภาระงาน</small></span></button>
         <button type="button" data-portal-view="houses" data-roles="staff user"><span class="portal-nav-icon">⌂</span><span><strong class="portal-nav-label">บ้านของฉัน</strong><small>เขตรับผิดชอบ</small></span></button>
         <button type="button" data-portal-view="health" data-roles="admin staff user"><span class="portal-nav-icon">✚</span><span><strong class="portal-nav-label">งานสุขภาพ</strong><small>NCD และ 2Q</small></span></button>
-        <button type="button" data-portal-view="work" data-roles="admin staff user"><span class="portal-nav-icon">▦</span><span><strong class="portal-nav-label">ผลงาน/ติดตาม</strong><small>งาน อสม. และรายงาน</small></span></button>
+        <button type="button" data-portal-view="work" data-roles="admin staff user"><span class="portal-nav-icon">▦</span><span><strong class="portal-nav-label">ผลงาน</strong><small>สรุปงานและติดตาม</small></span></button>
       </nav>
 
       <div id="stats" class="stats" data-portal-panel="overview"></div>
 
 
       <section class="card" data-portal-panel="work" hidden>
+        <section class="health-performance-overview" aria-labelledby="health-performance-title">
+          <div class="section-head health-center-heading">
+            <div><p class="eyebrow">HEALTH PERFORMANCE</p><h2 id="health-performance-title">ผลงานสุขภาพของพื้นที่</h2></div>
+          </div>
+          <div id="health-admin-intro" class="health-admin-intro" hidden>
+            <p class="muted">สรุปจากฐานเดียวกับ อสม. พลัส ตามขอบเขตสิทธิ์ของบัญชี</p>
+            <button id="health-refresh" type="button" class="secondary">รีเฟรชข้อมูล</button>
+            <div class="notice go-live-note"><strong>ช่วงทดสอบก่อนเปิดใช้จริง:</strong> ผลคัดกรองก่อนวันที่ 1 ตุลาคม 2569 จะถูกบันทึกเป็นข้อมูลทดสอบและไม่นับเป็นผลงานปีงบประมาณ 2570</div>
+          </div>
+          <div id="health-stats" class="stats compact-stats"></div>
+          <section class="mental-2q-summary" aria-labelledby="mental-2q-summary-title">
+            <div><strong id="mental-2q-summary-title">สุขภาพจิต 2Q</strong><small>แยกสถานะจากผล NCD และนับเฉพาะผู้ตอบครบว่า “ประเมินแล้ว”</small></div>
+            <div id="mental-2q-stats" class="stats mental-2q-stats"></div>
+            <p id="mental-2q-note" class="muted"></p>
+          </section>
+          <div id="life-stage-stats" class="life-stage-grid"></div>
+        </section>
         <div data-field200-host><div class="muted">กำลังเตรียมศูนย์ติดตามงาน…</div></div>
       </section>
 
@@ -140,23 +157,8 @@
       </section>
 
       <section class="card health-center" data-portal-panel="health" hidden>
-        <div class="section-head health-center-heading">
-          <div><p class="eyebrow">HEALTH WORK CENTER</p><h2>งานสุขภาพของพื้นที่</h2></div>
-        </div>
-        <div id="health-admin-intro" class="health-admin-intro" hidden>
-          <p class="muted">ฐานเดียวกับ อสม. พลัส · เลือกประชาชนจากบ้านที่ได้รับสิทธิ์ ไม่ต้องกรอก PID เอง</p>
-          <button id="health-refresh" type="button" class="secondary">รีเฟรชงาน</button>
-          <div class="notice go-live-note"><strong>ช่วงทดสอบก่อนเปิดใช้จริง:</strong> ผลคัดกรองก่อนวันที่ 1 ตุลาคม 2569 จะถูกบันทึกเป็นข้อมูลทดสอบและไม่นับเป็นผลงานปีงบประมาณ 2570</div>
-        </div>
-        <div id="health-community-focus" class="health-community-focus" hidden><span>กำลังกรองรายชื่อคัดกรองของ <strong></strong><small>ตัวเลขสรุปด้านบนยังเป็นภาพรวมทุกพื้นที่ตามสิทธิ์</small></span><button id="health-clear-community" type="button" class="secondary">ดูทุกพื้นที่ตามสิทธิ์</button></div>
-        <div id="health-stats" class="stats compact-stats"></div>
-        <section class="mental-2q-summary" aria-labelledby="mental-2q-summary-title">
-          <div><strong id="mental-2q-summary-title">สุขภาพจิต 2Q</strong><small>แยกสถานะจากผล NCD และนับเฉพาะผู้ตอบครบว่า “ประเมินแล้ว”</small></div>
-          <div id="mental-2q-stats" class="stats mental-2q-stats"></div>
-          <p id="mental-2q-note" class="muted"></p>
-        </section>
-        <div id="life-stage-stats" class="life-stage-grid"></div>
-        <div class="health-target-shortcuts" aria-label="ตัวเลือกประชากรเป้าหมาย">
+        <div id="health-community-focus" class="health-community-focus" hidden><span>กำลังกรองรายชื่อคัดกรองของ <strong></strong><small>แสดงเฉพาะรายชื่อในชุมชนนี้</small></span><button id="health-clear-community" type="button" class="secondary">ดูทุกพื้นที่ตามสิทธิ์</button></div>
+        <div id="health-worklist-start" class="health-target-shortcuts health-worklist-start" aria-label="ตัวเลือกประชากรเป้าหมาย">
           <div><strong>เลือกประชากรคัดกรอง</strong><small id="health-target-scope-note">แสดงเป้าหมายตามสิทธิ์ของบัญชี</small></div>
           <div class="health-target-actions"><button id="health-view-linked-targets" type="button" class="primary active">เป้าหมายที่ผูกไว้</button><button id="health-view-all-targets" type="button" class="secondary">ดูเป้าหมายทั้งหมด</button></div>
         </div>
@@ -165,7 +167,8 @@
           <label>กลุ่มวัย<select id="health-stage"><option value="">ทุกกลุ่มวัย</option><option>เด็กปฐมวัย</option><option>เด็กวัยเรียน</option><option>วัยรุ่นและเยาวชน</option><option>วัยทำงาน</option><option>ผู้สูงอายุ</option></select></label>
           <label class="health-search">ค้นหาชื่อ<input id="health-search" type="search" placeholder="พิมพ์ชื่อประชาชน"></label>
         </div>
-        <div class="table-wrap">
+        <div id="health-field-status" class="health-field-status" hidden role="status" aria-live="polite"></div>
+        <div id="health-person-list" class="table-wrap">
           <table class="health-table"><thead><tr><th>ประชาชน</th><th>อายุ/กลุ่มวัย</th><th>บ้าน</th><th>สถานะ NCD</th><th>งาน</th></tr></thead><tbody id="health-person-body"></tbody></table>
         </div>
         <p id="health-list-note" class="muted"></p>
@@ -278,9 +281,9 @@
 
   <script type="module" src="./login-keypad-v1837.mjs?v=2.0.0"></script>
   <script type="module" src="./auth-security.mjs?v=1.8.28"></script>
-  <script type="module" src="./line-login-v201.mjs?v=2.0.18"></script>
-  <script type="module" src="./line-login-settings-v2013.mjs?v=2.0.18"></script>
-  <script type="module" src="./app.js?v=2.0.18"></script>
+  <script type="module" src="./line-login-v201.mjs?v=2.0.19"></script>
+  <script type="module" src="./line-login-settings-v2013.mjs?v=2.0.19"></script>
+  <script type="module" src="./app.js?v=2.0.19"></script>
 </body>
 </html>
 

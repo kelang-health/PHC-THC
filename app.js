@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.18';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.19';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -14,6 +14,7 @@ let healthPeople = [];
 let selectedHealthPerson = null;
 let healthLoaded = false;
 let healthSearchTimer = null;
+let healthFieldStatusTimer = null;
 let passwordPanelOpen = false;
 let authRequestId = 0;
 let authView = 'login';
@@ -57,7 +58,11 @@ function configurePortalNav(role){
   document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>{
     b.hidden=!(b.dataset.roles||'').split(/\s+/).includes(role);
     const label=b.querySelector('.portal-nav-label'),roleLabelText=labels[role]?.[b.dataset.portalView];if(label&&roleLabelText)label.textContent=roleLabelText;
-    b.onclick=async()=>{setPortalView(b.dataset.portalView);if(b.dataset.portalView==='health'&&!healthLoaded){try{await loadHealthModule();}catch(e){$('#health-person-body').innerHTML=`<tr><td colspan="5">${esc(e.message)}</td></tr>`;}}};
+    b.onclick=async()=>{
+      setPortalView(b.dataset.portalView);
+      if(b.dataset.portalView==='work'){try{bindHealthPerformanceControls();await loadHealthSummary();}catch(e){const box=$('#health-stats');if(box)box.innerHTML=`<article class="stat"><small>อ่านสรุปผลงานไม่สำเร็จ</small><strong>—</strong></article>`;}}
+      if(b.dataset.portalView==='health'&&!healthLoaded){try{await loadHealthModule();}catch(e){$('#health-person-body').innerHTML=`<tr><td colspan="5">${esc(e.message)}</td></tr>`;}}
+    };
   });
   // Preserve the panel the user is currently working in during session refreshes.
   // setPortalView() falls back to overview only when that panel is unavailable.
@@ -66,6 +71,17 @@ function configurePortalNav(role){
 function configureHealthAdminUI(role){
   const adminIntro=$('#health-admin-intro');
   if(adminIntro)adminIntro.hidden=role!=='admin';
+  bindHealthPerformanceControls();
+}
+function bindHealthPerformanceControls(){
+  const refresh=$('#health-refresh');if(!refresh||refresh.dataset.bound==='1')return;
+  refresh.dataset.bound='1';
+  refresh.onclick=async()=>{
+    refresh.disabled=true;
+    try{await loadHealthSummary();if(healthLoaded){await loadHealthPeople();await loadHealthHistory();}}
+    catch(e){const box=$('#health-stats');if(box)box.innerHTML=`<article class="stat"><small>รีเฟรชไม่สำเร็จ</small><strong>—</strong></article>`;}
+    finally{refresh.disabled=false;}
+  };
 }
 
 function localDate(){return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'});}
@@ -438,6 +454,27 @@ function closeNcdSaveConfirmation(restoreFocus=true){
 function showNcdSaveConfirmation(){
   const dialog=$('#ncd-save-confirmation');if(!dialog)return;dialog.hidden=false;$('#ncd-save-confirmation-ok')?.focus();
 }
+function showHealthFieldStatus(saved,person){
+  const box=$('#health-field-status');if(!box)return;
+  if(healthFieldStatusTimer){clearTimeout(healthFieldStatusTimer);healthFieldStatusTimer=null;}
+  const severity=String(saved?.severity||'');
+  const tone=['urgent','alert'].includes(severity)?'danger':severity==='risk'?'warn':'success';
+  const suffix=tone==='danger'?' · พบผลเร่งด่วน กรุณาประสานเจ้าหน้าที่':tone==='warn'?' · พบความเสี่ยง ระบบบันทึกงานติดตามแล้ว':' · พร้อมคัดกรองรายถัดไป';
+  box.dataset.tone=tone;box.textContent=`บันทึก ${person?.display_name||'รายการนี้'} เรียบร้อย${suffix}`;box.hidden=false;
+  healthFieldStatusTimer=setTimeout(()=>{if(box){box.hidden=true;box.textContent='';delete box.dataset.tone;}healthFieldStatusTimer=null;},tone==='danger'?7000:4200);
+}
+function returnToHealthWorklist(saved,person){
+  closeNcdSaveConfirmation(false);closeHealthFeedbackCard();healthFeedbackModel=null;
+  const card=$('#ncd-screen-card');if(card)card.hidden=true;selectedHealthPerson=null;
+  showHealthFieldStatus(saved,person);
+  if(Number(person?.age_years)>=60&&window.PHCFiveFeatures190?.openAgeScreening){
+    const box=$('#health-field-status');if(box&&!box.hidden)box.textContent+=' · ไปต่อคัดกรองผู้สูงอายุ 9 ด้าน';
+    setTimeout(()=>window.PHCFiveFeatures190.openAgeScreening(person.source_pcucode,Number(person.source_pid),person.display_name),320);
+    return;
+  }
+  const list=$('#health-person-list')||$('#health-worklist-start');
+  requestAnimationFrame(()=>{list?.scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>document.querySelector('#health-person-body .row-open')?.focus({preventScroll:true}),350);});
+}
 async function saveHealthScreening(event){
   event.preventDefault(); const form=event.currentTarget,error=$('#ncd-error'),result=$('#ncd-result'),button=$('#ncd-submit');
   error.textContent=''; result.hidden=true; if(!selectedHealthPerson){error.textContent='กรุณาเลือกประชาชนจากรายการงาน';return;}
@@ -455,9 +492,9 @@ async function saveHealthScreening(event){
   button.disabled=true;
   try{
     const {data:saved,error:saveError}=await supabase.rpc('save_health_ncd_screening_v4',payload); if(saveError)throw saveError;
-    result.innerHTML=`<strong>${esc(saved.ncd_status)}</strong><span>${esc(saved.bp_status)} · ${esc(saved.glucose_status)} · CVD: ${esc(savedThaiCvLabel(saved))} · 2Q: ${esc(mental2QLabel(saved.mental_2q_status,saved.mental_2q_result))}</span>`; result.hidden=false; renderHealthFeedbackCard(buildHealthFeedbackModel(saved,mental,p,d)); form.dataset.requestId=requestId(); showNcdSaveConfirmation();
-    const key=personKey(p); await Promise.all([loadHealthSummary(),loadHealthPeople()]); await loadHealthHistory(); const refreshed=healthPeople.find(x=>personKey(x)===key); if(refreshed){selectedHealthPerson=refreshed;renderPreviousPanel(refreshed);}
-    result.scrollIntoView({behavior:'smooth',block:'nearest'});
+    form.dataset.requestId=requestId();
+    await Promise.all([loadHealthSummary(),loadHealthPeople()]);await loadHealthHistory();
+    form.reset();result.hidden=true;returnToHealthWorklist(saved,p);
   }catch(e){error.textContent=e.message;}finally{button.disabled=false;}
 }
 async function loadHealthModule(){
@@ -472,7 +509,7 @@ async function loadHealthModule(){
   $('#ncd-reset-test').onclick=resetSelectedNcdTestV208;syncNcdTestResetV208();
   const saveConfirmation=$('#ncd-save-confirmation');$('#ncd-save-confirmation-ok').onclick=()=>{closeNcdSaveConfirmation(false);viewHealthFeedback();};$('#ncd-save-confirmation-close').onclick=()=>closeNcdSaveConfirmation();saveConfirmation.onclick=e=>{if(e.target===saveConfirmation)closeNcdSaveConfirmation();};saveConfirmation.onkeydown=e=>{if(e.key==='Escape')closeNcdSaveConfirmation();};
   $('#health-feedback-share').onclick=shareHealthFeedback;$('#health-feedback-close').onclick=closeHealthFeedbackCard;
-  $('#health-refresh').onclick=async()=>{healthLoaded=false;await loadHealthModule();};
+  bindHealthPerformanceControls();
   $('#health-clear-community').onclick=async()=>{healthCommunityFocus='';focus.hidden=true;await loadHealthPeople();};
   $('#health-view-linked-targets').onclick=()=>setHealthTargetFilter('due'); $('#health-view-all-targets').onclick=()=>setHealthTargetFilter('targets');
   $('#health-filter').onchange=()=>{syncHealthTargetButtons();return loadHealthPeople();}; $('#health-stage').onchange=loadHealthPeople;
@@ -675,7 +712,7 @@ document.addEventListener('phc:care-scope-changed',async event=>{
   const next=event.detail?.scope;careScopeMode=next==='community'?'community':next==='all'?'all':'self';
   if(currentProfile?.role==='user')careScopeMode='self';
   if(currentProfile?.role==='admin')careScopeMode='all';
-  if(healthLoaded){try{await loadHealthSummary();await loadHealthPeople();}catch{}}
+  try{await loadHealthSummary();if(healthLoaded)await loadHealthPeople();}catch{}
 });
 $('#portal-nav-toggle').addEventListener('click',()=>setPortalNavCollapsed(!$('#portal').classList.contains('nav-collapsed')));
 $('#ncd-form').addEventListener('change',event=>{if(event.target.matches('[name="smoking_state"],[name="alcohol_state"]'))syncBehaviorPanels(event.currentTarget);});
