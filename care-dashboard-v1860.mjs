@@ -1,4 +1,4 @@
-const VERSION='2.0.24';
+const VERSION='2.0.25';
 let supabase=null,profile=null,observer=null,loading=false,scope='self';
 const $=(s,r=document)=>r.querySelector(s);
 const num=v=>Number(v||0).toLocaleString('th-TH');
@@ -31,7 +31,7 @@ function render(d){
       <article class="care60-kpi"><button type="button" data-care60-health="due"><small>คงเหลือ</small><strong>${num(d.ncd_due)}</strong></button></article>
     </div>
     <div class="care60-progress"><div class="care60-progress-head"><div><small>ความก้าวหน้า NCD ตามบัญชีปฏิบัติงาน J-Report/JHCIS</small><strong>${num(done)} / ${num(target)} คน</strong></div><b>${pct}%</b></div><div class="care60-bar"><i style="width:${Math.min(100,pct)}%"></i></div></div>
-    <div class="care60-note care60-source">ตัวเลขรายบุคคลใช้ JHCIS/J-Report แบบอ่านอย่างเดียว · ฐานบริการ = Type 1,3 + สัญชาติไทย + มีชีวิต + หมู่บ้านจริง · HDC ใช้เป็นตัวเลขอ้างอิงทางการแยกต่างหาก</div>
+    <div class="care60-note care60-source">ตัวเลขรายบุคคลใช้ JHCIS/J-Report แบบอ่านอย่างเดียว · ฐานประชากรปฏิบัติงาน = JHCIS Type 1 และ 3 เท่านั้น · สถานะอยู่จริง/คุณภาพข้อมูลติดตามแยกต่างหาก · HDC ใช้เป็นตัวเลขอ้างอิงทางการ</div>
     <div class="care60-status-legend" aria-label="ความหมายของสีสถานะ"><span class="green"><i></i>ปกติ / สำเร็จ</span><span class="yellow"><i></i>ต้องติดตาม</span><span class="orange"><i></i>ควรตรวจ / เร่งดำเนินการ</span><span class="red"><i></i>เร่งด่วน / เสี่ยงสูง</span></div>
     <section class="care60-section"><h3>กลุ่มประชากรที่ต้องดูแล</h3><div class="care60-stage-grid">
       <button class="care60-stage" data-care60-stage="เด็กปฐมวัย"><span class="ico">👶</span><strong>${num(d.early_child)}</strong><small>เด็ก 0–5 ปี</small></button>
