@@ -1,3 +1,11 @@
+## v2.0.15
+- Harden LINE Login across iOS, Android, LINE in-app browser, and common external/in-app browsers.
+- Keep the primary user-tap authorization link for Universal Links / App Links; do not use JavaScript redirect for app handoff.
+- Add a mobile "use LINE on the web" fallback using disable_auto_login=true for environments where app handoff or auto login fails.
+- Detect common constrained in-app browsers and show Safari/Chrome guidance without blocking login.
+- Recreate a fresh OAuth transaction after cancel, browser failure, expired browser state, or session-claim failure.
+- Keep normal username/password login and LINE OA LOGIN-code fallback available.
+
 ## v2.0.14
 - Improve smartphone LINE Login: pre-create the OAuth transaction, then let the user tap the LINE authorization link directly so iOS Universal Links / Android App Links can open the installed LINE app when supported.
 - Remove JavaScript redirect to the LINE authorization URL from the normal login path.
