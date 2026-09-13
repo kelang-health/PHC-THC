@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.23';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.24';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -545,7 +545,10 @@ async function loadHealthModule(){
   if(!healthLoaded&&currentProfile?.role==='staff')$('#health-filter').value='due';
   $('#health-target-scope-note').textContent=currentProfile?.role==='staff'?(careScopeMode==='community'?`ชุมชน ${currentProfile.community||'ที่ได้รับมอบหมาย'} · บทบาทประธาน อสม.`:'บ้านและประชาชนที่ฉันรับผิดชอบ · บทบาท อสม.') : currentProfile?.role==='user'?'บ้านในความรับผิดชอบ · แสดงงานที่ผูกไว้ก่อน':'ทุกพื้นที่ · เลือกดูเป้าหมายทั้งหมดได้';
   syncHealthTargetButtons();
-  await loadHealthSummary(); await loadHealthPeople(); await loadHealthHistory(); healthLoaded=true;
+  const targetBody=$('#health-person-body');if(targetBody&&!targetBody.children.length)targetBody.innerHTML='<tr><td colspan="5">กำลังโหลดรายชื่อเป้าหมาย…</td></tr>';
+  loadHealthSummary().catch(e=>{const box=$('#health-stats');if(box)box.innerHTML='<article class="stat"><small>สรุปผลงาน</small><strong>—</strong><span>โหลดตามหลังไม่สำเร็จ</span></article>';console.warn('[health summary]',e)});
+  await loadHealthPeople(); healthLoaded=true;
+  setTimeout(()=>loadHealthHistory().catch(e=>console.warn('[health history]',e)),0);
   bindNcdSectionNav();
   $('#ncd-form').onsubmit=saveHealthScreening; $('#ncd-close').onclick=()=>{closeNcdSaveConfirmation(false);closeHealthFeedbackCard();healthFeedbackModel=null;$('#ncd-screen-card').hidden=true;selectedHealthPerson=null;};
   $('#ncd-clear-2q').onclick=()=>{$('#ncd-form').querySelectorAll('[name^="mental_2q_"]').forEach(el=>{el.checked=false;});renderMental2QPreview();};
