@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.17';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.18';
 
 const supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:false,detectSessionInUrl:false}});
 const $=(s,r=document)=>r.querySelector(s);
@@ -9,7 +9,42 @@ let pollTimer=null,countdownTimer=null,oauthRefreshTimer=null,current=null,busy=
 function injectStyle(){
   if($('#line-login-v201-style'))return;
   const s=document.createElement('style');s.id='line-login-v201-style';s.textContent=`
-  .line-login-v201{display:grid;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid #dfe9e5}.line-login-or{display:flex;align-items:center;gap:10px;color:#72827d;font-size:.82rem;font-weight:800}.line-login-or:before,.line-login-or:after{content:"";height:1px;flex:1;background:#dfe9e5}.line-login-ready{display:grid;gap:8px}.line-login-button{width:100%;min-height:58px;display:flex;align-items:center;justify-content:center;text-decoration:none;box-sizing:border-box;border:1px solid #8fc7b5;border-radius:14px;background:#e8f7f0;color:#0f604c;font:inherit;font-weight:950;cursor:pointer}.line-login-button:disabled,.line-login-button[aria-disabled="true"]{opacity:.58;cursor:wait;pointer-events:none}.line-login-web{width:100%;min-height:48px;border:1px solid #c9d9d3;border-radius:12px;background:#fff;color:#49655d;text-decoration:none;display:flex;align-items:center;justify-content:center;font:inherit;font-weight:850;box-sizing:border-box}.line-login-legacy{width:100%;min-height:48px;border:1px dashed #9bb8ae;border-radius:12px;background:#f8fbfa;color:#315f52;display:flex;align-items:center;justify-content:center;font:inherit;font-weight:850;box-sizing:border-box;cursor:pointer}.line-login-help{margin:0;text-align:center;color:#657a73;font-size:.86rem;line-height:1.45}.line-login-browser-note{margin:0;padding:8px 10px;border-radius:11px;background:#f4f8f6;color:#58716a;font-size:.8rem;line-height:1.45;text-align:center}.line-login-browser-note.warn{background:#fff7df;color:#765c12}.line-login-state{display:grid;gap:9px;padding:12px;border:1px solid #cfe1da;border-radius:14px;background:#f8fbfa}.line-login-state[hidden]{display:none!important}.line-login-code{font-size:1.25rem;font-weight:950;letter-spacing:.06em;text-align:center;padding:11px;border:2px dashed #86bbaa;border-radius:12px;background:#fff}.line-login-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.line-login-actions button{min-height:48px}.line-login-status{margin:0;color:#557069;line-height:1.45}.line-login-status.error{color:#a23f34}.line-login-status.success{color:#12614e}.line-login-count{font-weight:900;color:#0b6f60}@media(max-width:640px){.line-login-button{min-height:60px;font-size:1.04rem}.line-login-web{min-height:50px}.line-login-legacy{min-height:50px}.line-login-actions{grid-template-columns:1fr}.line-login-code{font-size:1.18rem}}
+  .login-card{gap:14px}
+  .line-login-v201{display:grid;gap:9px;margin-top:0;padding-top:9px;border-top:1px solid #dfe9e5}
+  .line-login-or{display:flex;align-items:center;gap:10px;color:#71827d;font-size:.82rem;font-weight:850;margin:0}
+  .line-login-or:before,.line-login-or:after{content:"";height:1px;flex:1;background:#dfe9e5}
+  .line-login-ready{display:grid;gap:8px}
+  .line-login-button,.line-login-web,.line-login-legacy{width:100%;min-height:54px;display:flex;align-items:center;justify-content:center;text-align:center;text-decoration:none;box-sizing:border-box;border-radius:14px;font:inherit;font-size:.98rem;font-weight:900;line-height:1.25;padding:10px 14px;white-space:normal;overflow-wrap:anywhere;touch-action:manipulation}
+  .line-login-button{border:1px solid #80c4b0;background:#e7f6f0;color:#0f6653;cursor:pointer}
+  .line-login-button:disabled,.line-login-button[aria-disabled="true"]{opacity:.58;cursor:wait;pointer-events:none}
+  .line-login-web{border:1px solid #cadbd5;background:#fff;color:#46645c}
+  .line-login-legacy{border:1px dashed #9bbcaf;background:#f7faf9;color:#315f52;cursor:pointer}
+  .line-login-button:focus-visible,.line-login-web:focus-visible,.line-login-legacy:focus-visible{outline:3px solid #83bfb0;outline-offset:2px}
+  .line-login-help{margin:0;text-align:center;color:#657a73;font-size:.8rem;line-height:1.4}
+  .line-login-browser-note{margin:0;padding:9px 11px;border-radius:12px;background:#f4f8f6;color:#58716a;font-size:.78rem;line-height:1.45;text-align:center}
+  .line-login-browser-note.warn{background:#fff8e7;color:#735b17;border:1px solid #efe0ac}
+  .line-login-state{display:grid;gap:8px;padding:11px;border:1px solid #cfe1da;border-radius:13px;background:#f8fbfa}
+  .line-login-state[hidden]{display:none!important}
+  .line-login-code{font-size:1.18rem;font-weight:950;letter-spacing:.05em;text-align:center;padding:10px;border:2px dashed #86bbaa;border-radius:12px;background:#fff}
+  .line-login-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .line-login-actions button{min-height:46px}
+  .line-login-status{margin:0;color:#557069;line-height:1.45;text-align:center}
+  .line-login-status.error{color:#a23f34}.line-login-status.success{color:#12614e}.line-login-count{font-weight:900;color:#0b6f60}
+  .login-card .login-version{margin-top:0;padding-top:10px}
+  @media(max-width:640px){
+    .login-card{gap:12px}
+    .line-login-v201{gap:8px;padding-top:7px}
+    .line-login-ready{gap:7px}
+    .line-login-button,.line-login-web,.line-login-legacy{min-height:52px;font-size:.95rem;padding:9px 12px;border-radius:13px}
+    .line-login-help{font-size:.78rem}
+    .line-login-browser-note{font-size:.76rem;padding:8px 10px}
+    .line-login-actions{grid-template-columns:1fr}
+    .line-login-code{font-size:1.1rem}
+  }
+  @media(max-width:380px){
+    .line-login-button,.line-login-web,.line-login-legacy{font-size:.92rem;padding-left:10px;padding-right:10px}
+    .line-login-browser-note{font-size:.74rem}
+  }
   `;document.head.appendChild(s);
 }
 function headers(){return {'content-type':'application/json','apikey':SUPABASE_PUBLISHABLE_KEY,'authorization':`Bearer ${SUPABASE_PUBLISHABLE_KEY}`};}
@@ -48,13 +83,13 @@ function browserEnvironment(){
   const constrained=!line&&(facebook||instagram||twitter||genericWebView);
   const mobile=ios||android;
   let note='',warn=false;
-  if(line)note='เปิดจาก LINE อยู่แล้ว · ระบบจะใช้ LINE ยืนยันตัวตนโดยตรงเมื่ออุปกรณ์รองรับ';
-  else if(constrained){note='เบราว์เซอร์ในแอปนี้อาจบล็อกการเปิด LINE · ถ้าแอปไม่เปิด ให้ใช้ LINE ผ่านเว็บ หรือเปิดหน้านี้ด้วย Safari/Chrome';warn=true;}
-  else if(iosSafari)note='iPhone/iPad · แตะ “เปิด LINE เพื่อเข้าสู่ระบบ” ก่อน หากหน้า LINE เปิดแต่แอปไม่เปิด ให้กดค้างที่ “เข้าสู่ระบบด้วยแอป LINE” แล้วเลือก “เปิดใน LINE” หรือย้อนกลับมาใช้ LINE ผ่านเว็บแทน';
-  else if(ios){note='iPhone/iPad · LINE Auto login รองรับ Safari ได้ดีที่สุด หากไม่เปิดแอปให้ใช้ LINE ผ่านเว็บหรือเปิดด้วย Safari';warn=true;}
-  else if(androidChrome)note='Android · แตะครั้งเดียว ระบบจะพยายามเปิดแอป LINE ผ่าน App Link';
-  else if(android)note='Android · ระบบจะพยายามเปิดแอป LINE หาก browser รองรับ หากไม่สำเร็จสามารถใช้ LINE ผ่านเว็บได้';
-  else note='คอมพิวเตอร์ · ใช้ LINE Login/QR code ตามหน้าจอได้';
+  if(line)note='เปิดจาก LINE แล้ว · เลือกวิธีเข้าสู่ระบบที่ต้องการได้ทันที';
+  else if(constrained){note='เบราว์เซอร์ในแอปอาจไม่เปิด LINE อัตโนมัติ · ใช้ “LINE ผ่านเว็บ” หรือ “LINE เดิม” ได้';warn=true;}
+  else if(iosSafari)note='iPhone/iPad: หากแอป LINE ไม่เปิด ให้เลือก “LINE ผ่านเว็บ” หรือ “LINE เดิม (LINE OA)”';
+  else if(ios){note='iPhone/iPad: แนะนำ Safari · หากแอปไม่เปิด ให้ใช้ “LINE ผ่านเว็บ” หรือ “LINE เดิม”';warn=true;}
+  else if(androidChrome)note='Android: ระบบจะลองเปิดแอป LINE ก่อน หากไม่สำเร็จให้ใช้ “LINE ผ่านเว็บ”';
+  else if(android)note='Android: หากแอป LINE ไม่เปิด สามารถใช้ “LINE ผ่านเว็บ” หรือ “LINE เดิม” ได้';
+  else note='คอมพิวเตอร์: ใช้ LINE Login/QR หรือ LINE เดิมได้';
   return {ios,android,line,constrained,iosSafari,androidChrome,mobile,note,warn};
 }
 function scheduleOauthRefresh(data){
@@ -72,20 +107,20 @@ async function refreshPreparedOauth(){
 function renderPreparedOauth(btn,data,help){
   const state=stateBox(),env=browserEnvironment();
   const ready=document.createElement('div');ready.className='line-login-ready';
-  const link=document.createElement('a');link.id='line-login-start';link.className='line-login-button';link.href=data.authorize_url;link.textContent=env.mobile?'เปิด LINE เพื่อเข้าสู่ระบบ':'เข้าสู่ระบบด้วย LINE';link.setAttribute('aria-label','เข้าสู่ระบบด้วย LINE');
+  const link=document.createElement('a');link.id='line-login-start';link.className='line-login-button';link.href=data.authorize_url;link.textContent=env.mobile?'เปิดแอป LINE':'LINE Login';link.setAttribute('aria-label','เข้าสู่ระบบด้วย LINE');
   link.addEventListener('click',()=>{busy=true;stopTimers();state.hidden=false;state.innerHTML='<p class="line-login-status">กำลังเปิด LINE เพื่อยืนยันตัวตน… หากไม่เปิดแอป คุณยังสามารถย้อนกลับมาใช้ LINE ผ่านเว็บได้</p>';});
   ready.appendChild(link);
   if(env.mobile){
-    const web=document.createElement('a');web.id='line-login-web';web.className='line-login-web';web.href=webLoginUrl(data.authorize_url);web.textContent='ใช้ LINE ผ่านเว็บแทน (หากแอปไม่เปิด)';
+    const web=document.createElement('a');web.id='line-login-web';web.className='line-login-web';web.href=webLoginUrl(data.authorize_url);web.textContent='LINE ผ่านเว็บ';
     web.addEventListener('click',()=>{busy=true;stopTimers();state.hidden=false;state.innerHTML='<p class="line-login-status">กำลังเปิด LINE Login ผ่านเว็บ โดยปิด Auto login สำหรับรอบนี้…</p>';});
     ready.appendChild(web);
   }
-  const legacy=document.createElement('button');legacy.type='button';legacy.id='line-login-legacy';legacy.className='line-login-legacy';legacy.textContent='ใช้ระบบ LINE เดิม (ส่งรหัสผ่าน LINE OA)';
+  const legacy=document.createElement('button');legacy.type='button';legacy.id='line-login-legacy';legacy.className='line-login-legacy';legacy.textContent='LINE เดิม (LINE OA)';
   legacy.addEventListener('click',()=>{busy=false;stopTimers();clearOauth();startCodeLogin(false).catch(()=>{})});
   ready.appendChild(legacy);
   const note=document.createElement('p');note.className=`line-login-browser-note${env.warn?' warn':''}`;note.textContent=env.note;ready.appendChild(note);
   btn.replaceWith(ready);
-  if(help)help.textContent=env.mobile?'เลือกได้ 3 วิธี: เปิดแอป LINE · ใช้ LINE ผ่านเว็บ · ใช้ระบบ LINE เดิม':'เลือกได้: LINE Login/QR หรือใช้ระบบ LINE เดิม';
+  if(help)help.textContent=env.mobile?'เลือกวิธี LINE ที่สะดวกกับอุปกรณ์ของคุณ':'เลือก LINE Login หรือ LINE เดิม';
   scheduleOauthRefresh(data);
 }
 

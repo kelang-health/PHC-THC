@@ -1,3 +1,9 @@
+## v2.0.18
+- Compact the mobile LINE login area so buttons stay balanced and labels do not wrap awkwardly.
+- Shorten the three LINE choices to “เปิดแอป LINE”, “LINE ผ่านเว็บ”, and “LINE เดิม (LINE OA)”.
+- Reduce duplicated guidance and spacing while preserving OAuth, web fallback, legacy LINE OA, and normal login behavior.
+- Keep all three LINE methods available without changing authentication logic.
+
 ## v2.0.17
 - Add an explicit “ใช้ระบบ LINE เดิม” option alongside LINE app and LINE web login.
 - Preserve the existing LINE OA LOGIN-code flow as a user-selectable fallback, not only an automatic emergency fallback.
