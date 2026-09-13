@@ -1,3 +1,9 @@
+## v2.0.21
+- ซ่อม View health_person_worklist_active_v1847 ให้มี has_cvd/cvd_population_eligible และ reload PostgREST schema
+- ปรับ Health worklist fallback ให้เลือกคอลัมน์ตาม View รุ่นจริง ไม่เกิด column does not exist ซ้ำ
+- fallback เฉพาะ schema/relation errors เพื่อไม่ซ่อน network หรือ permission errors
+- อัปเดต footer/version note ให้ตรงกับ Cloud รุ่นปัจจุบัน
+
 ## v2.0.20
 - Add a single Staff-only performance scope selector: “ผลงานของฉัน” and “ผลงานชุมชน”.
 - Synchronize the selected scope across health performance, field-work reporting, and the overview care dashboard.
