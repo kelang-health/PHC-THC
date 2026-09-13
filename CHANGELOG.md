@@ -1,3 +1,9 @@
+## Cloud v2.0.30 — Concurrent field stability
+- เป้าหมายคัดกรองภาคสนามอ่านจาก denormalized cache ผ่าน explicit-scope RPC แทน nested RLS view
+- User bootstrap ลด request ที่ไม่จำเป็น และงานสุขภาพไม่โหลด Dashboard summary พร้อมรายชื่อ
+- History/หลังบันทึกถูก stagger เพื่อลด concurrent spike; timeout ของ target RPC retry แบบ jitter จำกัดครั้ง
+- Cloud sync และ Admin target changes refresh target cache อัตโนมัติ
+
 ## v2.0.29
 - Warn before opening an NCD screening when the person already has a recorded screening date.
 - Show the latest screening date in Thai format and ask whether the user wants to screen again.

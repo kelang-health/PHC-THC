@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.29';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.30';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -184,20 +184,38 @@ async function setHealthTargetFilter(filter){
   const focus=$('#health-community-focus');if(focus)focus.hidden=true;
   $('#health-filter').value=filter;syncHealthTargetButtons();await loadHealthPeople();
 }
+async function loadFastHealthTargetsV2030(stage,raw){
+  const term=String(raw||'').replace(/[%_,()]/g,'').slice(0,60).trim();
+  const args={p_scope:careScopeMode,p_stage:stage||null,p_search:term||null,p_community:healthCommunityFocus||null,p_limit:300};
+  let lastError=null;
+  for(let attempt=0;attempt<3;attempt++){
+    const {data,error}=await supabase.rpc('my_screening_targets_json_v2030',args);
+    if(!error)return Array.isArray(data)?data:[];
+    lastError=error;
+    const timeout=String(error?.code||'')==='57014'||String(error?.message||'').toLowerCase().includes('statement timeout');
+    if(!timeout||attempt===2)break;
+    await new Promise(resolve=>setTimeout(resolve,120+(Math.random()*260)+(attempt*180)));
+  }
+  throw lastError||new Error('ไม่สามารถโหลดเป้าหมายคัดกรองได้');
+}
 async function loadHealthPeople(){
   let filter=$('#health-filter').value;
   if(filter==='all'&&currentProfile?.role!=='admin'){filter='field_targets';$('#health-filter').value=filter;}
   syncHealthTargetButtons();const stage=$('#health-stage').value,raw=$('#health-search').value.trim();
-  const fastTarget=filter==='field_targets',source=fastTarget?'health_screening_target_worklist_v2026':healthActiveViewName;
-  let q=supabase.from(source).select(fastTarget?HEALTH_TARGET_FAST_COLUMNS:healthWorklistColumns()).order('community').order('hcode').order('display_name').limit(300);
-  if(healthCommunityFocus)q=q.eq('community',healthCommunityFocus);
-  if(currentProfile?.role==='staff'&&careScopeMode==='self'&&currentProfile?.volunteer_pid!=null)q=q.eq('volunteer_pid',currentProfile.volunteer_pid);
-  if(!fastTarget){if(filter==='due')q=q.eq('ncd_target',true).eq('screened_current_fy',false);else if(filter==='targets')q=q.eq('ncd_target',true);else if(filter==='known')q=q.eq('known_ncd',true);}
-  if(stage)q=q.eq('life_stage',stage);const term=raw.replace(/[%_,()]/g,'').slice(0,60);if(term)q=q.ilike('display_name',`%${term}%`);
-  const {data,error}=await q;
-  if(error&&fastTarget&&healthWorklistSchemaFallbackAllowed(error)){console.warn('[fast target worklist fallback]',error);$('#health-filter').value='due';syncHealthTargetButtons();return loadHealthPeople();}
-  if(error&&healthWorklistSchemaFallbackAllowed(error)&&healthActiveViewName==='health_person_worklist_active_v1847'){healthActiveViewName='health_person_worklist_active_v1841';return loadHealthPeople();}
-  if(error&&healthWorklistSchemaFallbackAllowed(error)&&healthActiveViewName==='health_person_worklist_active_v1841'){healthActiveViewName='health_person_worklist';return loadHealthPeople();}
+  const fastTarget=filter==='field_targets';
+  let data=null,error=null;
+  if(fastTarget){
+    try{data=await loadFastHealthTargetsV2030(stage,raw);}catch(e){error=e;}
+  }else{
+    let q=supabase.from(healthActiveViewName).select(healthWorklistColumns()).order('community').order('hcode').order('display_name').limit(300);
+    if(healthCommunityFocus)q=q.eq('community',healthCommunityFocus);
+    if(currentProfile?.role==='staff'&&careScopeMode==='self'&&currentProfile?.volunteer_pid!=null)q=q.eq('volunteer_pid',currentProfile.volunteer_pid);
+    if(filter==='due')q=q.eq('ncd_target',true).eq('screened_current_fy',false);else if(filter==='targets')q=q.eq('ncd_target',true);else if(filter==='known')q=q.eq('known_ncd',true);
+    if(stage)q=q.eq('life_stage',stage);const term=raw.replace(/[%_,()]/g,'').slice(0,60);if(term)q=q.ilike('display_name',`%${term}%`);
+    const res=await q;data=res.data;error=res.error;
+  }
+  if(error&&!fastTarget&&healthWorklistSchemaFallbackAllowed(error)&&healthActiveViewName==='health_person_worklist_active_v1847'){healthActiveViewName='health_person_worklist_active_v1841';return loadHealthPeople();}
+  if(error&&!fastTarget&&healthWorklistSchemaFallbackAllowed(error)&&healthActiveViewName==='health_person_worklist_active_v1841'){healthActiveViewName='health_person_worklist';return loadHealthPeople();}
   if(error)throw error;healthPeople=(data||[]).map(p=>({...p,has_cvd:Boolean(p.has_cvd),cvd_population_eligible:Boolean(p.cvd_population_eligible)}));
   $('#health-person-body').innerHTML=healthPeople.map((p,i)=>{const status=p.latest_ncd_status||(p.known_ncd?'มี DM/HT เดิม':(fastTarget?'พร้อมคัดกรอง':'ยังไม่มีผล'));return `<tr><td><button type="button" class="health-person-name" data-health-person="${i}">${esc(p.display_name)}</button><small>${p.known_ncd?`โรคเดิม: ${p.has_ht?'HT ':''}${p.has_dm?'DM':''}`:'ยังไม่พบ DM/HT ใน personchronic'}</small></td><td>${esc(p.age_years??'—')} ปี<small>${esc(p.life_stage||'—')}</small></td><td>บ้าน ${esc(p.house_no||p.hcode)}<small>หมู่ ${esc(p.moo||'—')} · ${esc(p.community||'—')}</small></td><td class="${healthClass(p.latest_severity)}">${esc(status)}<small>${p.latest_screened_on?esc(healthDateLabel(p.latest_screened_on)):''}</small></td><td><button type="button" class="row-open" data-phc190-screen data-pcucode="${esc(p.source_pcucode)}" data-pid="${esc(p.source_pid)}" data-name="${esc(p.display_name)}" data-plan-date="${esc(p.screening_plan_date||'')}" data-age-years="${esc(p.age_years??'')}" data-age-months="${esc(p.screening_age_months??'')}" data-screen-route="${esc(p.screening_route||'')}" data-route-label="${esc(p.screening_route_label||'')}" data-dspm-target="${esc(p.screening_dspm_target_months??'')}" data-latest-screened="${esc(p.latest_screened_on||'')}">คัดกรอง</button></td></tr>`}).join('')||'<tr><td colspan="5">ไม่พบประชาชนตามตัวกรอง</td></tr>';
   $('#health-list-note').textContent=fastTarget?`บัญชีเป้าหมายประมวลผลล่วงหน้า · แสดง ${num(healthPeople.length)} ราย${healthPeople.length>=300?' (สูงสุด 300 ราย ใช้ค้นหาเพื่อเจาะจง)':''}`:(healthPeople.length>=300?'แสดงสูงสุด 300 ราย กรุณาใช้ค้นหาชื่อหรือตัวกรองเพื่อเจาะจงรายการ':'');
@@ -545,8 +563,9 @@ function returnToHealthWorklist(saved,person){
   requestAnimationFrame(()=>{list?.scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>document.querySelector('#health-person-body .row-open')?.focus({preventScroll:true}),350);});
 }
 async function refreshHealthAfterSaveV2022(){
-  const tasks=[['รายชื่อ',loadHealthPeople],['ประวัติ',loadHealthHistory],['สรุปผลงาน',loadHealthSummary]];
-  for(const [label,task] of tasks){try{await task();}catch(e){console.warn('[NCD post-save refresh] '+label,e);}}
+  try{await loadHealthPeople();}catch(e){console.warn('[NCD post-save refresh] รายชื่อ',e);}
+  setTimeout(()=>loadHealthHistory().catch(e=>console.warn('[NCD post-save refresh] ประวัติ',e)),1400+Math.floor(Math.random()*1200));
+  if(portalView==='work')setTimeout(()=>loadHealthSummary().catch(e=>console.warn('[NCD post-save refresh] สรุปผลงาน',e)),500+Math.floor(Math.random()*700));
 }
 async function saveHealthScreening(event){
   event.preventDefault(); const form=event.currentTarget,error=$('#ncd-error'),result=$('#ncd-result'),button=$('#ncd-submit');
@@ -577,9 +596,9 @@ async function loadHealthModule(){
   syncHealthTargetButtons();
   if(currentProfile?.role==='admin')loadHealthTargetSettingsV2026().catch(e=>{const x=$('#health-target-admin-status');if(x)x.textContent=e.message;});
   const targetBody=$('#health-person-body');if(targetBody&&!targetBody.children.length)targetBody.innerHTML='<tr><td colspan="5">กำลังโหลดรายชื่อเป้าหมาย…</td></tr>';
-  loadHealthSummary().catch(e=>{const box=$('#health-stats');if(box)box.innerHTML='<article class="stat"><small>สรุปผลงาน</small><strong>—</strong><span>โหลดตามหลังไม่สำเร็จ</span></article>';console.warn('[health summary]',e)});
   await loadHealthPeople(); healthLoaded=true;
-  setTimeout(()=>loadHealthHistory().catch(e=>console.warn('[health history]',e)),0);
+  // Health field work must become interactive first; history is secondary and staggered to avoid concurrent spikes.
+  setTimeout(()=>loadHealthHistory().catch(e=>console.warn('[health history]',e)),1600+Math.floor(Math.random()*1400));
   bindNcdSectionNav();
   $('#ncd-form').onsubmit=saveHealthScreening; $('#ncd-close').onclick=()=>{closeNcdSaveConfirmation(false);closeHealthFeedbackCard();healthFeedbackModel=null;$('#ncd-screen-card').hidden=true;selectedHealthPerson=null;};
   $('#ncd-clear-2q').onclick=()=>{$('#ncd-form').querySelectorAll('[name^="mental_2q_"]').forEach(el=>{el.checked=false;});renderMental2QPreview();};
@@ -712,8 +731,9 @@ async function loadPortal(session, requestId){
       if(!master.length)master=fallbackMaster;
       if(!communities.length&&myHouses.length)communities=summarizeMyHousesV2029(myHouses,profile.community);
     }else{
-      [master,myHouses]=await Promise.all([safePortalQueryV2029('communities',masterQuery,fallbackMaster),housePromise]);
-      if(!master.length)master=fallbackMaster;
+      // User bootstrap stays to one scoped household RPC after profile; community metadata is already present on the profile/houses.
+      master=fallbackMaster;
+      myHouses=await housePromise;
       communities=summarizeMyHousesV2029(myHouses,profile.community);
       workload=[];
     }
