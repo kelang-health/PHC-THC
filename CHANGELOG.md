@@ -1,3 +1,10 @@
+## Cloud v2.0.31 — Fast report snapshots
+- Dashboard และศูนย์ติดตามงานอ่านผลสรุปจาก snapshot ตามสิทธิ์ แทนการ `count/sum` สดทุกครั้ง
+- สร้างข้อมูลรุ่นใหม่แล้วสลับใช้งานแบบ atomic จึงไม่มีช่วงตารางว่างระหว่างประมวลผล
+- อัปเดตอัตโนมัติภายใน 5 นาทีเมื่อข้อมูลเปลี่ยน และประมวลผลเต็มเวลา 00:05 น. (เวลาไทย)
+- เพิ่มปุ่มประมวลผลตัวเลขสรุปสำหรับ Admin พร้อมเวลาอ้างอิงบนหน้าจอ
+- ใช้ Auth/PID/บ้านชุดเดิม, RLS แยกขอบเขต user/staff/admin และ JHCIS ยังเป็น read-only
+
 ## Cloud v2.0.30 — Concurrent field stability
 - เป้าหมายคัดกรองภาคสนามอ่านจาก denormalized cache ผ่าน explicit-scope RPC แทน nested RLS view
 - User bootstrap ลด request ที่ไม่จำเป็น และงานสุขภาพไม่โหลด Dashboard summary พร้อมรายชื่อ

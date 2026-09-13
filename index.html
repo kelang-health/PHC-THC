@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>อสม. พลัส | งานสุขภาพชุมชน</title>
-  <link rel="stylesheet" href="./style.css?v=2.0.30">
+  <link rel="stylesheet" href="./style.css?v=2.0.31">
 </head>
 <body>
   <main class="shell">
@@ -41,7 +41,7 @@
         <button class="primary login-submit">เข้าสู่ระบบ</button>
         <p id="login-error" class="error"></p>
       </form>
-      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v2.0.30</footer>
+      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v2.0.31</footer>
     </section>
 
     <section id="blocked" class="card" hidden>
@@ -170,11 +170,12 @@
         <section id="health-target-admin" class="health-target-admin" hidden aria-labelledby="health-target-admin-title">
           <div class="health-target-admin-head">
             <div><p class="eyebrow">ADMIN TARGET CONTROL</p><h3 id="health-target-admin-title">จัดการเป้าหมายคัดกรอง</h3><small>ฐานประชากร Type 1/3 + nation 99 · อายุ 35 ปีขึ้นไปเปิดใช้งานถาวร</small></div>
-            <button id="health-target-refresh" type="button" class="secondary">ประมวลผลเป้าหมายใหม่</button>
+            <div class="health-target-admin-actions"><button id="health-target-refresh" type="button" class="secondary">ประมวลผลเป้าหมายใหม่</button><button id="report-snapshot-refresh" type="button" class="primary">ประมวลผลตัวเลขสรุป</button></div>
           </div>
           <div id="health-target-admin-summary" class="health-target-admin-summary"></div>
           <div id="health-target-admin-groups" class="health-target-admin-groups"></div>
           <p id="health-target-admin-status" class="muted"></p>
+          <p id="report-snapshot-status" class="muted" aria-live="polite">ตัวเลขสรุปประมวลผลอัตโนมัติเมื่อข้อมูลเปลี่ยนและเวลา 00:05 น.</p>
         </section>
         <div class="health-toolbar">
           <label>งานที่ต้องดู<select id="health-filter"><option value="field_targets">เป้าหมายพร้อมคัดกรอง</option><option value="due">NCD ยังไม่คัดกรอง</option><option value="targets">เป้าหมาย NCD 35+</option><option value="known">ผู้มี DM/HT เดิม</option><option value="all">ประชาชนทั้งหมดในสิทธิ์ (Admin)</option></select></label>
@@ -295,9 +296,9 @@
 
   <script type="module" src="./login-keypad-v1837.mjs?v=2.0.0"></script>
   <script type="module" src="./auth-security.mjs?v=1.8.28"></script>
-  <script type="module" src="./line-login-v201.mjs?v=2.0.30"></script>
-  <script type="module" src="./line-login-settings-v2013.mjs?v=2.0.30"></script>
-  <script type="module" src="./app.js?v=2.0.30"></script>
+  <script type="module" src="./line-login-v201.mjs?v=2.0.31"></script>
+  <script type="module" src="./line-login-settings-v2013.mjs?v=2.0.31"></script>
+  <script type="module" src="./app.js?v=2.0.31"></script>
 </body>
 </html>
 

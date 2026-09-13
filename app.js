@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.30';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.31';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -88,6 +88,7 @@ function configureHealthAdminUI(role){
   bindHealthPerformanceControls();
   bindPerformanceScopeControls();
   bindHealthTargetAdminV2026();
+  bindReportSnapshotAdminV2031();
   syncPerformanceScopeUI();
 }
 function renderHealthTargetAdminV2026(data){
@@ -102,6 +103,8 @@ async function loadHealthTargetSettingsV2026(){const {data,error}=await supabase
 async function setHealthTargetGroupV2026(route,enabled){if(currentProfile?.role!=='admin')return;const status=$('#health-target-admin-status');if(status)status.textContent='กำลังประมวลผลเป้าหมายใหม่…';try{const {data,error}=await supabase.rpc('admin_set_screening_target_group_v2026',{p_route:route,p_enabled:Boolean(enabled)});if(error)throw error;renderHealthTargetAdminV2026(data||{});if(status)status.textContent='ประมวลผลเป้าหมายใหม่แล้ว';if(healthLoaded)await loadHealthPeople();}catch(e){if(status)status.textContent=e.message;}}
 async function refreshHealthTargetsV2026(){if(currentProfile?.role!=='admin')return;const b=$('#health-target-refresh'),status=$('#health-target-admin-status');if(b)b.disabled=true;if(status)status.textContent='กำลังประมวลผลเป้าหมายทั้งฐาน…';try{const {data,error}=await supabase.rpc('admin_refresh_screening_targets_v2026');if(error)throw error;const settings=data?.settings||await loadHealthTargetSettingsV2026();renderHealthTargetAdminV2026(settings);if(status)status.textContent=`พร้อมใช้งาน ${num(settings?.field_targets)} เป้าหมาย`;if(healthLoaded)await loadHealthPeople();}catch(e){if(status)status.textContent=e.message;}finally{if(b)b.disabled=false;}}
 function bindHealthTargetAdminV2026(){const b=$('#health-target-refresh');if(!b||b.dataset.bound==='1')return;b.dataset.bound='1';b.onclick=refreshHealthTargetsV2026;}
+async function refreshReportSnapshotsV2031(){if(currentProfile?.role!=='admin')return;const b=$('#report-snapshot-refresh'),status=$('#report-snapshot-status');if(b)b.disabled=true;if(status)status.textContent='กำลังประมวลผลตัวเลขสรุป…';try{const {data,error}=await supabase.rpc('admin_refresh_report_snapshots_v2031');if(error)throw error;if(!data?.ok)throw new Error(data?.status==='busy'?'มีการประมวลผลอยู่แล้ว กรุณารอสักครู่':(data?.error||'ประมวลผลไม่สำเร็จ'));if(status)status.textContent=`ประมวลผลแล้ว ${num(data.cache_rows)} ขอบเขต ใช้เวลา ${(Number(data.duration_ms||0)/1000).toFixed(1)} วินาที`;document.dispatchEvent(new CustomEvent('phc:report-snapshot-refreshed',{detail:data}));await loadHealthSummary();}catch(e){if(status)status.textContent=e.message;}finally{if(b)b.disabled=false;}}
+function bindReportSnapshotAdminV2031(){const b=$('#report-snapshot-refresh');if(!b||b.dataset.bound==='1')return;b.dataset.bound='1';b.onclick=refreshReportSnapshotsV2031;}
 
 function effectivePerformanceScope(){
   if(currentProfile?.role==='admin')return 'all';
@@ -161,7 +164,8 @@ function formatHealthValue(value,suffix=''){return value===null||value===undefin
 function healthDateLabel(value){if(!value)return 'ยังไม่มีประวัติคัดกรอง';try{return new Date(value+'T00:00:00').toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});}catch{return value;}}
 function confirmRepeatNcdV2028(person){const last=String(person?.latest_screened_on||'').slice(0,10);if(!last)return true;const label=healthDateLabel(last);return confirm(`${person?.display_name||'ประชาชนรายนี้'} คัดกรอง NCD แล้วเมื่อวันที่ ${label}\n\nต้องการคัดกรองซ้ำหรือไม่?`);}
 async function loadHealthSummary(){
-  const {data,error}=await supabase.rpc('care_dashboard_v1860',{p_scope:careScopeMode});
+  let {data,error}=await supabase.rpc('report_snapshot_v2031',{p_report_key:'care',p_scope:careScopeMode});
+  if(error||!data){const live=await supabase.rpc('care_dashboard_v1861',{p_scope:careScopeMode});data=live.data;error=live.error;}
   if(error)throw error;const x=data||{};
   $('#health-stats').innerHTML=[
     [x.people,'ประชาชนในสิทธิ์'],[x.ncd_targets,'เป้าหมาย NCD 35+'],[x.ncd_done,'คัดกรองแล้วปีงบฯ'],[x.ncd_due,'คงเหลือ'],[x.known_ncd,'DM/HT เดิม']
