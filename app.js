@@ -1,4 +1,4 @@
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.33&p=2035';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.33&p=2040';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 import { getSharedSupabase, setSharedSession, setSharedProfile, clearSharedAuth, sharedCall, invalidateShared } from './shared-runtime-v2035.mjs?v=2.0.35';
 
@@ -30,6 +30,8 @@ let healthPageOffset = 0;
 let healthHasMore = false;
 let healthAbortController = null;
 let healthRequestSequence = 0;
+let healthViewEpochV2040 = 0;
+const healthCoordTraceV2040 = [];
 let healthLoadSignature = '';
 let healthLoadPromise = null;
 let healthLastCompletedSignature = '';
@@ -49,7 +51,15 @@ const HEALTH_PAGE_SIZE_V2033 = 50;
 const HEALTH_WORKLIST_CACHE_MS_V2039 = 30000;
 const STAFF_SCOPE_CACHE_MS_V2039 = 300000;
 const HOUSEHOLD_CACHE_MS_V2039 = 30000;
+const HEALTH_COORD_TRACE_MAX_V2040 = 40;
 const CLOUD_RELEASE_VERSION = '2.0.33';
+function traceHealthCoordV2040(event,args={}){
+  const row={at:Date.now(),event:String(event||''),scope:String(args.p_scope||''),filter:String(args.p_filter||''),stage:String(args.p_stage||''),hasSearch:Boolean(args.p_search),hasCommunity:Boolean(args.p_community),assignment:String(args.p_assignment||''),hasOwner:Boolean(args.p_owner_pid),offset:Number(args.p_offset||0)};
+  healthCoordTraceV2040.push(row);while(healthCoordTraceV2040.length>HEALTH_COORD_TRACE_MAX_V2040)healthCoordTraceV2040.shift();window.PHCHealthCoordTrace=healthCoordTraceV2040;
+}
+function cancelScheduledHealthLoadV2040(reason='view-left'){
+  if(healthRefreshTimer)clearTimeout(healthRefreshTimer);const resolve=healthRefreshResolve;healthRefreshTimer=null;healthRefreshPromise=null;healthRefreshResolve=null;healthRefreshReject=null;healthViewEpochV2040+=1;healthRequestSequence+=1;healthAbortController?.abort();healthAbortController=null;healthLoadPromise=null;healthLoadSignature='';traceHealthCoordV2040(`cancel:${reason}`);resolve?.();
+}
 const CLOUD_BRAND_LOGO_URL = `${SUPABASE_URL}/storage/v1/object/public/osm-public-assets/branding/logo`;
 
 function configureCloudBrandLogo(){
@@ -94,7 +104,7 @@ function setPortalNavCollapsed(collapsed,persist=true){
   if(persist){try{localStorage.setItem(PORTAL_NAV_STORAGE,isCollapsed?'1':'0');}catch{}}
 }
 function restorePortalNavPreference(){let collapsed=false;try{collapsed=localStorage.getItem(PORTAL_NAV_STORAGE)==='1';}catch{}setPortalNavCollapsed(collapsed,false);}
-function setPortalView(next){const allowed=[...document.querySelectorAll('#portal-nav [data-portal-view]')].filter(b=>!b.hidden).map(b=>b.dataset.portalView);const previous=portalView;portalView=allowed.includes(next)?next:'overview';document.querySelectorAll('[data-portal-panel]').forEach(x=>x.hidden=x.dataset.portalPanel!==portalView);document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>b.classList.toggle('active',b.dataset.portalView===portalView));if(previous!==portalView)document.dispatchEvent(new CustomEvent('phc:portal-view-changed',{detail:{view:portalView,previous}}));if(window.innerWidth<=900)window.scrollTo({top:0,behavior:'smooth'});}
+function setPortalView(next){const allowed=[...document.querySelectorAll('#portal-nav [data-portal-view]')].filter(b=>!b.hidden).map(b=>b.dataset.portalView);const previous=portalView;portalView=allowed.includes(next)?next:'overview';document.querySelectorAll('[data-portal-panel]').forEach(x=>x.hidden=x.dataset.portalPanel!==portalView);document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>b.classList.toggle('active',b.dataset.portalView===portalView));if(previous!==portalView){if(previous==='health'&&portalView!=='health')cancelScheduledHealthLoadV2040('view-left');document.dispatchEvent(new CustomEvent('phc:portal-view-changed',{detail:{view:portalView,previous}}));}if(window.innerWidth<=900)window.scrollTo({top:0,behavior:'smooth'});}
 function configurePortalNav(role){
   const labels={admin:{communities:'ชุมชนทั้งหมด',volunteers:'ทะเบียน อสม.'},staff:{communities:'ชุมชนที่ดูแล',houses:'บ้านของฉัน'},user:{communities:'ชุมชนของฉัน',houses:'บ้านของฉัน'}};
   document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>{
@@ -244,7 +254,7 @@ function confirmRepeatNcdV2033(person){
   });
 }
 async function loadHealthSummary(){
-  const scope=effectivePerformanceScope(),owner=careScopeVolunteerPid??null;
+  const scope=effectivePerformanceScope(),owner=scope==='volunteer'?(careScopeVolunteerPid??null):null;
   let {data,error}=await sharedCall(`report-snapshot:care:${scope}:${owner??''}`,()=>supabase.rpc('report_snapshot_v2033',{p_report_key:'care',p_scope:scope,p_owner_pid:owner}),30000);
   if((error||!data)&&effectivePerformanceScope()!=='volunteer'){const legacy=await supabase.rpc('report_snapshot_v2031',{p_report_key:'care',p_scope:careScopeMode});data=legacy.data;error=legacy.error;}
   if((error||!data)&&effectivePerformanceScope()!=='volunteer'){const live=await supabase.rpc('care_dashboard_v1861',{p_scope:careScopeMode});data=live.data;error=live.error;}
@@ -288,10 +298,15 @@ function assignmentRpcUnavailableV2033(error){
   const code=String(error?.code||'');const message=String(error?.message||'').toLowerCase();
   return ['42883','PGRST202','PGRST204'].includes(code)||message.includes('health_worklist_assignment_json_v2033')||message.includes('could not find the function');
 }
-async function loadScopedHealthPeopleV2033(filter,stage,raw,offset=0,signal=null,{force=false}={}){
-  const term=String(raw||'').replace(/[%_,()]/g,'').slice(0,60).trim();
-  const args={p_scope:effectivePerformanceScope(),p_filter:filter,p_stage:stage||null,p_search:term||null,p_community:healthCommunityFocus||null,p_assignment:healthAssignmentFilter,p_owner_pid:careScopeVolunteerPid,p_limit:HEALTH_PAGE_SIZE_V2033,p_offset:offset};
-  const stableKey=`health-worklist-v2039:${JSON.stringify(args)}`;
+function healthWorklistArgsV2040(filter,stage,raw,offset=0){
+  const scope=effectivePerformanceScope(),term=String(raw||'').replace(/[%_,()]/g,'').slice(0,60).trim(),community=String(healthCommunityFocus||'').trim()||null;
+  const assignmentAllowed=currentProfile?.role==='admin'||(currentProfile?.role==='staff'&&scope==='community');
+  const owner=scope==='volunteer'?(Number(careScopeVolunteerPid)||null):null;
+  return {p_scope:scope,p_filter:String(filter||'field_targets'),p_stage:String(stage||'').trim()||null,p_search:term||null,p_community:community,p_assignment:assignmentAllowed?(healthAssignmentFilter||'all'):'all',p_owner_pid:owner,p_limit:HEALTH_PAGE_SIZE_V2033,p_offset:Number(offset||0)};
+}
+async function loadScopedHealthPeopleV2033(filter,stage,raw,offset=0,signal=null,{force=false,argsOverride=null}={}){
+  const args=argsOverride||healthWorklistArgsV2040(filter,stage,raw,offset);
+  const stableKey=`health-worklist-v2040:${JSON.stringify(args)}`;
   if(force)invalidateShared(stableKey);
   const loader=()=>supabase.rpc('health_worklist_assignment_json_v2033',args);
   let response;
@@ -301,36 +316,43 @@ async function loadScopedHealthPeopleV2033(filter,stage,raw,offset=0,signal=null
   if(Array.isArray(data))return {rows:data,has_more:data.length>=HEALTH_PAGE_SIZE_V2033};
   return {rows:Array.isArray(data?.rows)?data.rows:[],has_more:Boolean(data?.has_more)};
 }
-function scheduleHealthPeopleLoad(delay=160){clearTimeout(healthRefreshTimer);if(!healthRefreshPromise)healthRefreshPromise=new Promise((resolve,reject)=>{healthRefreshResolve=resolve;healthRefreshReject=reject;});healthRefreshTimer=setTimeout(async()=>{const resolve=healthRefreshResolve,reject=healthRefreshReject;healthRefreshTimer=null;healthRefreshPromise=null;healthRefreshResolve=null;healthRefreshReject=null;try{resolve?.(await loadHealthPeople());}catch(e){reject?.(e);}},delay);return healthRefreshPromise;}
-function invalidateHealthWorklistCache(){healthLastCompletedSignature='';healthLastCompletedAt=0;invalidateShared('health-worklist-v2039:');}
+function scheduleHealthPeopleLoad(delay=160){
+  if(portalView!=='health'){traceHealthCoordV2040('schedule-skip:inactive');return Promise.resolve();}
+  healthRequestSequence+=1;healthAbortController?.abort();healthAbortController=null;healthLoadPromise=null;healthLoadSignature='';traceHealthCoordV2040('scheduled');
+  clearTimeout(healthRefreshTimer);if(!healthRefreshPromise)healthRefreshPromise=new Promise((resolve,reject)=>{healthRefreshResolve=resolve;healthRefreshReject=reject;});healthRefreshTimer=setTimeout(async()=>{const resolve=healthRefreshResolve,reject=healthRefreshReject;healthRefreshTimer=null;healthRefreshPromise=null;healthRefreshResolve=null;healthRefreshReject=null;if(portalView!=='health'){traceHealthCoordV2040('schedule-skip:left');resolve?.();return;}try{resolve?.(await loadHealthPeople());}catch(e){reject?.(e);}},delay);return healthRefreshPromise;
+}
+function invalidateHealthWorklistCache(){healthLastCompletedSignature='';healthLastCompletedAt=0;invalidateShared('health-worklist-v2040:');}
 async function loadHealthPeople(options={}){
-  const append=Boolean(options?.append),force=Boolean(options?.force);if(!append)healthPageOffset=0;
+  const append=Boolean(options?.append),force=Boolean(options?.force),allowInactive=Boolean(options?.allowInactive);
+  if(!allowInactive&&portalView!=='health'){traceHealthCoordV2040('load-skip:inactive');return;}
+  if(!append)healthPageOffset=0;
   let filter=$('#health-filter').value;
   if(filter==='all'&&currentProfile?.role!=='admin'){filter='field_targets';$('#health-filter').value=filter;}
   syncHealthTargetButtons();syncHealthAssignmentControl();
-  const stage=$('#health-stage').value,raw=$('#health-search').value.trim();
-  const signature=JSON.stringify({append,scope:effectivePerformanceScope(),filter,stage,search:raw,community:healthCommunityFocus,assignment:healthAssignmentFilter,owner:careScopeVolunteerPid,offset:healthPageOffset,view:healthActiveViewName});
-  if(healthLoadPromise&&healthLoadSignature===signature)return healthLoadPromise;
-  if(!force&&!append&&healthLastCompletedSignature===signature&&(Date.now()-healthLastCompletedAt)<30000)return;
-  healthAbortController?.abort();healthAbortController=new AbortController();const requestSequence=++healthRequestSequence;
+  const stage=$('#health-stage').value,raw=$('#health-search').value.trim(),requestArgs=healthWorklistArgsV2040(filter,stage,raw,healthPageOffset);
+  const signature=JSON.stringify({mode:append?'append':'base',...requestArgs});traceHealthCoordV2040('load',requestArgs);
+  if(healthLoadPromise&&healthLoadSignature===signature){traceHealthCoordV2040('coalesced',requestArgs);return healthLoadPromise;}
+  if(!force&&!append&&healthLastCompletedSignature===signature&&(Date.now()-healthLastCompletedAt)<HEALTH_WORKLIST_CACHE_MS_V2039){traceHealthCoordV2040('recent-hit',requestArgs);return;}
+  if(healthLoadPromise&&healthLoadSignature!==signature)traceHealthCoordV2040('supersede-key',requestArgs);
+  healthAbortController?.abort();healthAbortController=new AbortController();const requestSequence=++healthRequestSequence,requestEpoch=healthViewEpochV2040;
   const run=(async()=>{
   let data=null,error=null,usedAssignmentRpc=false,pageResult=null;
-  try{pageResult=await loadScopedHealthPeopleV2033(filter,stage,raw,healthPageOffset,healthAbortController.signal,{force});data=pageResult.rows;usedAssignmentRpc=true;}
+  try{pageResult=await loadScopedHealthPeopleV2033(filter,stage,raw,healthPageOffset,healthAbortController.signal,{force,argsOverride:requestArgs});data=pageResult.rows;usedAssignmentRpc=true;}
   catch(e){
-    if(e?.name==='AbortError'||requestSequence!==healthRequestSequence)return;
-    if(!assignmentRpcUnavailableV2033(e)||healthAssignmentFilter!=='all'||effectivePerformanceScope()==='volunteer')throw e;
+    if(e?.name==='AbortError'||requestSequence!==healthRequestSequence||requestEpoch!==healthViewEpochV2040||(!allowInactive&&portalView!=='health')){traceHealthCoordV2040('discarded',requestArgs);return;}
+    if(!assignmentRpcUnavailableV2033(e)||requestArgs.p_assignment!=='all'||requestArgs.p_scope==='volunteer')throw e;
     const fastTarget=filter==='field_targets';
     if(fastTarget){try{data=await loadFastHealthTargetsV2030(stage,raw);}catch(inner){error=inner;}}
     else{
       let q=supabase.from(healthActiveViewName).select(healthWorklistColumns()).order('community').order('hcode').order('display_name').limit(300);
-      if(healthCommunityFocus)q=q.eq('community',healthCommunityFocus);
-      if(currentProfile?.role==='staff'&&careScopeMode==='self'&&currentProfile?.volunteer_pid!=null)q=q.eq('volunteer_pid',currentProfile.volunteer_pid);
+      if(requestArgs.p_community)q=q.eq('community',requestArgs.p_community);
+      if(currentProfile?.role==='staff'&&requestArgs.p_scope==='self'&&currentProfile?.volunteer_pid!=null)q=q.eq('volunteer_pid',currentProfile.volunteer_pid);
       if(filter==='due')q=q.eq('ncd_target',true).eq('screened_current_fy',false);else if(filter==='targets')q=q.eq('ncd_target',true);else if(filter==='known')q=q.eq('known_ncd',true);
-      if(stage)q=q.eq('life_stage',stage);const term=raw.replace(/[%_,()]/g,'').slice(0,60);if(term)q=q.ilike('display_name',`%${term}%`);
+      if(requestArgs.p_stage)q=q.eq('life_stage',requestArgs.p_stage);const term=requestArgs.p_search||'';if(term)q=q.ilike('display_name',`%${term}%`);
       const res=await q;data=res.data;error=res.error;
     }
   }
-  if(requestSequence!==healthRequestSequence)return;
+  if(requestSequence!==healthRequestSequence||requestEpoch!==healthViewEpochV2040||(!allowInactive&&portalView!=='health')){traceHealthCoordV2040('discarded',requestArgs);return;}
   if(error&&!usedAssignmentRpc&&healthWorklistSchemaFallbackAllowed(error)&&healthActiveViewName==='health_person_worklist_active_v1847'){healthActiveViewName='health_person_worklist_active_v1841';return loadHealthPeople();}
   if(error&&!usedAssignmentRpc&&healthWorklistSchemaFallbackAllowed(error)&&healthActiveViewName==='health_person_worklist_active_v1841'){healthActiveViewName='health_person_worklist';return loadHealthPeople();}
   if(error)throw error;
@@ -348,7 +370,7 @@ async function loadHealthPeople(options={}){
   document.querySelectorAll('[data-health-person]').forEach(b=>b.onclick=()=>selectHealthPerson(Number(b.dataset.healthPerson)));
   })();
   healthLoadSignature=signature;healthLoadPromise=run;
-  try{const result=await run;healthLastCompletedSignature=signature;healthLastCompletedAt=Date.now();return result;}
+  try{const result=await run;if(requestSequence===healthRequestSequence&&requestEpoch===healthViewEpochV2040&&(allowInactive||portalView==='health')){healthLastCompletedSignature=signature;healthLastCompletedAt=Date.now();traceHealthCoordV2040('complete',requestArgs);}return result;}
   finally{if(healthLoadPromise===run){healthLoadPromise=null;healthLoadSignature='';}}
 }
 async function loadHealthHistory(){
@@ -1000,12 +1022,13 @@ supabase.auth.onAuthStateChange((event,session)=>{
 });
 document.addEventListener('phc:care-scope-changed',async event=>{
   if(event.detail?.source==='performance')return;
-  const previousScope=careScopeMode,previousOwner=careScopeVolunteerPid,previousAssignment=healthAssignmentFilter;
-  const next=event.detail?.scope;careScopeMode=['self','volunteer','community','all'].includes(next)?next:'self';careScopeVolunteerPid=Number(event.detail?.volunteer_pid)||careScopeVolunteerPid;
+  const previousScope=careScopeMode,previousOwner=careScopeVolunteerPid,previousAssignment=healthAssignmentFilter,previousEffectiveOwner=previousScope==='volunteer'?Number(previousOwner||0):0;
+  const next=event.detail?.scope;careScopeMode=['self','volunteer','community','all'].includes(next)?next:'self';const incomingOwner=Number(event.detail?.volunteer_pid)||null;if(incomingOwner)careScopeVolunteerPid=incomingOwner;
   if(currentProfile?.role==='user')careScopeMode='self';
   if(currentProfile?.role==='admin')careScopeMode='all';
   if(careScopeMode!=='community')healthAssignmentFilter='all';
-  const changed=previousScope!==careScopeMode||Number(previousOwner||0)!==Number(careScopeVolunteerPid||0)||previousAssignment!==healthAssignmentFilter;
+  const nextEffectiveOwner=careScopeMode==='volunteer'?Number(careScopeVolunteerPid||0):0;
+  const changed=previousScope!==careScopeMode||previousEffectiveOwner!==nextEffectiveOwner||previousAssignment!==healthAssignmentFilter;
   if(!changed)return;
   if(currentProfile?.role==='staff'){try{localStorage.setItem('phc.care.scope',careScopeMode);localStorage.setItem('phc.field.scope',careScopeMode);if(careScopeVolunteerPid)localStorage.setItem('phc.care.volunteer',String(careScopeVolunteerPid));}catch{}}
   syncPerformanceScopeUI();syncHealthAssignmentControl();

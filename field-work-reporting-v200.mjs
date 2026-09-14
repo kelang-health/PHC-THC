@@ -1,7 +1,7 @@
 import { getSharedSupabase, getSharedProfile, sharedCall, bindPortalActivation, isPortalViewActive } from './shared-runtime-v2035.mjs?v=2.0.35';
 const VERSION='2.0.33';
 const PAGE_SIZE=50;
-let supabase=null,profile=null,scope='self',ownerPid=null,staffVolunteers=[],loading=false,observer=null,lastDashboard=null;
+let supabase=null,profile=null,scope='self',ownerPid=null,staffVolunteers=[],loading=false,observer=null,lastDashboard=null,loadEpochV2040=0;
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num=v=>Number(v||0).toLocaleString('th-TH');
@@ -93,23 +93,25 @@ fetchAll('field_export_elderly9_v200','*',q=>q.gte('screening_date',start)),
 fetchAll('field_export_followup_v200','*',q=>q.gte('created_at',start+'T00:00:00'))]);
 const wb=XLSX.utils.book_new();const summary=[{version:VERSION,generated_at:new Date().toISOString(),scope:d.scope_label,period_start:d.period_start,period_mode:d.period_mode,target_tasks:d.target_tasks,complete_tasks:d.complete_tasks,partial_tasks:d.partial_tasks,due_tasks:d.due_tasks,coverage_percent:d.coverage_percent,followup_open:d.followup_open,followup_done:d.followup_done,note:d.metric_note}];const sheets=[['01_Summary',summary],['02_Community',d.communities||[]],['03_VHV_Progress',d.volunteers||[]],['04_Work_Items',work],['05_NCD',ncd],['06_Growth',growth],['07_Child_Dev',child],['08_Elderly9',elder],['09_Followup',follow]];for(const [name,rows] of sheets){const ws=XLSX.utils.json_to_sheet(cleanRows(rows));XLSX.utils.book_append_sheet(wb,ws,name)}XLSX.writeFile(wb,`OSM-PHC_Field_Report_${new Date().toISOString().slice(0,10)}.xlsx`)}catch(e){alert('สร้าง Excel ไม่สำเร็จ: '+e.message)}finally{if(button){button.disabled=false;button.textContent='ส่งออก Excel'}}}
 
+function ownsFieldLoadV2040(epoch){return epoch===loadEpochV2040&&isPortalViewActive('work');}
 async function load(){
-  if(loading||!profile?.active)return;loading=true;
+  if(loading||!profile?.active||!isPortalViewActive('work'))return;const epoch=++loadEpochV2040;loading=true;
   const host=$('[data-field200-host]');if(host)host.innerHTML='<div class="field200-empty">กำลังอ่านผลสรุปล่าสุด…</div>';
   try{
-    const rs=effectiveScope(),op=ownerPid??null;let {data,error}=await sharedCall(`report-snapshot:field:${rs}:${op??''}`,()=>supabase.rpc('report_snapshot_v2033',{p_report_key:'field',p_scope:rs,p_owner_pid:op}),30000);
-    if((error||!data)&&effectiveScope()!=='volunteer'){const legacy=await supabase.rpc('report_snapshot_v2031',{p_report_key:'field',p_scope:effectiveScope()});data=legacy.data;error=legacy.error;}
-    if((error||!data)&&effectiveScope()!=='volunteer'){const live=await supabase.rpc('field_work_dashboard_v200',{p_scope:effectiveScope()});data=live.data;error=live.error;}
+    const rs=effectiveScope(),op=rs==='volunteer'?(ownerPid??null):null;let {data,error}=await sharedCall(`report-snapshot:field:${rs}:${op??''}`,()=>supabase.rpc('report_snapshot_v2033',{p_report_key:'field',p_scope:rs,p_owner_pid:op}),30000);
+    if(!ownsFieldLoadV2040(epoch))return;
+    if((error||!data)&&effectiveScope()!=='volunteer'){const legacy=await supabase.rpc('report_snapshot_v2031',{p_report_key:'field',p_scope:effectiveScope()});data=legacy.data;error=legacy.error;if(!ownsFieldLoadV2040(epoch))return;}
+    if((error||!data)&&effectiveScope()!=='volunteer'){const live=await supabase.rpc('field_work_dashboard_v200',{p_scope:effectiveScope()});data=live.data;error=live.error;if(!ownsFieldLoadV2040(epoch))return;}
     if(error)throw error;data=data||{};
     if((profile?.role==='staff'&&effectiveScope()==='community')||profile?.role==='admin'){
-      const a=await sharedCall(`assignment-summary:${effectiveScope()}:${ownerPid??''}`,()=>supabase.rpc('assignment_summary_v2033',{p_scope:effectiveScope(),p_owner_pid:ownerPid}),60000);
-      if(!a.error&&a.data)data={...data,assignment_summary:a.data};
+      if(!ownsFieldLoadV2040(epoch))return;const a=await sharedCall(`assignment-summary:${effectiveScope()}:`,()=>supabase.rpc('assignment_summary_v2033',{p_scope:effectiveScope(),p_owner_pid:null}),60000);
+      if(!ownsFieldLoadV2040(epoch))return;if(!a.error&&a.data)data={...data,assignment_summary:a.data};
     }
-    renderDashboard(data);
-  }catch(e){if(host)host.innerHTML=`<p class="error">${esc(e.message)}</p>`;}
-  finally{loading=false;}
+    if(ownsFieldLoadV2040(epoch))renderDashboard(data);
+  }catch(e){if(ownsFieldLoadV2040(epoch)&&host)host.innerHTML=`<p class="error">${esc(e.message)}</p>`;}
+  finally{if(epoch===loadEpochV2040)loading=false;}
 }
 async function enhance(){profile=await loadProfile();if(!profile?.active)return;if(profile.role==='staff'){try{const saved=localStorage.getItem('phc.care.scope')||localStorage.getItem('phc.field.scope');scope=['self','volunteer','community'].includes(saved)?saved:'self';ownerPid=Number(localStorage.getItem('phc.care.volunteer'))||null}catch{scope='self';ownerPid=null}const r=await sharedCall('staff-volunteer-scope-v2033',()=>supabase.rpc('staff_volunteer_scope_v2033'),300000);staffVolunteers=r.error?[]:(r.data||[]);if(ownerPid&&!staffVolunteers.some(v=>Number(v.volunteer_pid)===ownerPid))ownerPid=null;if(!ownerPid&&staffVolunteers.length)ownerPid=Number(staffVolunteers[0].volunteer_pid);if(scope==='volunteer'&&!ownerPid)scope='self'}else scope=profile.role==='admin'?'all':'self';const panel=$('[data-portal-panel="work"]');if(panel&&!panel.hidden)await load()}
 async function syncSharedScope(event){if(profile?.role!=='staff'||event.detail?.source==='field-report')return;const next=['self','volunteer','community'].includes(event.detail?.scope)?event.detail.scope:'self';const nextOwner=Number(event.detail?.volunteer_pid)||ownerPid;if(scope===next&&ownerPid===nextOwner)return;scope=next;ownerPid=nextOwner;try{localStorage.setItem('phc.field.scope',scope);localStorage.setItem('phc.care.scope',scope);if(ownerPid)localStorage.setItem('phc.care.volunteer',String(ownerPid))}catch{}const panel=$('[data-portal-panel="work"]');if(panel&&!panel.hidden)await load()}
-function start(){injectStyle();setVersion();bindPortalActivation('work',enhance);document.addEventListener('phc:care-scope-changed',event=>{syncSharedScope(event).catch(()=>{})});document.addEventListener('phc:report-snapshot-refreshed',()=>{if(isPortalViewActive('work'))load().catch(()=>{});});}
+function start(){injectStyle();setVersion();bindPortalActivation('work',enhance);document.addEventListener('phc:portal-view-changed',e=>{if(e.detail?.view!=='work'){loadEpochV2040+=1;loading=false;}});document.addEventListener('phc:care-scope-changed',event=>{syncSharedScope(event).catch(()=>{})});document.addEventListener('phc:report-snapshot-refreshed',()=>{if(isPortalViewActive('work'))load().catch(()=>{});});}
 export async function initFieldWorkReportingV200(url,key){if(window.__PHC_FIELD_WORK_V200__)return;window.__PHC_FIELD_WORK_V200__=true;supabase=await getSharedSupabase(url,key);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start()}
