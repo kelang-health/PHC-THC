@@ -1,4 +1,4 @@
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.33&p=2046';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.43&p=2047';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 import { getSharedSupabase, setSharedSession, setSharedProfile, clearSharedAuth, sharedCall, invalidateShared } from './shared-runtime-v2035.mjs?v=2.0.35';
 

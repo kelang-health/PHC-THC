@@ -23,9 +23,9 @@ if (typeof window !== 'undefined') {
       await initCareDashboard1860(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initSystemAboutNote1829 } = await import('./system-about-note-v1829.mjs?v=2.0.31');
       initSystemAboutNote1829();
-      const { initCommunityHouseholdQuality1831 } = await import('./community-household-quality-v1831.mjs?v=1.8.63&p=2044');
+      const { initCommunityHouseholdQuality1831 } = await import('./community-household-quality-v1831.mjs?v=1.8.65&p=2047');
       await initCommunityHouseholdQuality1831(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initPHCFiveFeatures190 } = await import('./phc-five-features-v190.mjs?v=2.0.31&p=2040');
+      const { initPHCFiveFeatures190 } = await import('./phc-five-features-v190.mjs?v=2.0.43&p=2047');
       await initPHCFiveFeatures190(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initFieldWorkReportingV200 } = await import('./field-work-reporting-v200.mjs?v=2.0.33&p=2040');
       await initFieldWorkReportingV200(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);

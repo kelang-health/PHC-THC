@@ -1,5 +1,5 @@
 import { getSharedSupabase, getSharedProfile } from './shared-runtime-v2035.mjs?v=2.0.35';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.35';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.43&p=2047';
 
 const supabase=await getSharedSupabase(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
 let adminReady=false;
