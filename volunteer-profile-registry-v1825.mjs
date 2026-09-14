@@ -1,7 +1,9 @@
 import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall } from './shared-runtime-v2035.mjs?v=2.0.35';
-const VERSION='1.8.36';
+const VERSION='1.8.37';
+const WORK_PROFILE_DEFER_MS_V2044=2400;
+const WORK_AVATAR_DEFER_MS_V2044=700;
 const PHOTO_URL_CACHE_MS_V2044=25*60*1000;
-let supabase=null,profile=null,rows=[],avatarObserver=null,portalObserver=null,statusFilter='all',searchText='',communityFilter='',enhancePromise=null,authSubscription=null,syncInfo={},trainingCache=new Map();
+let supabase=null,profile=null,rows=[],avatarObserver=null,portalObserver=null,statusFilter='all',searchText='',communityFilter='',enhancePromise=null,authSubscription=null,syncInfo={},trainingCache=new Map(),workProfileTimer=null,workAvatarTimer=null;
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num=v=>Number(v||0).toLocaleString('th-TH');
@@ -158,7 +160,10 @@ function renderWorkProfile(){
   document.querySelector('[data-vself25]')?.remove();
   let root=$('[data-vwork25]',panel);if(!root){root=document.createElement('details');root.className='vself25 vwork25';root.dataset.vwork25='1';const performance=panel.querySelector('.health-performance-overview');if(performance)performance.insertAdjacentElement('afterend',root);else panel.prepend(root);}
   const code=statusClass(v.status_code),roleText=profile.role==='staff'?'ประธาน อสม.':'อสม.',hasRegistryPid=v.source_pid!==null&&v.source_pid!==undefined;
-  root.innerHTML=`<summary>${avatarHtml(v,true)}<span class="vself25-title"><strong>${esc(v.display_name||profile.display_name||roleText)}</strong><small>${roleText} · ${esc(v.community||profile.community||'—')} · ${esc(v.status_label||statusLabel(code))}</small></span><span class="vself25-more">โปรไฟล์ / การอบรม</span></summary><div class="vself25-body"><div class="vreg25-profile-strip"><div><small>บทบาท</small><strong>${roleText}</strong></div><div><small>สถานะทะเบียน</small><strong>${hasRegistryPid?(v.active===false?'ยุติ/ไม่ใช้งาน':'ใช้งาน'):'ยังไม่ได้เชื่อม'}</strong></div><div><small>พื้นที่</small><strong>${esc(v.community||profile.community||'—')}</strong></div></div><div class="vreg25-kpis"><div class="vreg25-kpi"><small>บ้านรับผิดชอบ</small><strong>${num(v.house_count)}</strong></div><div class="vreg25-kpi good"><small>ปักหมุดแล้ว</small><strong>${num(v.pinned_count)}</strong></div><div class="vreg25-kpi ${Number(v.issue_house_count)>0?'warn':'good'}"><small>ต้องจัดการ</small><strong>${num(v.issue_house_count)}</strong></div></div>${hasRegistryPid?`<section class="vreg25-training" data-v25-training="${esc(v.source_pid)}"><div class="vreg25-training-summary">เปิดโปรไฟล์เพื่อโหลดประวัติการอบรม</div></section>`:'<section class="vreg25-training"><div class="vreg25-training-summary vreg25-photo-missing">บัญชีนี้ยังไม่ได้เชื่อมกับทะเบียน อสม. จึงยังอ่านประวัติการอบรมไม่ได้</div></section>'}</div>`;observeAvatars(root);root.ontoggle=()=>{if(root.open&&hasRegistryPid)renderTraining(root,v.source_pid);};
+  root.innerHTML=`<summary>${avatarHtml(v,true)}<span class="vself25-title"><strong>${esc(v.display_name||profile.display_name||roleText)}</strong><small>${roleText} · ${esc(v.community||profile.community||'—')} · ${esc(v.status_label||statusLabel(code))}</small></span><span class="vself25-more">โปรไฟล์ / การอบรม</span></summary><div class="vself25-body"><div class="vreg25-profile-strip"><div><small>บทบาท</small><strong>${roleText}</strong></div><div><small>สถานะทะเบียน</small><strong>${hasRegistryPid?(v.active===false?'ยุติ/ไม่ใช้งาน':'ใช้งาน'):'ยังไม่ได้เชื่อม'}</strong></div><div><small>พื้นที่</small><strong>${esc(v.community||profile.community||'—')}</strong></div></div><div class="vreg25-kpis"><div class="vreg25-kpi"><small>บ้านรับผิดชอบ</small><strong>${num(v.house_count)}</strong></div><div class="vreg25-kpi good"><small>ปักหมุดแล้ว</small><strong>${num(v.pinned_count)}</strong></div><div class="vreg25-kpi ${Number(v.issue_house_count)>0?'warn':'good'}"><small>ต้องจัดการ</small><strong>${num(v.issue_house_count)}</strong></div></div>${hasRegistryPid?`<section class="vreg25-training" data-v25-training="${esc(v.source_pid)}"><div class="vreg25-training-summary">เปิดโปรไฟล์เพื่อโหลดประวัติการอบรม</div></section>`:'<section class="vreg25-training"><div class="vreg25-training-summary vreg25-photo-missing">บัญชีนี้ยังไม่ได้เชื่อมกับทะเบียน อสม. จึงยังอ่านประวัติการอบรมไม่ได้</div></section>'}</div>`;
+  root.ontoggle=()=>{if(root.open){observeAvatars(root);if(hasRegistryPid)renderTraining(root,v.source_pid);}};
+  if(workAvatarTimer)clearTimeout(workAvatarTimer);
+  workAvatarTimer=setTimeout(()=>{workAvatarTimer=null;const activePanel=$('[data-portal-panel="work"]');if(activePanel&&!activePanel.hidden&&document.body.contains(root))observeAvatars(root);},WORK_AVATAR_DEFER_MS_V2044);
 }
 function renderSelfProfile(){
   if(profile?.role!=='user')return;const panel=$('[data-portal-panel="houses"]');if(!panel)return;const v=rows.find(x=>String(x.source_pid)===String(profile.volunteer_pid))||rows[0];if(!v)return;
@@ -169,6 +174,7 @@ function paintWorkflowTasks(){
   document.querySelectorAll('.wf22-task[data-wf-task]').forEach(b=>{b.classList.remove('v25-clear','v25-yellow','v25-orange','v25-pink');const raw=(b.querySelector('strong')?.textContent||'').replace(/[^0-9]/g,'');const n=Number(raw||0),type=b.dataset.wfTask;if(n===0)b.classList.add('v25-clear');else if(type==='outside')b.classList.add('v25-pink');else if(type==='review')b.classList.add('v25-orange');else b.classList.add('v25-yellow');});
 }
 function clearState(){
+  if(workProfileTimer)clearTimeout(workProfileTimer);if(workAvatarTimer)clearTimeout(workAvatarTimer);workProfileTimer=null;workAvatarTimer=null;
   profile=null;rows=[];syncInfo={};trainingCache.clear();
   document.querySelector('[data-vreg25]')?.remove();
   document.querySelector('[data-vself25]')?.remove();
@@ -186,8 +192,19 @@ async function enhance(){
 }
 function scheduleEnhance(delay=0){setTimeout(()=>enhance().catch(()=>{}),delay);}
 async function activateVolunteerRegistry(){const p=profile||await loadProfile();if(!p?.active||!['admin','staff'].includes(p.role))return;profile=p;if(!rows.length)await enhance();else{renderRegistry();paintWorkflowTasks();}}
-async function activateWorkProfile(){const p=profile||await loadProfile();if(!p?.active||!['user','staff'].includes(p.role))return;profile=p;if(p.volunteer_pid!=null){const own=rows.find(x=>String(x.source_pid)===String(p.volunteer_pid));if(!own)await loadRows({light:true});}renderWorkProfile();}
-function start(){bindPortalActivation('volunteers',activateVolunteerRegistry);bindPortalActivation('work',activateWorkProfile);}
+async function activateWorkProfile(){
+  const p=profile||await loadProfile();if(!p?.active||!['user','staff'].includes(p.role))return;profile=p;
+  // v2.0.44: paint the Work report/profile shell immediately. Registry/media are secondary.
+  renderWorkProfile();
+  if(workProfileTimer)clearTimeout(workProfileTimer);
+  const own=p.volunteer_pid!=null?rows.find(x=>String(x.source_pid)===String(p.volunteer_pid)):null;
+  if(p.volunteer_pid==null||own)return;
+  workProfileTimer=setTimeout(()=>{
+    workProfileTimer=null;const panel=$('[data-portal-panel="work"]');if(!panel||panel.hidden||!profile?.active)return;
+    loadRows({light:true}).then(()=>{if(!panel.hidden)renderWorkProfile();}).catch(()=>{});
+  },WORK_PROFILE_DEFER_MS_V2044);
+}
+function start(){bindPortalActivation('volunteers',activateVolunteerRegistry);bindPortalActivation('work',activateWorkProfile);document.addEventListener('phc:portal-view-changed',e=>{if(e.detail?.view!=='work'){if(workProfileTimer)clearTimeout(workProfileTimer);if(workAvatarTimer)clearTimeout(workAvatarTimer);workProfileTimer=null;workAvatarTimer=null;}});}
 export async function initVolunteerProfileRegistry1825(url,key){
   if(window.__PHC_VOLUNTEER_PROFILE_REGISTRY_1825__)return;window.__PHC_VOLUNTEER_PROFILE_REGISTRY_1825__=true;injectStyle();
   supabase=await getSharedSupabase(url,key);

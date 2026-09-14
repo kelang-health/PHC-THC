@@ -1,3 +1,11 @@
+## Cloud v2.0.44 — Work Page Deferred Profile Assets
+
+- ให้หน้า “ผลงาน” แสดง report snapshot และ assignment summary ก่อนข้อมูลโปรไฟล์ อสม. ที่ไม่จำเป็นต่อการตัดสินใจหลัก
+- เลื่อน `volunteer_registry_profiles_v2` ออกจาก critical navigation path ของหน้า Work สำหรับ user/staff เมื่อยังไม่มี cache
+- โหลดรูป อสม. จาก Storage เมื่อเปิดโปรไฟล์ หรือหลังหน้า Work ว่างจากงานหลักแล้ว; signed URL ยังคง cache 25 นาที
+- ยกเลิก deferred profile/photo request อัตโนมัติเมื่อผู้ใช้ออกจากหน้า Work เพื่อลด request ที่ไม่จำเป็น
+- จัด cache key ของ config/auth/LINE/app ให้เป็น release เดียวกันเพื่อลดการใช้โมดูลค้างจากรุ่นก่อน
+
 ## Cloud v2.0.43 — Household Residence & Member Workflow
 
 - Staff เห็นปุ่มเพิ่มบ้านและใช้โควตาจาก `house_add_quota` ตามสิทธิ์จริง

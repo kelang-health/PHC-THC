@@ -15,7 +15,7 @@ if (typeof window !== 'undefined') {
       await initCommunityWorkflow1822(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initMobileUIPolish1824 } = await import('./mobile-ui-polish-v1824.mjs?v=1.8.24b&p=2035');
       await initMobileUIPolish1824(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initVolunteerProfileRegistry1825 } = await import('./volunteer-profile-registry-v1825.mjs?v=1.8.36&p=2044');
+      const { initVolunteerProfileRegistry1825 } = await import('./volunteer-profile-registry-v1825.mjs?v=1.8.37&p=2049');
       await initVolunteerProfileRegistry1825(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initInteractionFeedback1827 } = await import('./interaction-feedback-v1827.mjs?v=1.8.28');
       await initInteractionFeedback1827();
@@ -27,7 +27,7 @@ if (typeof window !== 'undefined') {
       await initCommunityHouseholdQuality1831(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initPHCFiveFeatures190 } = await import('./phc-five-features-v190.mjs?v=2.0.43&p=2047');
       await initPHCFiveFeatures190(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initFieldWorkReportingV200 } = await import('./field-work-reporting-v200.mjs?v=2.0.33&p=2040');
+      const { initFieldWorkReportingV200 } = await import('./field-work-reporting-v200.mjs?v=2.0.44&p=2049');
       await initFieldWorkReportingV200(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     })
     .catch(error => console.error('Community GIS/house/mobile workflow modules load failed', error));
