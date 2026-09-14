@@ -1,5 +1,6 @@
 import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall } from './shared-runtime-v2035.mjs?v=2.0.35';
 const VERSION='1.8.36';
+const PHOTO_URL_CACHE_MS_V2044=25*60*1000;
 let supabase=null,profile=null,rows=[],avatarObserver=null,portalObserver=null,statusFilter='all',searchText='',communityFilter='',enhancePromise=null,authSubscription=null,syncInfo={},trainingCache=new Map();
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -16,6 +17,7 @@ function statusClass(code){return ['green','yellow','orange','pink'].includes(co
 function setVersion(){const e=$('.login-version');if(e)e.textContent=`Cloud v${VERSION}`;}
 function thDate(v){if(!v)return '—';try{return new Date(String(v).length<=10?v+'T00:00:00+07:00':v).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Bangkok'});}catch{return String(v);}}
 function thDateTime(v){if(!v)return '—';try{return new Date(v).toLocaleString('th-TH',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'});}catch{return String(v);}}
+function validPhotoSourceUrl(url){try{const u=new URL(String(url||''));return u.protocol==='https:'&&u.hostname==='lh3.googleusercontent.com';}catch{return false;}}
 
 function injectStyle(){
   if($('#vreg25-style'))return;
@@ -88,19 +90,25 @@ async function renderTraining(detail,pid){
 }
 
 function avatarHtml(v,small=false){
-  const p=String(v.photo_object_path||'').trim();
-  return `<span class="vreg25-avatar${small?' small':''}" data-v25-avatar${p?` data-photo-path="${esc(p)}"`:''} data-photo-name="${esc(v.display_name||'อสม.')}"><span>${esc(initials(v.display_name))}</span>${p?`<img decoding="async" alt="รูป ${esc(v.display_name||'อสม.')}" referrerpolicy="no-referrer">`:''}</span>`;
+  const p=String(v.photo_object_path||'').trim(),source=validPhotoSourceUrl(v.photo_source_url)?String(v.photo_source_url):'';
+  const hasPhoto=Boolean(p||source);
+  return `<span class="vreg25-avatar${small?' small':''}" data-v25-avatar${p?` data-photo-path="${esc(p)}"`:''}${source?` data-photo-source="${esc(source)}"`:''} data-photo-name="${esc(v.display_name||'อสม.')}"><span>${esc(initials(v.display_name))}</span>${hasPhoto?`<img loading="lazy" fetchpriority="low" decoding="async" alt="รูป ${esc(v.display_name||'อสม.')}" referrerpolicy="no-referrer">`:''}</span>`;
 }
 async function resolveAvatar(el){
   if(!el||el.dataset.photoLoaded==='1')return;el.dataset.photoLoaded='1';
-  const path=el.dataset.photoPath;if(!path){delete el.dataset.photoLoaded;return;}
+  const path=String(el.dataset.photoPath||'').trim(),source=validPhotoSourceUrl(el.dataset.photoSource)?el.dataset.photoSource:'';
+  if(!path&&!source){delete el.dataset.photoLoaded;return;}
   try{
-    const {data,error}=await supabase.storage.from('volunteer-profiles').createSignedUrl(path,1800);
-    const signedUrl=data?.signedUrl||data?.signedURL||'';
-    if(error||!signedUrl){delete el.dataset.photoLoaded;return;}
+    let src=source;
+    if(path){
+      const signed=await sharedCall(`volunteer-photo-url-v2044:${path}`,()=>supabase.storage.from('volunteer-profiles').createSignedUrl(path,1800),PHOTO_URL_CACHE_MS_V2044);
+      const signedUrl=signed?.data?.signedUrl||signed?.data?.signedURL||'';
+      if(!signed?.error&&signedUrl)src=signedUrl;
+    }
+    if(!src){delete el.dataset.photoLoaded;return;}
     const img=el.querySelector('img');if(!img){delete el.dataset.photoLoaded;return;}
     img.onload=()=>{img.classList.add('v25-photo-loaded');const t=el.querySelector(':scope > span');if(t)t.hidden=true;};
-    img.onerror=()=>{img.classList.remove('v25-photo-loaded');const t=el.querySelector(':scope > span');if(t)t.hidden=false;delete el.dataset.photoLoaded;};img.src=signedUrl;
+    img.onerror=()=>{img.classList.remove('v25-photo-loaded');const t=el.querySelector(':scope > span');if(t)t.hidden=false;delete el.dataset.photoLoaded;};img.src=src;
   }catch{delete el.dataset.photoLoaded;}
 }
 function observeAvatars(root=document){
