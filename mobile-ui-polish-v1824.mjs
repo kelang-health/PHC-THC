@@ -1,3 +1,4 @@
+import { getSharedSupabase, getSharedSession } from './shared-runtime-v2035.mjs?v=2.0.35';
 const VERSION='1.8.24';
 let supabase=null;
 const $=(s,r=document)=>r.querySelector(s);
@@ -88,7 +89,7 @@ async function compactSessionHeader(){
   const scope=$('#scope-label',welcome);
   if(scope?.textContent?.startsWith('ดูแลชุมชน ')) scope.textContent=`พื้นที่ ${scope.textContent.slice('ดูแลชุมชน '.length)}`;
   try{
-    const {data:{session}}=await supabase.auth.getSession();
+    const session=await getSharedSession(supabase);
     const text=formatLogin(session?.user?.last_sign_in_at);
     note.textContent=text?`เข้าระบบล่าสุด ${text}`:'กำลังใช้งานบัญชีนี้';
   }catch{
@@ -106,8 +107,7 @@ export async function initMobileUIPolish1824(url,key){
   if(window.__PHC_MOBILE_UI_POLISH_1824__) return;
   window.__PHC_MOBILE_UI_POLISH_1824__=true;
   injectStyle();
-  const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-  supabase=createClient(url,key,{auth:{persistSession:true,autoRefreshToken:false,detectSessionInUrl:false}});
+  supabase=await getSharedSupabase(url,key);
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start,{once:true});
   else start();
 }

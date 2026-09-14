@@ -1,3 +1,4 @@
+import { getSharedSupabase, getSharedProfile, bindPortalActivation } from './shared-runtime-v2035.mjs?v=2.0.35';
 const VERSION='2.0.31';
 let supabase=null,profile=null,activeOverlay=null,globalBound=false,toastTimer=null;
 const $=(s,r=document)=>r.querySelector(s);
@@ -31,7 +32,7 @@ function openModal(title,subtitle=''){closeModal();const o=document.createElemen
 function closeModal(){if(activeOverlay){activeOverlay.remove();activeOverlay=null}document.body.style.overflow=''}
 function showPhcToast(message,tone='success',duration=1800){document.querySelector('.phc190-toast')?.remove();if(toastTimer){clearTimeout(toastTimer);toastTimer=null}const t=document.createElement('div');t.className=`phc190-toast ${tone==='warn'?'warn':''}`;t.setAttribute('role','status');t.setAttribute('aria-live','polite');t.innerHTML=`<span>${esc(message)}</span><button type="button">ปิด</button>`;document.body.appendChild(t);const close=()=>{if(t.isConnected)t.remove();if(toastTimer){clearTimeout(toastTimer);toastTimer=null}};t.querySelector('button').onclick=close;toastTimer=setTimeout(close,duration)}
 
-async function loadProfile(){const {data:{session}}=await supabase.auth.getSession();if(!session)return null;const {data}=await supabase.from('profiles').select('user_id,display_name,role,community,volunteer_pid,active').eq('user_id',session.user.id).maybeSingle();return data}
+async function loadProfile(){return getSharedProfile(supabase);}
 
 async function renderHouseMemberRequests(root,houseId,healthAccess=true){
   if(!root||!houseId||!healthAccess)return;root.querySelector('[data-phc190-requests]')?.remove();
@@ -264,5 +265,5 @@ async function createLineCode(){
 }
 
 function bindGlobal(){if(globalBound)return;globalBound=true;document.addEventListener('click',e=>{const b=e.target.closest?.('[data-phc190-screen]');if(b){e.preventDefault();e.stopPropagation();const seed={plan_date:b.dataset.planDate||'',age_years:Number(b.dataset.ageYears),age_months:Number(b.dataset.ageMonths),route:b.dataset.screenRoute||'',route_label:b.dataset.routeLabel||'',dspm_target_months:b.dataset.dspmTarget?Number(b.dataset.dspmTarget):null,latest_screened_on:b.dataset.latestScreened||''};openAgeScreening(b.dataset.pcucode,Number(b.dataset.pid),b.dataset.name||'',seed).catch(x=>alert(friendlyError(x)));return}if(e.target.closest?.('[data-portal-view="work"]'))setTimeout(()=>renderOverview().catch(()=>{}),100)},true)}
-async function start(){const ver=$('.login-version');if(ver)ver.textContent=`Cloud v${VERSION}`;profile=await loadProfile();window.PHCFiveFeatures190={renderHouseMemberRequests,openAgeScreening,renderAdminMemberQueue,refreshOverview:renderOverview};bindGlobal();if(!profile?.active)return;await renderOverview()}
-export async function initPHCFiveFeatures190(url,key){if(window.__PHC_FIVE_FEATURES_190__)return;window.__PHC_FIVE_FEATURES_190__=true;injectStyle();const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');supabase=createClient(url,key,{auth:{persistSession:true,autoRefreshToken:false,detectSessionInUrl:false}});supabase.auth.onAuthStateChange(()=>setTimeout(()=>start().catch(()=>{}),0));if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else await start()}
+async function start(){const ver=$('.login-version');if(ver)ver.textContent=`Cloud v${VERSION}`;window.PHCFiveFeatures190={renderHouseMemberRequests,openAgeScreening,renderAdminMemberQueue,refreshOverview:renderOverview};bindGlobal();bindPortalActivation('overview',async()=>{profile=await loadProfile();if(profile?.active)await renderOverview();});}
+export async function initPHCFiveFeatures190(url,key){if(window.__PHC_FIVE_FEATURES_190__)return;window.__PHC_FIVE_FEATURES_190__=true;injectStyle();supabase=await getSharedSupabase(url,key);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else await start()}

@@ -1,10 +1,8 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.33';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.33&p=2035';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
+import { getSharedSupabase, setSharedSession, setSharedProfile, clearSharedAuth } from './shared-runtime-v2035.mjs?v=2.0.35';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
-});
+const supabase = await getSharedSupabase(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 const $ = s => document.querySelector(s);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, x => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
 const num = v => Number(v || 0).toLocaleString('th-TH');
@@ -73,6 +71,7 @@ function renderAuthView(view){
 }
 function renderLoggedOut(){
   authRequestId += 1;
+  clearSharedAuth();
   currentProfile=null; passwordPanelOpen=false; renderedPortalUserId=null; healthFeedbackModel=null; portalView='overview';
   renderAuthView('login');
 }
@@ -84,7 +83,7 @@ function setPortalNavCollapsed(collapsed,persist=true){
   if(persist){try{localStorage.setItem(PORTAL_NAV_STORAGE,isCollapsed?'1':'0');}catch{}}
 }
 function restorePortalNavPreference(){let collapsed=false;try{collapsed=localStorage.getItem(PORTAL_NAV_STORAGE)==='1';}catch{}setPortalNavCollapsed(collapsed,false);}
-function setPortalView(next){const allowed=[...document.querySelectorAll('#portal-nav [data-portal-view]')].filter(b=>!b.hidden).map(b=>b.dataset.portalView);portalView=allowed.includes(next)?next:'overview';document.querySelectorAll('[data-portal-panel]').forEach(x=>x.hidden=x.dataset.portalPanel!==portalView);document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>b.classList.toggle('active',b.dataset.portalView===portalView));if(window.innerWidth<=900)window.scrollTo({top:0,behavior:'smooth'});}
+function setPortalView(next){const allowed=[...document.querySelectorAll('#portal-nav [data-portal-view]')].filter(b=>!b.hidden).map(b=>b.dataset.portalView);const previous=portalView;portalView=allowed.includes(next)?next:'overview';document.querySelectorAll('[data-portal-panel]').forEach(x=>x.hidden=x.dataset.portalPanel!==portalView);document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>b.classList.toggle('active',b.dataset.portalView===portalView));if(previous!==portalView)document.dispatchEvent(new CustomEvent('phc:portal-view-changed',{detail:{view:portalView,previous}}));if(window.innerWidth<=900)window.scrollTo({top:0,behavior:'smooth'});}
 function configurePortalNav(role){
   const labels={admin:{communities:'ชุมชนทั้งหมด',volunteers:'ทะเบียน อสม.'},staff:{communities:'ชุมชนที่ดูแล',houses:'บ้านของฉัน'},user:{communities:'ชุมชนของฉัน',houses:'บ้านของฉัน'}};
   document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>{
@@ -807,6 +806,8 @@ async function loadPortal(session, requestId){
   const profile = await getProfile(session.user.id);
   if(requestId !== authRequestId || passwordPanelOpen) return;
   currentProfile = profile;
+  setSharedSession(session);
+  setSharedProfile(profile);
   if(!profile || !profile.active){
     renderAuthView('blocked'); return;
   }
@@ -890,6 +891,7 @@ async function loadPortal(session, requestId){
   if(requestId !== authRequestId || passwordPanelOpen) return;
   renderAuthView('portal');
   renderedPortalUserId=session.user.id;
+  document.dispatchEvent(new CustomEvent('phc:auth-ready',{detail:{userId:session.user.id,role:profile.role,view:portalView}}));
 }
 
 async function applyAuthSession(session){

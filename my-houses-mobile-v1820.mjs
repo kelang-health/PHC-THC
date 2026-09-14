@@ -1,3 +1,4 @@
+import { getSharedSupabase, getSharedProfile, bindPortalActivation } from './shared-runtime-v2035.mjs?v=2.0.35';
 const VERSION='1.8.63';
 const DEFAULT_CENTER=[18.2696,99.5071];
 let supabase=null,panel=null,profile=null,houses=[],selected=null,map=null,markers=null,draftMarker=null,draft=null,boundary=null,leafletPromise=null,observer=null,modal=null,modalMap=null,modalMarker=null,modalBoundary=null,modalPoint=null,modalLocationCheck=null,modalMode='add',modalHouse=null,enhancePromise=null;
@@ -19,7 +20,7 @@ function addLayers(target,L){const road=L.tileLayer('https://{s}.tile.openstreet
 function setMsg(text,type='info'){const e=$('[data-myh-msg]',panel);if(e){e.textContent=text||'';e.className=`myh-msg ${type}`;}}
 function status(h){if(!hasCoord(h))return'ยังไม่มีพิกัด';if(h.review_required)return'มีพิกัด แต่ควรตรวจสอบ';if(String(h.coordinate_status||'').startsWith('resolved_'))return'ยืนยันพิกัดจากพื้นที่แล้ว';return'มีพิกัด';}
 function markerColor(h){if(h.review_required)return'#b75a42';if(String(h.coordinate_status||'').startsWith('resolved_'))return'#17745f';return'#3979a8';}
-async function loadProfile(){const {data:{session}}=await supabase.auth.getSession();if(!session)return null;const {data,error}=await supabase.from('profiles').select('user_id,role,community,volunteer_pid,active').eq('user_id',session.user.id).maybeSingle();if(error)throw error;return data;}
+async function loadProfile(){return getSharedProfile(supabase);}
 async function loadHouses(){const {data,error}=await supabase.rpc('my_household_cards_v1860');if(error)throw error;houses=(data||[]).sort(natural);}
 async function loadQuota(){if(profile?.role==='staff')return {limit:null,remaining:null,staff:true};const {data,error}=await supabase.rpc('house_add_quota');if(error)throw error;return data;}
 function renderOptions(term=''){const list=$('[data-myh-house-list]',panel),count=$('[data-myh-filter-count]',panel);if(!list)return;const q=String(term||'').trim().toLowerCase();const filtered=q?houses.filter(h=>String(h.house_no||'').toLowerCase().includes(q)||String(h.hcode||'').toLowerCase().includes(q)||String(h.house_id_11||'').includes(q)):houses;list.innerHTML=filtered.map(h=>`<button type="button" class="myh-house-pick" data-myh-house-pick="${esc(h.id)}"><span><strong>บ้านเลขที่ ${esc(h.house_no||'ไม่ระบุ')}</strong><small>หมู่ ${esc(h.moo||'—')} · ${esc(h.community||'—')} · ${esc(status(h))}</small></span><span>เปิดบ้าน ›</span></button>`).join('')||'<div class="myh-selected-note">ไม่พบบ้านตามคำค้นหา</div>';list.querySelectorAll('[data-myh-house-pick]').forEach(b=>b.onclick=()=>openHouse(b.dataset.myhHousePick));if(count)count.textContent=`พบ ${filtered.length.toLocaleString('th-TH')} หลัง`;}
@@ -79,5 +80,6 @@ async function enhance(){
   })();
   try{return await enhancePromise;}finally{enhancePromise=null;}
 }
-function start(){setVersion();const portal=$('#portal');if(!portal)return;observer?.disconnect();observer=new MutationObserver(()=>{const hp=document.querySelector('[data-portal-panel="houses"]');if(!hp)return;const roots=myHouseRoots(hp);if(hp.dataset.myHousesMobile!==VERSION||roots.length!==1)setTimeout(()=>enhance().catch(()=>{}),40);});observer.observe(portal,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden']});enhance().catch(()=>{});}
-export async function initMyHousesMobile(url,key){if(window.__PHC_MY_HOUSES_1820__)return;window.__PHC_MY_HOUSES_1820__=true;injectStyle();createModal();const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');supabase=createClient(url,key,{auth:{persistSession:true,autoRefreshToken:false,detectSessionInUrl:false}});if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();}
+async function activateHouses(){const hp=document.querySelector('[data-portal-panel="houses"]');if(!hp)return;const roots=myHouseRoots(hp);if(hp.dataset.myHousesMobile!==VERSION||roots.length!==1)await enhance();}
+function start(){setVersion();bindPortalActivation('houses',activateHouses);}
+export async function initMyHousesMobile(url,key){if(window.__PHC_MY_HOUSES_1820__)return;window.__PHC_MY_HOUSES_1820__=true;injectStyle();createModal();supabase=await getSharedSupabase(url,key);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();}

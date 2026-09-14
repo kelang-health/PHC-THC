@@ -1,7 +1,7 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.31';
+import { getSharedSupabase, getSharedProfile } from './shared-runtime-v2035.mjs?v=2.0.35';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.35';
 
-const supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:false,detectSessionInUrl:false}});
+const supabase=await getSharedSupabase(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
 let adminReady=false;
 let observing=false;
 const $=(s,r=document)=>r.querySelector(s);
@@ -23,9 +23,9 @@ async function getStatus(){
 }
 async function checkAdmin(){
   try{
-    const {data:{user}}=await supabase.auth.getUser();if(!user){adminReady=false;return false;}
-    const {data,error}=await supabase.from('profiles').select('role,active').eq('user_id',user.id).maybeSingle();
-    adminReady=!error&&Boolean(data?.active)&&data?.role==='admin';return adminReady;
+    const p=await getSharedProfile(supabase);
+    adminReady=Boolean(p?.active)&&p?.role==='admin';
+    return adminReady;
   }catch{adminReady=false;return false;}
 }
 function boolPill(ok,okText='มีแล้ว',badText='ยังไม่มี'){return `<span class="line-oauth-pill ${ok?'ok':'warn'}">${ok?okText:badText}</span>`;}
@@ -64,7 +64,7 @@ async function openSettings(){
 }
 
 async function ensureAdminButton(){
-  if(!adminReady&&!await checkAdmin())return;
+  if(!adminReady)return;
   if($('#line-oauth-settings-btn'))return;
   const anchor=document.querySelector('[data-admin-line]');if(!anchor)return;
   const row=anchor.closest('.phc190-actions')||anchor.parentElement;if(!row)return;
@@ -72,9 +72,11 @@ async function ensureAdminButton(){
   getStatus().then(s=>{b.dataset.ready=s.configured?'1':'0';}).catch(()=>{b.dataset.ready='0';});
 }
 
+async function refreshAdminState(){await checkAdmin();if(!adminReady)$('#line-oauth-settings-btn')?.remove();else await ensureAdminButton();}
 async function init(){
-  injectStyle();await checkAdmin();await ensureAdminButton();
-  if(!observing){observing=true;new MutationObserver(()=>{ensureAdminButton().catch(()=>{});}).observe(document.body,{childList:true,subtree:true});}
-  supabase.auth.onAuthStateChange(()=>{setTimeout(async()=>{await checkAdmin();if(!adminReady)$('#line-oauth-settings-btn')?.remove();else await ensureAdminButton();},0);});
+  injectStyle();await refreshAdminState();
+  if(!observing){observing=true;new MutationObserver(()=>{if(adminReady)ensureAdminButton().catch(()=>{});}).observe(document.body,{childList:true,subtree:true});}
+  document.addEventListener('phc:auth-ready',()=>refreshAdminState().catch(()=>{}));
+  supabase.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){adminReady=false;$('#line-oauth-settings-btn')?.remove();return;}if(session&&['SIGNED_IN','USER_UPDATED'].includes(event))setTimeout(()=>refreshAdminState().catch(()=>{}),0);});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();

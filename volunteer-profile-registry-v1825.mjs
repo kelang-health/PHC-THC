@@ -1,3 +1,4 @@
+import { getSharedSupabase, getSharedProfile, bindPortalActivation } from './shared-runtime-v2035.mjs?v=2.0.35';
 const VERSION='1.8.36';
 let supabase=null,profile=null,rows=[],avatarObserver=null,portalObserver=null,statusFilter='all',searchText='',communityFilter='',enhancePromise=null,authSubscription=null,syncInfo={},trainingCache=new Map();
 const $=(s,r=document)=>r.querySelector(s);
@@ -31,11 +32,7 @@ function injectStyle(){
   `;document.head.appendChild(s);
 }
 
-async function loadProfile(){
-  const {data:{session}}=await supabase.auth.getSession();if(!session)return null;
-  const {data,error}=await supabase.from('profiles').select('user_id,role,community,volunteer_pid,active').eq('user_id',session.user.id).maybeSingle();
-  if(error)throw error;return data;
-}
+async function loadProfile(){return getSharedProfile(supabase);}
 async function loadRows(){
   const primary=await supabase.rpc('volunteer_registry_profiles_v2');
   if(!primary.error)rows=primary.data||[];
@@ -161,17 +158,10 @@ async function enhance(){
   try{await enhancePromise;}finally{enhancePromise=null;}
 }
 function scheduleEnhance(delay=0){setTimeout(()=>enhance().catch(()=>{}),delay);}
-function start(){
-  scheduleEnhance(0);scheduleEnhance(500);scheduleEnhance(1500);
-  const portal=$('#portal');if(portal&&'MutationObserver'in window){portalObserver=new MutationObserver(m=>{const panelChanged=m.some(x=>x.type==='attributes'&&x.attributeName==='hidden'&&x.target instanceof Element&&x.target.matches('[data-portal-panel]'));if(panelChanged){setTimeout(()=>{if(!profile||!rows.length)scheduleEnhance(0);else{renderRegistry();renderSelfProfile();paintWorkflowTasks();}},80);}});portalObserver.observe(portal,{subtree:true,attributes:true,attributeFilter:['hidden']});}
-  const {data}=supabase.auth.onAuthStateChange((event,session)=>{
-    if(event==='SIGNED_OUT'){clearState();return;}
-    if(session&&['INITIAL_SESSION','SIGNED_IN','TOKEN_REFRESHED','USER_UPDATED'].includes(event))scheduleEnhance(0);
-  });
-  authSubscription=data?.subscription||null;
-}
+async function activateRegistry(){if(!profile||!rows.length)await enhance();else{renderRegistry();renderSelfProfile();paintWorkflowTasks();}}
+function start(){bindPortalActivation('volunteers',activateRegistry);bindPortalActivation('houses',activateRegistry);}
 export async function initVolunteerProfileRegistry1825(url,key){
   if(window.__PHC_VOLUNTEER_PROFILE_REGISTRY_1825__)return;window.__PHC_VOLUNTEER_PROFILE_REGISTRY_1825__=true;injectStyle();
-  const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');supabase=createClient(url,key,{auth:{persistSession:true,autoRefreshToken:false,detectSessionInUrl:false}});
+  supabase=await getSharedSupabase(url,key);
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 }

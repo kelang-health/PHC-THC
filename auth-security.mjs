@@ -1,9 +1,7 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=1.8.28';
+import { getSharedSupabase } from './shared-runtime-v2035.mjs?v=2.0.35';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.35';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: false, detectSessionInUrl: false }
-});
+const supabase = await getSharedSupabase(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const IDLE_TIMEOUT_MS = 10 * 60 * 1000;
 const LAST_ACTIVITY_KEY = 'phc.auth.last-activity';
