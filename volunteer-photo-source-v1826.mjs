@@ -1,4 +1,4 @@
-import { getSharedSupabase, getSharedProfile, bindPortalActivation } from './shared-runtime-v2035.mjs?v=2.0.35';
+import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall, isPortalViewActive } from './shared-runtime-v2035.mjs?v=2.0.35';
 const VERSION='1.8.36';
 let supabase=null,profile=null,photoRows=[],observer=null,mutationObserver=null,refreshPromise=null,authSubscription=null;
 const $=(s,r=document)=>r.querySelector(s);
@@ -14,9 +14,9 @@ async function loadData(){
   const p=await getSharedProfile(supabase);
   if(!p?.active){profile=null;photoRows=[];return;}
   profile=p;
-  const {data,error}=await supabase.rpc('volunteer_registry_profiles_v2');
+  const {data,error}=await sharedCall('volunteer-registry-profiles-v2',()=>supabase.rpc('volunteer_registry_profiles_v2'),15000);
   if(error)return;
-  photoRows=(data||[]).filter(r=>String(r.photo_object_path||'').trim()||validPhotoUrl(r.photo_source_url));
+  const source=profile.role==='user'&&profile.volunteer_pid!=null?(data||[]).filter(r=>String(r.source_pid)===String(profile.volunteer_pid)):(data||[]);photoRows=source.filter(r=>String(r.photo_object_path||'').trim()||validPhotoUrl(r.photo_source_url));
 }
 
 function ensureImg(avatar,row){
@@ -74,22 +74,24 @@ function applyPhotos(){
 
 function setVersion(){const e=$('.login-version');if(e)e.textContent=`Cloud v${VERSION}`;}
 
+function photoViewActive(){return isPortalViewActive('volunteers')||(profile?.role==='user'&&isPortalViewActive('houses'));}
 async function refreshPhotos(){
+  if(profile&&!photoViewActive())return;
   if(refreshPromise)return refreshPromise;
   refreshPromise=(async()=>{await loadData();applyPhotos();setVersion();})();
   try{await refreshPromise;}finally{refreshPromise=null;}
 }
 function scheduleRefresh(delay=0){setTimeout(()=>refreshPhotos().catch(()=>{}),delay);}
 async function start(){
-  bindPortalActivation('volunteers',refreshPhotos);
-  bindPortalActivation('houses',refreshPhotos);
+  bindPortalActivation('volunteers',async()=>{const p=profile||await getSharedProfile(supabase);if(!p?.active||!['admin','staff'].includes(p.role))return;profile=p;await refreshPhotos();});
+  bindPortalActivation('houses',async()=>{const p=profile||await getSharedProfile(supabase);if(!p?.active||p.role!=='user')return;profile=p;await refreshPhotos();});
   const portal=$('#portal');
   if(portal&&'MutationObserver'in window){
     let t=null;
     mutationObserver=new MutationObserver(mutations=>{
       const registryChanged=mutations.some(x=>x.type==='childList'&&[...x.addedNodes].some(n=>n.nodeType===1&&(n.matches?.('.vreg25-card,[data-vreg25],[data-vself25]')||n.querySelector?.('.vreg25-card,[data-vself25]'))));
-      if(!registryChanged)return;
-      clearTimeout(t);t=setTimeout(()=>{if(!profile||!photoRows.length)scheduleRefresh(0);else applyPhotos();},100);
+      if(!registryChanged||!photoViewActive())return;
+      clearTimeout(t);t=setTimeout(()=>{if(!photoViewActive())return;if(!profile||!photoRows.length)scheduleRefresh(0);else applyPhotos();},100);
     });
     mutationObserver.observe(portal,{subtree:true,childList:true});
   }

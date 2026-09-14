@@ -1,4 +1,4 @@
-import { getSharedSupabase, getSharedProfile, bindPortalActivation } from './shared-runtime-v2035.mjs?v=2.0.35';
+import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall } from './shared-runtime-v2035.mjs?v=2.0.35';
 const VERSION='1.8.36';
 let supabase=null,profile=null,rows=[],avatarObserver=null,portalObserver=null,statusFilter='all',searchText='',communityFilter='',enhancePromise=null,authSubscription=null,syncInfo={},trainingCache=new Map();
 const $=(s,r=document)=>r.querySelector(s);
@@ -33,13 +33,21 @@ function injectStyle(){
 }
 
 async function loadProfile(){return getSharedProfile(supabase);}
-async function loadRows(){
-  const primary=await supabase.rpc('volunteer_registry_profiles_v2');
+async function loadRows({light=false}={}){
+  const primary=await sharedCall('volunteer-registry-profiles-v2',()=>supabase.rpc('volunteer_registry_profiles_v2'),15000);
   if(!primary.error)rows=primary.data||[];
   else{
-    const fallback=await supabase.rpc('volunteer_registry_profiles');
+    const fallback=await sharedCall('volunteer-registry-profiles-legacy',()=>supabase.rpc('volunteer_registry_profiles'),15000);
     if(fallback.error)throw primary.error;
     rows=fallback.data||[];
+  }
+  if(light&&profile?.volunteer_pid!=null){
+    rows=rows.filter(r=>String(r.source_pid)===String(profile.volunteer_pid));
+    if(rows.length&&!rows.some(r=>String(r.photo_object_path||'').trim())){
+      const {data:media,error:mediaError}=await supabase.from('volunteer_profile_media').select('source_pid,photo_object_path,photo_source_url,photo_alt').eq('source_pid',profile.volunteer_pid).limit(1);
+      if(!mediaError&&media?.length)rows=rows.map(r=>({...r,...media[0]}));
+    }
+    return;
   }
   if(!rows.some(r=>String(r.photo_object_path||'').trim())){
     const {data:media,error:mediaError}=await supabase.from('volunteer_profile_media').select('source_pid,photo_object_path,photo_source_url,photo_alt');
@@ -153,13 +161,14 @@ async function enhance(){
   enhancePromise=(async()=>{
     const nextProfile=await loadProfile();
     if(!nextProfile?.active){clearState();return;}
-    profile=nextProfile;await Promise.all([loadRows(),loadSyncInfo()]);renderRegistry();renderSelfProfile();paintWorkflowTasks();setVersion();
+    profile=nextProfile;if(profile.role==='user'){await loadRows({light:true});syncInfo={};}else await Promise.all([loadRows(),loadSyncInfo()]);renderRegistry();renderSelfProfile();paintWorkflowTasks();setVersion();
   })();
   try{await enhancePromise;}finally{enhancePromise=null;}
 }
 function scheduleEnhance(delay=0){setTimeout(()=>enhance().catch(()=>{}),delay);}
-async function activateRegistry(){if(!profile||!rows.length)await enhance();else{renderRegistry();renderSelfProfile();paintWorkflowTasks();}}
-function start(){bindPortalActivation('volunteers',activateRegistry);bindPortalActivation('houses',activateRegistry);}
+async function activateVolunteerRegistry(){const p=profile||await loadProfile();if(!p?.active||!['admin','staff'].includes(p.role))return;profile=p;if(!rows.length)await enhance();else{renderRegistry();paintWorkflowTasks();}}
+async function activateHouseRegistry(){const p=profile||await loadProfile();if(!p?.active||p.role!=='user')return;profile=p;if(!rows.length)await enhance();else renderSelfProfile();}
+function start(){bindPortalActivation('volunteers',activateVolunteerRegistry);bindPortalActivation('houses',activateHouseRegistry);}
 export async function initVolunteerProfileRegistry1825(url,key){
   if(window.__PHC_VOLUNTEER_PROFILE_REGISTRY_1825__)return;window.__PHC_VOLUNTEER_PROFILE_REGISTRY_1825__=true;injectStyle();
   supabase=await getSharedSupabase(url,key);

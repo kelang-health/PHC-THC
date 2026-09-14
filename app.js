@@ -30,6 +30,10 @@ let healthPageOffset = 0;
 let healthHasMore = false;
 let healthAbortController = null;
 let healthRequestSequence = 0;
+let healthLoadSignature = '';
+let healthLoadPromise = null;
+let healthLastCompletedSignature = '';
+let healthLastCompletedAt = 0;
 let healthActiveViewName = 'health_person_worklist_active_v1847';
 let healthTargetSettingsV2026 = null;
 const HEALTH_WORKLIST_BASE_COLUMNS='source_pcucode,source_pid,hcode,house_no,moo,community,volunteer_pid,display_name,gender,birth_date,age_years,life_stage,has_ht,has_dm,known_ncd,ncd_target,latest_screened_on,latest_ncd_status,latest_severity,screened_current_fy,previous_screened_on,previous_weight_kg,previous_height_cm,previous_waist_cm,previous_sbp,previous_dbp,previous_glucose_mg_dl,previous_bmi,previous_source,previous_smoking,previous_alcohol,previous_exercise';
@@ -90,14 +94,14 @@ function configurePortalNav(role){
     b.hidden=!(b.dataset.roles||'').split(/\s+/).includes(role);
     const label=b.querySelector('.portal-nav-label'),roleLabelText=labels[role]?.[b.dataset.portalView];if(label&&roleLabelText)label.textContent=roleLabelText;
     b.onclick=async()=>{
-      setPortalView(b.dataset.portalView);
+      const wasActive=portalView===b.dataset.portalView;setPortalView(b.dataset.portalView);
       if(b.dataset.portalView==='work'){try{bindHealthPerformanceControls();bindPerformanceScopeControls();syncPerformanceScopeUI();await loadHealthSummary();}catch(e){const box=$('#health-stats');if(box)box.innerHTML=`<article class="stat"><small>อ่านสรุปผลงานไม่สำเร็จ</small><strong>—</strong></article>`;}}
       if(b.dataset.portalView==='health'){
         const filter=$('#health-filter'),stage=$('#health-stage');
         if(filter)filter.value='field_targets';
         if(stage)stage.value='';
         syncHealthTargetButtons();
-        try{if(!healthLoaded)await loadHealthModule();else await loadHealthPeople();}catch(e){$('#health-person-body').innerHTML=`<tr><td colspan="5">${esc(e.message)}</td></tr>`;}
+        try{if(!healthLoaded)await loadHealthModule();else if(!wasActive)await loadHealthPeople();}catch(e){$('#health-person-body').innerHTML=`<tr><td colspan="5">${esc(e.message)}</td></tr>`;}
       }
     };
   });
@@ -189,7 +193,7 @@ async function setPerformanceScope(next){
   try{localStorage.setItem('phc.care.scope',careScopeMode);localStorage.setItem('phc.field.scope',careScopeMode);if(careScopeVolunteerPid)localStorage.setItem('phc.care.volunteer',String(careScopeVolunteerPid));}catch{}
   syncPerformanceScopeUI();
   document.dispatchEvent(new CustomEvent('phc:care-scope-changed',{detail:{scope:careScopeMode,volunteer_pid:careScopeVolunteerPid,source:'performance'}}));
-  await loadHealthSummary();if(healthLoaded)await loadHealthPeople();
+  if(portalView==='work')await loadHealthSummary();if(healthLoaded&&portalView==='health')await loadHealthPeople();
 }
 function bindPerformanceScopeControls(){
   const control=$('#performance-scope-control');
@@ -286,11 +290,15 @@ async function loadScopedHealthPeopleV2033(filter,stage,raw,offset=0,signal=null
 }
 async function loadHealthPeople(options={}){
   const append=Boolean(options?.append);if(!append)healthPageOffset=0;
-  healthAbortController?.abort();healthAbortController=new AbortController();const requestSequence=++healthRequestSequence;
   let filter=$('#health-filter').value;
   if(filter==='all'&&currentProfile?.role!=='admin'){filter='field_targets';$('#health-filter').value=filter;}
   syncHealthTargetButtons();syncHealthAssignmentControl();
   const stage=$('#health-stage').value,raw=$('#health-search').value.trim();
+  const signature=JSON.stringify({append,scope:effectivePerformanceScope(),filter,stage,search:raw,community:healthCommunityFocus,assignment:healthAssignmentFilter,owner:careScopeVolunteerPid,offset:healthPageOffset,view:healthActiveViewName});
+  if(healthLoadPromise&&healthLoadSignature===signature)return healthLoadPromise;
+  if(!append&&healthLastCompletedSignature===signature&&(Date.now()-healthLastCompletedAt)<1200)return;
+  healthAbortController?.abort();healthAbortController=new AbortController();const requestSequence=++healthRequestSequence;
+  const run=(async()=>{
   let data=null,error=null,usedAssignmentRpc=false,pageResult=null;
   try{pageResult=await loadScopedHealthPeopleV2033(filter,stage,raw,healthPageOffset,healthAbortController.signal);data=pageResult.rows;usedAssignmentRpc=true;}
   catch(e){
@@ -323,6 +331,10 @@ async function loadHealthPeople(options={}){
   $('#health-list-note').textContent=`แสดง ${num(healthPeople.length)} ราย · โหลดครั้งละ ${HEALTH_PAGE_SIZE_V2033} ราย${fallbackNote}`;
   const more=$('#health-load-more');if(more){more.hidden=!healthHasMore;more.disabled=false;more.textContent='โหลดรายชื่อเพิ่ม';}
   document.querySelectorAll('[data-health-person]').forEach(b=>b.onclick=()=>selectHealthPerson(Number(b.dataset.healthPerson)));
+  })();
+  healthLoadSignature=signature;healthLoadPromise=run;
+  try{const result=await run;healthLastCompletedSignature=signature;healthLastCompletedAt=Date.now();return result;}
+  finally{if(healthLoadPromise===run){healthLoadPromise=null;healthLoadSignature='';}}
 }
 async function loadHealthHistory(){
   const {data,error}=await supabase.from('health_ncd_history').select('screened_on,display_name,house_no,hcode,ncd_status,severity,source_label,quality_valid,quality_issues,legacy_cvd_risk,recorded_at,mental_2q_status,mental_2q_result,cvd_risk_percent,cvd_risk_level,cvd_risk_eligible,cvd_risk_reason,cvd_model_version').order('screened_on',{ascending:false}).order('recorded_at',{ascending:false}).limit(50);
@@ -970,14 +982,16 @@ supabase.auth.onAuthStateChange((event,session)=>{
 });
 document.addEventListener('phc:care-scope-changed',async event=>{
   if(event.detail?.source==='performance')return;
+  const previousScope=careScopeMode,previousOwner=careScopeVolunteerPid,previousAssignment=healthAssignmentFilter;
   const next=event.detail?.scope;careScopeMode=['self','volunteer','community','all'].includes(next)?next:'self';careScopeVolunteerPid=Number(event.detail?.volunteer_pid)||careScopeVolunteerPid;
   if(currentProfile?.role==='user')careScopeMode='self';
   if(currentProfile?.role==='admin')careScopeMode='all';
-  if(currentProfile?.role==='staff'){try{localStorage.setItem('phc.care.scope',careScopeMode);localStorage.setItem('phc.field.scope',careScopeMode);if(careScopeVolunteerPid)localStorage.setItem('phc.care.volunteer',String(careScopeVolunteerPid));}catch{}}
   if(careScopeMode!=='community')healthAssignmentFilter='all';
-  syncPerformanceScopeUI();
-  syncHealthAssignmentControl();
-  try{await loadHealthSummary();if(healthLoaded)await loadHealthPeople();}catch{}
+  const changed=previousScope!==careScopeMode||Number(previousOwner||0)!==Number(careScopeVolunteerPid||0)||previousAssignment!==healthAssignmentFilter;
+  if(!changed)return;
+  if(currentProfile?.role==='staff'){try{localStorage.setItem('phc.care.scope',careScopeMode);localStorage.setItem('phc.field.scope',careScopeMode);if(careScopeVolunteerPid)localStorage.setItem('phc.care.volunteer',String(careScopeVolunteerPid));}catch{}}
+  syncPerformanceScopeUI();syncHealthAssignmentControl();
+  try{if(portalView==='work')await loadHealthSummary();if(healthLoaded&&portalView==='health')await loadHealthPeople();}catch{}
 });
 $('#portal-nav-toggle').addEventListener('click',()=>setPortalNavCollapsed(!$('#portal').classList.contains('nav-collapsed')));
 $('#ncd-form').addEventListener('change',event=>{if(event.target.matches('[name="smoking_state"],[name="alcohol_state"]'))syncBehaviorPanels(event.currentTarget);});
