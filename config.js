@@ -5,9 +5,9 @@ if (typeof window !== 'undefined') {
   import('./community-gis-v1822.mjs?v=1.8.63&p=2035')
     .then(async ({ initCommunityGIS1822 }) => {
       await initCommunityGIS1822(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initHouseRegistration } = await import('./community-house-registration-v1819.mjs?v=1.8.19&p=2035');
+      const { initHouseRegistration } = await import('./community-house-registration-v1819.mjs?v=1.8.20&p=2045');
       await initHouseRegistration(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initMyHousesMobile } = await import('./my-houses-mobile-v1820.mjs?v=1.8.63&p=2040');
+      const { initMyHousesMobile } = await import('./my-houses-mobile-v1820.mjs?v=1.8.64&p=2045');
       await initMyHousesMobile(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initMobileSpatialCards } = await import('./mobile-community-volunteer-cards-v1821.mjs?v=1.8.63&p=2037');
       await initMobileSpatialCards(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
