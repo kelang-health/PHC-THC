@@ -53,8 +53,8 @@ const STAFF_SCOPE_CACHE_MS_V2039 = 300000;
 const HOUSEHOLD_CACHE_MS_V2039 = 30000;
 const HEALTH_COORD_TRACE_MAX_V2040 = 40;
 const CLOUD_RELEASE_VERSION = '2.0.33';
-function traceHealthCoordV2040(event,args={}){
-  const row={at:Date.now(),event:String(event||''),scope:String(args.p_scope||''),filter:String(args.p_filter||''),stage:String(args.p_stage||''),hasSearch:Boolean(args.p_search),hasCommunity:Boolean(args.p_community),assignment:String(args.p_assignment||''),hasOwner:Boolean(args.p_owner_pid),offset:Number(args.p_offset||0)};
+function traceHealthCoordV2040(event,args={},trigger=''){
+  const row={at:Date.now(),event:String(event||''),trigger:String(trigger||''),scope:String(args.p_scope||''),filter:String(args.p_filter||''),stage:String(args.p_stage||''),hasSearch:Boolean(args.p_search),hasCommunity:Boolean(args.p_community),assignment:String(args.p_assignment||''),hasOwner:Boolean(args.p_owner_pid),offset:Number(args.p_offset||0)};
   healthCoordTraceV2040.push(row);while(healthCoordTraceV2040.length>HEALTH_COORD_TRACE_MAX_V2040)healthCoordTraceV2040.shift();window.PHCHealthCoordTrace=healthCoordTraceV2040;
 }
 function cancelScheduledHealthLoadV2040(reason='view-left'){
@@ -118,7 +118,7 @@ function configurePortalNav(role){
         if(filter)filter.value='field_targets';
         if(stage)stage.value='';
         syncHealthTargetButtons();
-        try{if(!healthLoaded)await loadHealthModule();else if(!wasActive)await scheduleHealthPeopleLoad();}catch(e){$('#health-person-body').innerHTML=`<tr><td colspan="5">${esc(e.message)}</td></tr>`;}
+        try{if(!healthLoaded)await loadHealthModule();else if(!wasActive)await scheduleHealthPeopleLoad(160,'nav');}catch(e){$('#health-person-body').innerHTML=`<tr><td colspan="5">${esc(e.message)}</td></tr>`;}
       }
     };
   });
@@ -147,8 +147,8 @@ function renderHealthTargetAdminV2026(data){
   host.querySelectorAll('[data-target-route]:not([disabled])').forEach(b=>b.onclick=()=>setHealthTargetGroupV2026(b.dataset.targetRoute,b.dataset.enabled!=='1'));
 }
 async function loadHealthTargetSettingsV2026(){const {data,error}=await supabase.rpc('screening_target_settings_v2026');if(error)throw error;renderHealthTargetAdminV2026(data||{});return data;}
-async function setHealthTargetGroupV2026(route,enabled){if(currentProfile?.role!=='admin')return;const status=$('#health-target-admin-status');if(status)status.textContent='กำลังประมวลผลเป้าหมายใหม่…';try{const {data,error}=await supabase.rpc('admin_set_screening_target_group_v2026',{p_route:route,p_enabled:Boolean(enabled)});if(error)throw error;renderHealthTargetAdminV2026(data||{});if(status)status.textContent='ประมวลผลเป้าหมายใหม่แล้ว';invalidateHealthWorklistCache();if(healthLoaded)await loadHealthPeople({force:true});}catch(e){if(status)status.textContent=e.message;}}
-async function refreshHealthTargetsV2026(){if(currentProfile?.role!=='admin')return;const b=$('#health-target-refresh'),status=$('#health-target-admin-status');if(b)b.disabled=true;if(status)status.textContent='กำลังประมวลผลเป้าหมายทั้งฐาน…';try{const {data,error}=await supabase.rpc('admin_refresh_screening_targets_v2026');if(error)throw error;const settings=data?.settings||await loadHealthTargetSettingsV2026();renderHealthTargetAdminV2026(settings);if(status)status.textContent=`พร้อมใช้งาน ${num(settings?.field_targets)} เป้าหมาย`;invalidateHealthWorklistCache();if(healthLoaded)await loadHealthPeople({force:true});}catch(e){if(status)status.textContent=e.message;}finally{if(b)b.disabled=false;}}
+async function setHealthTargetGroupV2026(route,enabled){if(currentProfile?.role!=='admin')return;const status=$('#health-target-admin-status');if(status)status.textContent='กำลังประมวลผลเป้าหมายใหม่…';try{const {data,error}=await supabase.rpc('admin_set_screening_target_group_v2026',{p_route:route,p_enabled:Boolean(enabled)});if(error)throw error;renderHealthTargetAdminV2026(data||{});if(status)status.textContent='ประมวลผลเป้าหมายใหม่แล้ว';invalidateHealthWorklistCache();if(healthLoaded)await loadHealthPeople({force:true,trigger:'target-config'});}catch(e){if(status)status.textContent=e.message;}}
+async function refreshHealthTargetsV2026(){if(currentProfile?.role!=='admin')return;const b=$('#health-target-refresh'),status=$('#health-target-admin-status');if(b)b.disabled=true;if(status)status.textContent='กำลังประมวลผลเป้าหมายทั้งฐาน…';try{const {data,error}=await supabase.rpc('admin_refresh_screening_targets_v2026');if(error)throw error;const settings=data?.settings||await loadHealthTargetSettingsV2026();renderHealthTargetAdminV2026(settings);if(status)status.textContent=`พร้อมใช้งาน ${num(settings?.field_targets)} เป้าหมาย`;invalidateHealthWorklistCache();if(healthLoaded)await loadHealthPeople({force:true,trigger:'target-refresh'});}catch(e){if(status)status.textContent=e.message;}finally{if(b)b.disabled=false;}}
 function bindHealthTargetAdminV2026(){const b=$('#health-target-refresh');if(!b||b.dataset.bound==='1')return;b.dataset.bound='1';b.onclick=refreshHealthTargetsV2026;}
 async function refreshReportSnapshotsV2031(){if(currentProfile?.role!=='admin')return;const b=$('#report-snapshot-refresh'),status=$('#report-snapshot-status');if(b)b.disabled=true;if(status)status.textContent='กำลังประมวลผลตัวเลขสรุป…';try{const {data,error}=await supabase.rpc('admin_refresh_report_snapshots_v2031');if(error)throw error;if(!data?.ok)throw new Error(data?.status==='busy'?'มีการประมวลผลอยู่แล้ว กรุณารอสักครู่':(data?.error||'ประมวลผลไม่สำเร็จ'));if(status)status.textContent=`ประมวลผลแล้ว ${num(data.cache_rows)} ขอบเขต ใช้เวลา ${(Number(data.duration_ms||0)/1000).toFixed(1)} วินาที`;invalidateShared('report-snapshot:');document.dispatchEvent(new CustomEvent('phc:report-snapshot-refreshed',{detail:data}));await loadHealthSummary();}catch(e){if(status)status.textContent=e.message;}finally{if(b)b.disabled=false;}}
 function bindReportSnapshotAdminV2031(){const b=$('#report-snapshot-refresh');if(!b||b.dataset.bound==='1')return;b.dataset.bound='1';b.onclick=refreshReportSnapshotsV2031;}
@@ -210,7 +210,7 @@ async function setPerformanceScope(next){
   try{localStorage.setItem('phc.care.scope',careScopeMode);localStorage.setItem('phc.field.scope',careScopeMode);if(careScopeVolunteerPid)localStorage.setItem('phc.care.volunteer',String(careScopeVolunteerPid));}catch{}
   syncPerformanceScopeUI();
   document.dispatchEvent(new CustomEvent('phc:care-scope-changed',{detail:{scope:careScopeMode,volunteer_pid:careScopeVolunteerPid,source:'performance'}}));
-  if(portalView==='work')await loadHealthSummary();if(healthLoaded&&portalView==='health')await scheduleHealthPeopleLoad();
+  if(portalView==='work')await loadHealthSummary();if(healthLoaded&&portalView==='health')await scheduleHealthPeopleLoad(160,'scope-control');
 }
 function bindPerformanceScopeControls(){
   const control=$('#performance-scope-control');
@@ -224,7 +224,7 @@ function bindHealthPerformanceControls(){
   refresh.dataset.bound='1';
   refresh.onclick=async()=>{
     refresh.disabled=true;
-    try{invalidateShared('report-snapshot:');invalidateHealthWorklistCache();await loadHealthSummary();if(healthLoaded){await loadHealthPeople({force:true});await loadHealthHistory();}}
+    try{invalidateShared('report-snapshot:');invalidateHealthWorklistCache();await loadHealthSummary();if(healthLoaded){await loadHealthPeople({force:true,trigger:'refresh'});await loadHealthHistory();}}
     catch(e){const box=$('#health-stats');if(box)box.innerHTML=`<article class="stat"><small>รีเฟรชไม่สำเร็จ</small><strong>—</strong></article>`;}
     finally{refresh.disabled=false;}
   };
@@ -278,7 +278,7 @@ function syncHealthTargetButtons(){
 async function setHealthTargetFilter(filter){
   healthCommunityFocus='';
   const focus=$('#health-community-focus');if(focus)focus.hidden=true;
-  $('#health-filter').value=filter;syncHealthTargetButtons();await loadHealthPeople();
+  $('#health-filter').value=filter;syncHealthTargetButtons();await loadHealthPeople({trigger:'filter'});
 }
 async function loadFastHealthTargetsV2030(stage,raw){
   const term=String(raw||'').replace(/[%_,()]/g,'').slice(0,60).trim();
@@ -316,30 +316,30 @@ async function loadScopedHealthPeopleV2033(filter,stage,raw,offset=0,signal=null
   if(Array.isArray(data))return {rows:data,has_more:data.length>=HEALTH_PAGE_SIZE_V2033};
   return {rows:Array.isArray(data?.rows)?data.rows:[],has_more:Boolean(data?.has_more)};
 }
-function scheduleHealthPeopleLoad(delay=160){
-  if(portalView!=='health'){traceHealthCoordV2040('schedule-skip:inactive');return Promise.resolve();}
-  healthRequestSequence+=1;healthAbortController?.abort();healthAbortController=null;healthLoadPromise=null;healthLoadSignature='';traceHealthCoordV2040('scheduled');
-  clearTimeout(healthRefreshTimer);if(!healthRefreshPromise)healthRefreshPromise=new Promise((resolve,reject)=>{healthRefreshResolve=resolve;healthRefreshReject=reject;});healthRefreshTimer=setTimeout(async()=>{const resolve=healthRefreshResolve,reject=healthRefreshReject;healthRefreshTimer=null;healthRefreshPromise=null;healthRefreshResolve=null;healthRefreshReject=null;if(portalView!=='health'){traceHealthCoordV2040('schedule-skip:left');resolve?.();return;}try{resolve?.(await loadHealthPeople());}catch(e){reject?.(e);}},delay);return healthRefreshPromise;
+function scheduleHealthPeopleLoad(delay=160,trigger='scheduled'){
+  if(portalView!=='health'){traceHealthCoordV2040('schedule-skip:inactive',{},trigger);return Promise.resolve();}
+  healthRequestSequence+=1;healthAbortController?.abort();healthAbortController=null;healthLoadPromise=null;healthLoadSignature='';traceHealthCoordV2040('scheduled',{},trigger);
+  clearTimeout(healthRefreshTimer);if(!healthRefreshPromise)healthRefreshPromise=new Promise((resolve,reject)=>{healthRefreshResolve=resolve;healthRefreshReject=reject;});healthRefreshTimer=setTimeout(async()=>{const resolve=healthRefreshResolve,reject=healthRefreshReject;healthRefreshTimer=null;healthRefreshPromise=null;healthRefreshResolve=null;healthRefreshReject=null;if(portalView!=='health'){traceHealthCoordV2040('schedule-skip:left',{},trigger);resolve?.();return;}try{resolve?.(await loadHealthPeople({trigger}));}catch(e){reject?.(e);}},delay);return healthRefreshPromise;
 }
 function invalidateHealthWorklistCache(){healthLastCompletedSignature='';healthLastCompletedAt=0;invalidateShared('health-worklist-v2040:');}
 async function loadHealthPeople(options={}){
-  const append=Boolean(options?.append),force=Boolean(options?.force),allowInactive=Boolean(options?.allowInactive);
-  if(!allowInactive&&portalView!=='health'){traceHealthCoordV2040('load-skip:inactive');return;}
+  const append=Boolean(options?.append),force=Boolean(options?.force),allowInactive=Boolean(options?.allowInactive),trigger=String(options?.trigger||'direct');
+  if(!allowInactive&&portalView!=='health'){traceHealthCoordV2040('load-skip:inactive',{},trigger);return;}
   if(!append)healthPageOffset=0;
   let filter=$('#health-filter').value;
   if(filter==='all'&&currentProfile?.role!=='admin'){filter='field_targets';$('#health-filter').value=filter;}
   syncHealthTargetButtons();syncHealthAssignmentControl();
   const stage=$('#health-stage').value,raw=$('#health-search').value.trim(),requestArgs=healthWorklistArgsV2040(filter,stage,raw,healthPageOffset);
-  const signature=JSON.stringify({mode:append?'append':'base',...requestArgs});traceHealthCoordV2040('load',requestArgs);
-  if(healthLoadPromise&&healthLoadSignature===signature){traceHealthCoordV2040('coalesced',requestArgs);return healthLoadPromise;}
-  if(!force&&!append&&healthLastCompletedSignature===signature&&(Date.now()-healthLastCompletedAt)<HEALTH_WORKLIST_CACHE_MS_V2039){traceHealthCoordV2040('recent-hit',requestArgs);return;}
-  if(healthLoadPromise&&healthLoadSignature!==signature)traceHealthCoordV2040('supersede-key',requestArgs);
+  const signature=JSON.stringify({mode:append?'append':'base',...requestArgs});traceHealthCoordV2040('load',requestArgs,trigger);
+  if(healthLoadPromise&&healthLoadSignature===signature){traceHealthCoordV2040('coalesced',requestArgs,trigger);return healthLoadPromise;}
+  if(!force&&!append&&healthLastCompletedSignature===signature&&(Date.now()-healthLastCompletedAt)<HEALTH_WORKLIST_CACHE_MS_V2039){traceHealthCoordV2040('recent-hit',requestArgs,trigger);return;}
+  if(healthLoadPromise&&healthLoadSignature!==signature)traceHealthCoordV2040('supersede-key',requestArgs,trigger);
   healthAbortController?.abort();healthAbortController=new AbortController();const requestSequence=++healthRequestSequence,requestEpoch=healthViewEpochV2040;
   const run=(async()=>{
   let data=null,error=null,usedAssignmentRpc=false,pageResult=null;
   try{pageResult=await loadScopedHealthPeopleV2033(filter,stage,raw,healthPageOffset,healthAbortController.signal,{force,argsOverride:requestArgs});data=pageResult.rows;usedAssignmentRpc=true;}
   catch(e){
-    if(e?.name==='AbortError'||requestSequence!==healthRequestSequence||requestEpoch!==healthViewEpochV2040||(!allowInactive&&portalView!=='health')){traceHealthCoordV2040('discarded',requestArgs);return;}
+    if(e?.name==='AbortError'||requestSequence!==healthRequestSequence||requestEpoch!==healthViewEpochV2040||(!allowInactive&&portalView!=='health')){traceHealthCoordV2040('discarded',requestArgs,trigger);return;}
     if(!assignmentRpcUnavailableV2033(e)||requestArgs.p_assignment!=='all'||requestArgs.p_scope==='volunteer')throw e;
     const fastTarget=filter==='field_targets';
     if(fastTarget){try{data=await loadFastHealthTargetsV2030(stage,raw);}catch(inner){error=inner;}}
@@ -352,9 +352,9 @@ async function loadHealthPeople(options={}){
       const res=await q;data=res.data;error=res.error;
     }
   }
-  if(requestSequence!==healthRequestSequence||requestEpoch!==healthViewEpochV2040||(!allowInactive&&portalView!=='health')){traceHealthCoordV2040('discarded',requestArgs);return;}
-  if(error&&!usedAssignmentRpc&&healthWorklistSchemaFallbackAllowed(error)&&healthActiveViewName==='health_person_worklist_active_v1847'){healthActiveViewName='health_person_worklist_active_v1841';return loadHealthPeople();}
-  if(error&&!usedAssignmentRpc&&healthWorklistSchemaFallbackAllowed(error)&&healthActiveViewName==='health_person_worklist_active_v1841'){healthActiveViewName='health_person_worklist';return loadHealthPeople();}
+  if(requestSequence!==healthRequestSequence||requestEpoch!==healthViewEpochV2040||(!allowInactive&&portalView!=='health')){traceHealthCoordV2040('discarded',requestArgs,trigger);return;}
+  if(error&&!usedAssignmentRpc&&healthWorklistSchemaFallbackAllowed(error)&&healthActiveViewName==='health_person_worklist_active_v1847'){healthActiveViewName='health_person_worklist_active_v1841';return loadHealthPeople({trigger});}
+  if(error&&!usedAssignmentRpc&&healthWorklistSchemaFallbackAllowed(error)&&healthActiveViewName==='health_person_worklist_active_v1841'){healthActiveViewName='health_person_worklist';return loadHealthPeople({trigger});}
   if(error)throw error;
   const pageRows=(data||[]).map(p=>({...p,has_cvd:Boolean(p.has_cvd),cvd_population_eligible:Boolean(p.cvd_population_eligible)}));
   healthPeople=append?[...healthPeople,...pageRows]:pageRows;healthPageOffset=healthPeople.length;healthHasMore=usedAssignmentRpc?Boolean(pageResult?.has_more):false;
@@ -370,7 +370,7 @@ async function loadHealthPeople(options={}){
   document.querySelectorAll('[data-health-person]').forEach(b=>b.onclick=()=>selectHealthPerson(Number(b.dataset.healthPerson)));
   })();
   healthLoadSignature=signature;healthLoadPromise=run;
-  try{const result=await run;if(requestSequence===healthRequestSequence&&requestEpoch===healthViewEpochV2040&&(allowInactive||portalView==='health')){healthLastCompletedSignature=signature;healthLastCompletedAt=Date.now();traceHealthCoordV2040('complete',requestArgs);}return result;}
+  try{const result=await run;if(requestSequence===healthRequestSequence&&requestEpoch===healthViewEpochV2040&&(allowInactive||portalView==='health')){healthLastCompletedSignature=signature;healthLastCompletedAt=Date.now();traceHealthCoordV2040('complete',requestArgs,trigger);}return result;}
   finally{if(healthLoadPromise===run){healthLoadPromise=null;healthLoadSignature='';}}
 }
 async function loadHealthHistory(){
@@ -667,7 +667,7 @@ function bindNcdSectionNav(){
 
 function syncNcdTestResetV208(){const adminTest=Boolean(currentProfile?.role==='admin'&&preGoLiveTestModeV208());const b=$('#ncd-reset-test'),note=$('#ncd-test-mode-note');if(b)b.hidden=!(adminTest&&selectedHealthPerson);if(note)note.hidden=!adminTest;}
 function routeForAgeV208(age){age=Number(age);return age<6?'child_0_5':age<15?'school_6_14':age<35?'youth_15_34':age<60?'ncd_35_59':'elderly_60_plus';}
-async function resetSelectedNcdTestV208(){const p=selectedHealthPerson;if(!p||currentProfile?.role!=='admin'||!preGoLiveTestModeV208())return;if(!confirm(`รีเซทข้อมูลทดสอบของ ${p.display_name}?\n\nหากเป็นผู้สูงอายุ ระบบจะรีเซท NCD ทดสอบและ 9 ด้านของช่วงทดสอบร่วมกัน ประวัติเดิมจาก JHCIS / J-Report / 3Doctor จะไม่ถูกลบ`))return;const b=$('#ncd-reset-test');if(b)b.disabled=true;try{const {error}=await supabase.rpc('admin_reset_person_test_screening_v2022',{p_source_pcucode:p.source_pcucode,p_source_pid:Number(p.source_pid),p_route:routeForAgeV208(p.age_years),p_reason:'ผู้ใช้กดรีเซทข้อมูลทดสอบจากหน้า NCD'});if(error)throw error;$('#ncd-form').reset();$('#ncd-result').hidden=true;closeHealthFeedbackCard();healthFeedbackModel=null;await Promise.all([loadHealthSummary(),loadHealthPeople(),loadHealthHistory()]);const fresh=healthPeople.find(x=>personKey(x)===personKey(p));if(fresh){selectedHealthPerson=fresh;renderPreviousPanel(fresh)}alert('รีเซทข้อมูลทดสอบแล้ว');}catch(e){$('#ncd-error').textContent=e.message;}finally{if(b)b.disabled=false;syncNcdTestResetV208();}}
+async function resetSelectedNcdTestV208(){const p=selectedHealthPerson;if(!p||currentProfile?.role!=='admin'||!preGoLiveTestModeV208())return;if(!confirm(`รีเซทข้อมูลทดสอบของ ${p.display_name}?\n\nหากเป็นผู้สูงอายุ ระบบจะรีเซท NCD ทดสอบและ 9 ด้านของช่วงทดสอบร่วมกัน ประวัติเดิมจาก JHCIS / J-Report / 3Doctor จะไม่ถูกลบ`))return;const b=$('#ncd-reset-test');if(b)b.disabled=true;try{const {error}=await supabase.rpc('admin_reset_person_test_screening_v2022',{p_source_pcucode:p.source_pcucode,p_source_pid:Number(p.source_pid),p_route:routeForAgeV208(p.age_years),p_reason:'ผู้ใช้กดรีเซทข้อมูลทดสอบจากหน้า NCD'});if(error)throw error;$('#ncd-form').reset();$('#ncd-result').hidden=true;closeHealthFeedbackCard();healthFeedbackModel=null;await Promise.all([loadHealthSummary(),loadHealthPeople({trigger:'reset-test'}),loadHealthHistory()]);const fresh=healthPeople.find(x=>personKey(x)===personKey(p));if(fresh){selectedHealthPerson=fresh;renderPreviousPanel(fresh)}alert('รีเซทข้อมูลทดสอบแล้ว');}catch(e){$('#ncd-error').textContent=e.message;}finally{if(b)b.disabled=false;syncNcdTestResetV208();}}
 
 async function selectHealthPerson(index,forceNcd=false){
   const p=healthPeople[index]; if(!p)return; if(!forceNcd&&window.PHCFiveFeatures190?.openAgeScreening){const seed={plan_date:p.screening_plan_date||'',age_years:Number(p.age_years),age_months:Number(p.screening_age_months),route:p.screening_route||'',route_label:p.screening_route_label||'',dspm_target_months:p.screening_dspm_target_months??null,latest_screened_on:p.latest_screened_on||''};window.PHCFiveFeatures190.openAgeScreening(p.source_pcucode,Number(p.source_pid),p.display_name,seed);return;} await hydratePreviousScreening(p); selectedHealthPerson=p;
@@ -716,7 +716,7 @@ function returnToHealthWorklist(saved,person){
 }
 async function refreshHealthAfterSaveV2022(){
   invalidateHealthWorklistCache();invalidateShared('report-snapshot:');invalidateShared('assignment-summary:');
-  try{await loadHealthPeople({force:true});}catch(e){console.warn('[NCD post-save refresh] รายชื่อ',e);}
+  try{await loadHealthPeople({force:true,trigger:'post-save'});}catch(e){console.warn('[NCD post-save refresh] รายชื่อ',e);}
   setTimeout(()=>loadHealthHistory().catch(e=>console.warn('[NCD post-save refresh] ประวัติ',e)),1400+Math.floor(Math.random()*1200));
   if(portalView==='work')setTimeout(()=>loadHealthSummary().catch(e=>console.warn('[NCD post-save refresh] สรุปผลงาน',e)),500+Math.floor(Math.random()*700));
 }
@@ -751,7 +751,7 @@ async function loadHealthModule(){
   syncHealthTargetButtons();
   if(currentProfile?.role==='admin')loadHealthTargetSettingsV2026().catch(e=>{const x=$('#health-target-admin-status');if(x)x.textContent=e.message;});
   const targetBody=$('#health-person-body');if(targetBody&&!targetBody.children.length)targetBody.innerHTML='<tr><td colspan="5">กำลังโหลดรายชื่อเป้าหมาย…</td></tr>';
-  await loadHealthPeople(); healthLoaded=true;
+  await loadHealthPeople({trigger:'module-init'}); healthLoaded=true;
   // Health field work must become interactive first; history is secondary and staggered to avoid concurrent spikes.
   setTimeout(()=>loadHealthHistory().catch(e=>console.warn('[health history]',e)),1600+Math.floor(Math.random()*1400));
   bindNcdSectionNav();
@@ -761,12 +761,12 @@ async function loadHealthModule(){
   const saveConfirmation=$('#ncd-save-confirmation');$('#ncd-save-confirmation-ok').onclick=()=>{closeNcdSaveConfirmation(false);viewHealthFeedback();};$('#ncd-save-confirmation-close').onclick=()=>closeNcdSaveConfirmation();saveConfirmation.onclick=e=>{if(e.target===saveConfirmation)closeNcdSaveConfirmation();};saveConfirmation.onkeydown=e=>{if(e.key==='Escape')closeNcdSaveConfirmation();};
   $('#health-feedback-share').onclick=shareHealthFeedback;$('#health-feedback-close').onclick=closeHealthFeedbackCard;
   bindHealthPerformanceControls();
-  $('#health-clear-community').onclick=async()=>{healthCommunityFocus='';focus.hidden=true;await scheduleHealthPeopleLoad();};
+  $('#health-clear-community').onclick=async()=>{healthCommunityFocus='';focus.hidden=true;await scheduleHealthPeopleLoad(160,'community-focus');};
   $('#health-view-linked-targets').onclick=()=>setHealthTargetFilter('field_targets'); $('#health-view-all-targets').onclick=()=>setHealthTargetFilter('targets');
-  $('#health-filter').onchange=()=>{syncHealthTargetButtons();return scheduleHealthPeopleLoad();}; $('#health-stage').onchange=()=>scheduleHealthPeopleLoad();
-  const assignmentSelect=$('#health-assignment');if(assignmentSelect)assignmentSelect.onchange=()=>{healthAssignmentFilter=assignmentSelect.value||'all';return scheduleHealthPeopleLoad();};
-  const loadMore=$('#health-load-more');if(loadMore)loadMore.onclick=async()=>{loadMore.disabled=true;loadMore.textContent='กำลังโหลด…';try{await loadHealthPeople({append:true});}catch(e){$('#health-list-note').textContent=e.message;loadMore.disabled=false;}};
-  $('#health-search').oninput=()=>{clearTimeout(healthSearchTimer);healthSearchTimer=setTimeout(()=>loadHealthPeople().catch(e=>$('#health-list-note').textContent=e.message),300);};
+  $('#health-filter').onchange=()=>{syncHealthTargetButtons();return scheduleHealthPeopleLoad(160,'filter');}; $('#health-stage').onchange=()=>scheduleHealthPeopleLoad(160,'stage');
+  const assignmentSelect=$('#health-assignment');if(assignmentSelect)assignmentSelect.onchange=()=>{healthAssignmentFilter=assignmentSelect.value||'all';return scheduleHealthPeopleLoad(160,'assignment');};
+  const loadMore=$('#health-load-more');if(loadMore)loadMore.onclick=async()=>{loadMore.disabled=true;loadMore.textContent='กำลังโหลด…';try{await loadHealthPeople({append:true,trigger:'pagination'});}catch(e){$('#health-list-note').textContent=e.message;loadMore.disabled=false;}};
+  $('#health-search').oninput=()=>{clearTimeout(healthSearchTimer);healthSearchTimer=setTimeout(()=>loadHealthPeople({trigger:'search'}).catch(e=>$('#health-list-note').textContent=e.message),300);};
 }
 
 function normalizePhone(value){
@@ -814,7 +814,7 @@ async function openCommunity(index){
     workspace.innerHTML=`<div class="community-workspace-head"><div><p class="eyebrow">OSM-PHC COMMUNITY WORKSPACE</p><h3>${esc(row.community||'ไม่ระบุชุมชน')}</h3><p>ข้อมูลครัวเรือน อสม. พิกัด และงานสุขภาพที่บัญชี ${esc(roleLabel(currentProfile?.role))} มีสิทธิ์เห็น</p></div><button type="button" class="secondary" data-community-close>ปิด</button></div><div class="community-actions"><button type="button" class="active" data-community-action="overview"><span>◫</span><strong>สรุปชุมชน</strong><small>${num(houses.length)} หลัง</small></button><button type="button" data-community-action="houses"><span>⌂</span><strong>ครัวเรือน</strong><small>เปิดทะเบียนบ้าน</small></button><button type="button" data-community-action="volunteers"><span>♧</span><strong>อสม.</strong><small>${num(volunteers.length)} คนในสิทธิ์</small></button><button type="button" data-community-action="review"><span>✓</span><strong>ตรวจข้อมูล</strong><small>${num(review.length)} รายการ</small></button><button type="button" data-community-action="health"><span>✚</span><strong>งานสุขภาพ</strong><small>NCD และ 2Q</small></button></div><section class="community-view" data-community-view="overview"><div class="community-metrics"><article><small>ครัวเรือนในสิทธิ์</small><strong>${num(houses.length)}</strong></article><article><small>มอบหมาย อสม.</small><strong>${num(houses.filter(h=>h.volunteer_pid!==null).length)}</strong></article><article><small>มีพิกัด</small><strong>${num(mapped.length)}</strong></article><article><small>ต้องตรวจข้อมูล</small><strong>${num(review.length)}</strong></article></div><p class="community-scope-note">ระบบใช้ RLS กรองข้อมูลอัตโนมัติ ไม่สามารถเปิดชุมชนหรือบ้านนอกขอบเขตของบัญชีนี้ได้</p></section><section class="community-view" data-community-view="houses" hidden><h4>ทะเบียนครัวเรือน</h4><div class="table-wrap"><table><thead><tr><th>บ้าน</th><th>หมู่</th><th>สถานะ</th><th>คุณภาพข้อมูล</th><th>พิกัด</th></tr></thead><tbody>${communityHouseRows(houses)}</tbody></table></div></section><section class="community-view" data-community-view="volunteers" hidden><h4>ทะเบียน อสม. และเขตรับผิดชอบ</h4><div class="table-wrap"><table><thead><tr><th>อสม.</th><th>Anchor</th><th>บ้าน</th><th>ต้องตรวจ</th><th>ข้ามชุมชน</th></tr></thead><tbody>${volunteerRows}</tbody></table></div></section><section class="community-view" data-community-view="review" hidden><h4>รายการที่ต้องตรวจสอบ</h4><div class="table-wrap"><table><thead><tr><th>บ้าน</th><th>หมู่</th><th>สถานะ</th><th>คุณภาพข้อมูล</th><th>พิกัด</th></tr></thead><tbody>${communityHouseRows(review)}</tbody></table></div></section>`;
     workspace.querySelector('[data-community-close]').onclick=()=>{communityRequestId+=1;workspace.hidden=true;};
     workspace.querySelectorAll('[data-community-action]').forEach(button=>button.onclick=async()=>{
-      const action=button.dataset.communityAction;if(action==='health'){healthCommunityFocus=row.community;setPortalView('health');try{if(!healthLoaded)await loadHealthModule();else{const focus=$('#health-community-focus');focus.hidden=false;focus.querySelector('strong').textContent=healthCommunityFocus;await loadHealthPeople();}}catch(e){$('#health-list-note').textContent=e.message;}return;}
+      const action=button.dataset.communityAction;if(action==='health'){healthCommunityFocus=row.community;setPortalView('health');try{if(!healthLoaded)await loadHealthModule();else{const focus=$('#health-community-focus');focus.hidden=false;focus.querySelector('strong').textContent=healthCommunityFocus;await loadHealthPeople({trigger:'community-focus'});}}catch(e){$('#health-list-note').textContent=e.message;}return;}
       workspace.querySelectorAll('[data-community-action]').forEach(x=>x.classList.toggle('active',x===button));workspace.querySelectorAll('[data-community-view]').forEach(x=>x.hidden=x.dataset.communityView!==action);
     });
   }catch(error){if(request===communityRequestId)workspace.innerHTML=`<p class="error">${esc(error.message)}</p>`;}
@@ -1032,7 +1032,7 @@ document.addEventListener('phc:care-scope-changed',async event=>{
   if(!changed)return;
   if(currentProfile?.role==='staff'){try{localStorage.setItem('phc.care.scope',careScopeMode);localStorage.setItem('phc.field.scope',careScopeMode);if(careScopeVolunteerPid)localStorage.setItem('phc.care.volunteer',String(careScopeVolunteerPid));}catch{}}
   syncPerformanceScopeUI();syncHealthAssignmentControl();
-  try{if(portalView==='work')await loadHealthSummary();if(healthLoaded&&portalView==='health')await scheduleHealthPeopleLoad();}catch{}
+  try{if(portalView==='work')await loadHealthSummary();if(healthLoaded&&portalView==='health')await scheduleHealthPeopleLoad(160,'scope-event');}catch{}
 });
 $('#portal-nav-toggle').addEventListener('click',()=>setPortalNavCollapsed(!$('#portal').classList.contains('nav-collapsed')));
 $('#ncd-form').addEventListener('change',event=>{if(event.target.matches('[name="smoking_state"],[name="alcohol_state"]'))syncBehaviorPanels(event.currentTarget);});
