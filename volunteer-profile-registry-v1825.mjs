@@ -70,12 +70,13 @@ async function loadSyncInfo(){
   syncInfo={};(data||[]).forEach(x=>{syncInfo[x.key]={...(x.value||{}),updated_at:x.updated_at};});
 }
 async function loadTraining(pid){
-  const key=String(pid||'');if(!key)return [];
+  const key=String(pid||'');if(!key)return {items:[],error:null};
   if(trainingCache.has(key))return trainingCache.get(key);
-  const request=supabase.rpc('volunteer_training_profile',{p_source_pid:Number(pid)}).then(({data,error})=>{if(error)throw error;return data||[];}).catch(()=>[]);
+  const request=supabase.rpc('volunteer_training_profile',{p_source_pid:Number(pid)}).then(({data,error})=>({items:error?[]:(data||[]),error:error||null})).catch(error=>({items:[],error}));
   trainingCache.set(key,request);return request;
 }
-function trainingMarkup(items){
+function trainingMarkup(items,error=null){
+  if(error)return `<div class="vreg25-training-head"><strong>ประวัติการอบรม</strong></div><div class="vreg25-training-summary vreg25-photo-missing">โหลดประวัติการอบรมไม่สำเร็จ · กรุณาลองเปิดใหม่อีกครั้ง</div>`;
   const active=items.filter(x=>x.event_status!=='cancelled'),hours=active.reduce((a,x)=>a+Number(x.hours||0),0),last=active[0]?.event_date||'';
   const rows=items.slice(0,6).map(x=>`<div class="vreg25-training-item ${x.event_status==='cancelled'?'cancelled':''}"><strong>${esc(x.course_name||'ไม่ระบุหลักสูตร')}${x.event_status==='cancelled'?' · ยกเลิก':''}</strong><small>${thDate(x.event_date)} · ${Number(x.hours||0).toLocaleString('th-TH')} ชม.${x.category?' · '+esc(x.category):''}${x.attendance_status?' · '+esc(x.attendance_status):''}${x.result?' · '+esc(x.result):''}</small></div>`).join('');
   return `<div class="vreg25-training-head"><strong>ประวัติการอบรม</strong><span class="vreg25-training-summary">${num(active.length)} ครั้ง · ${hours.toLocaleString('th-TH')} ชม.</span></div>${last?`<div class="vreg25-training-summary">ล่าสุด ${thDate(last)}</div>`:''}<div class="vreg25-training-list">${rows||'<div class="vreg25-training-summary">ยังไม่มีประวัติการอบรม</div>'}</div>`;
@@ -83,7 +84,7 @@ function trainingMarkup(items){
 async function renderTraining(detail,pid){
   const box=detail?.querySelector('[data-v25-training]');if(!box||box.dataset.loaded==='1')return;
   box.dataset.loaded='1';box.innerHTML='<div class="vreg25-training-summary">กำลังโหลดประวัติการอบรม…</div>';
-  const items=await loadTraining(pid);box.innerHTML=trainingMarkup(items);
+  const result=await loadTraining(pid);box.innerHTML=trainingMarkup(result.items,result.error);
 }
 
 function avatarHtml(v,small=false){
@@ -142,6 +143,14 @@ function renderRegistry(){
   const community=root.querySelector('[data-v25-community]');if(community)community.onchange=e=>{communityFilter=e.target.value;drawRegistry(root);};
   root.querySelectorAll('[data-v25-status]').forEach(b=>b.onclick=()=>{statusFilter=b.dataset.v25Status;root.querySelectorAll('[data-v25-status]').forEach(x=>x.classList.toggle('active',x===b));drawRegistry(root);});drawRegistry(root);
 }
+function renderWorkProfile(){
+  if(!['user','staff'].includes(profile?.role))return;const panel=$('[data-portal-panel="work"]');if(!panel)return;
+  const linked=rows.find(x=>String(x.source_pid)===String(profile.volunteer_pid))||(profile.volunteer_pid!=null?rows[0]:null),v=linked||{source_pid:null,display_name:profile.display_name,community:profile.community,active:true,house_count:0,pinned_count:0,issue_house_count:0,status_code:'yellow',status_label:'ยังไม่ได้เชื่อมทะเบียน อสม.'};
+  document.querySelector('[data-vself25]')?.remove();
+  let root=$('[data-vwork25]',panel);if(!root){root=document.createElement('details');root.className='vself25 vwork25';root.dataset.vwork25='1';const performance=panel.querySelector('.health-performance-overview');if(performance)performance.insertAdjacentElement('afterend',root);else panel.prepend(root);}
+  const code=statusClass(v.status_code),roleText=profile.role==='staff'?'ประธาน อสม.':'อสม.',hasRegistryPid=v.source_pid!==null&&v.source_pid!==undefined;
+  root.innerHTML=`<summary>${avatarHtml(v,true)}<span class="vself25-title"><strong>${esc(v.display_name||profile.display_name||roleText)}</strong><small>${roleText} · ${esc(v.community||profile.community||'—')} · ${esc(v.status_label||statusLabel(code))}</small></span><span class="vself25-more">โปรไฟล์ / การอบรม</span></summary><div class="vself25-body"><div class="vreg25-profile-strip"><div><small>บทบาท</small><strong>${roleText}</strong></div><div><small>สถานะทะเบียน</small><strong>${hasRegistryPid?(v.active===false?'ยุติ/ไม่ใช้งาน':'ใช้งาน'):'ยังไม่ได้เชื่อม'}</strong></div><div><small>พื้นที่</small><strong>${esc(v.community||profile.community||'—')}</strong></div></div><div class="vreg25-kpis"><div class="vreg25-kpi"><small>บ้านรับผิดชอบ</small><strong>${num(v.house_count)}</strong></div><div class="vreg25-kpi good"><small>ปักหมุดแล้ว</small><strong>${num(v.pinned_count)}</strong></div><div class="vreg25-kpi ${Number(v.issue_house_count)>0?'warn':'good'}"><small>ต้องจัดการ</small><strong>${num(v.issue_house_count)}</strong></div></div>${hasRegistryPid?`<section class="vreg25-training" data-v25-training="${esc(v.source_pid)}"><div class="vreg25-training-summary">เปิดโปรไฟล์เพื่อโหลดประวัติการอบรม</div></section>`:'<section class="vreg25-training"><div class="vreg25-training-summary vreg25-photo-missing">บัญชีนี้ยังไม่ได้เชื่อมกับทะเบียน อสม. จึงยังอ่านประวัติการอบรมไม่ได้</div></section>'}</div>`;observeAvatars(root);root.ontoggle=()=>{if(root.open&&hasRegistryPid)renderTraining(root,v.source_pid);};
+}
 function renderSelfProfile(){
   if(profile?.role!=='user')return;const panel=$('[data-portal-panel="houses"]');if(!panel)return;const v=rows.find(x=>String(x.source_pid)===String(profile.volunteer_pid))||rows[0];if(!v)return;
   let root=$('[data-vself25]',panel);if(!root){root=document.createElement('details');root.className='vself25';root.dataset.vself25='1';const head=panel.querySelector('.section-head');head?.insertAdjacentElement('afterend',root);}
@@ -154,6 +163,7 @@ function clearState(){
   profile=null;rows=[];syncInfo={};trainingCache.clear();
   document.querySelector('[data-vreg25]')?.remove();
   document.querySelector('[data-vself25]')?.remove();
+  document.querySelector('[data-vwork25]')?.remove();
   document.querySelector('[data-portal-panel="volunteers"]')?.classList.remove('vreg25-ready');
 }
 async function enhance(){
@@ -161,14 +171,14 @@ async function enhance(){
   enhancePromise=(async()=>{
     const nextProfile=await loadProfile();
     if(!nextProfile?.active){clearState();return;}
-    profile=nextProfile;if(profile.role==='user'){await loadRows({light:true});syncInfo={};}else await Promise.all([loadRows(),loadSyncInfo()]);renderRegistry();renderSelfProfile();paintWorkflowTasks();setVersion();
+    profile=nextProfile;if(['user','staff'].includes(profile.role)){await loadRows({light:true});syncInfo={};}else await Promise.all([loadRows(),loadSyncInfo()]);renderRegistry();renderWorkProfile();paintWorkflowTasks();setVersion();
   })();
   try{await enhancePromise;}finally{enhancePromise=null;}
 }
 function scheduleEnhance(delay=0){setTimeout(()=>enhance().catch(()=>{}),delay);}
 async function activateVolunteerRegistry(){const p=profile||await loadProfile();if(!p?.active||!['admin','staff'].includes(p.role))return;profile=p;if(!rows.length)await enhance();else{renderRegistry();paintWorkflowTasks();}}
-async function activateHouseRegistry(){const p=profile||await loadProfile();if(!p?.active||p.role!=='user')return;profile=p;if(!rows.length)await enhance();else renderSelfProfile();}
-function start(){bindPortalActivation('volunteers',activateVolunteerRegistry);bindPortalActivation('houses',activateHouseRegistry);}
+async function activateWorkProfile(){const p=profile||await loadProfile();if(!p?.active||!['user','staff'].includes(p.role))return;profile=p;if(p.volunteer_pid!=null){const own=rows.find(x=>String(x.source_pid)===String(p.volunteer_pid));if(!own)await loadRows({light:true});}renderWorkProfile();}
+function start(){bindPortalActivation('volunteers',activateVolunteerRegistry);bindPortalActivation('work',activateWorkProfile);}
 export async function initVolunteerProfileRegistry1825(url,key){
   if(window.__PHC_VOLUNTEER_PROFILE_REGISTRY_1825__)return;window.__PHC_VOLUNTEER_PROFILE_REGISTRY_1825__=true;injectStyle();
   supabase=await getSharedSupabase(url,key);

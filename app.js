@@ -1,4 +1,4 @@
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.33&p=2040';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.33&p=2042';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 import { getSharedSupabase, setSharedSession, setSharedProfile, clearSharedAuth, sharedCall, invalidateShared } from './shared-runtime-v2035.mjs?v=2.0.35';
 
@@ -304,6 +304,10 @@ function healthWorklistArgsV2040(filter,stage,raw,offset=0){
   const owner=scope==='volunteer'?(Number(careScopeVolunteerPid)||null):null;
   return {p_scope:scope,p_filter:String(filter||'field_targets'),p_stage:String(stage||'').trim()||null,p_search:term||null,p_community:community,p_assignment:assignmentAllowed?(healthAssignmentFilter||'all'):'all',p_owner_pid:owner,p_limit:HEALTH_PAGE_SIZE_V2033,p_offset:Number(offset||0)};
 }
+function healthFieldQueuePendingV2042(row){
+  if(!row)return false;if(Boolean(row.screened_current_fy))return false;
+  const latest=String(row.latest_screened_on||'').slice(0,10);return !latest||latest!==localDate();
+}
 async function loadScopedHealthPeopleV2033(filter,stage,raw,offset=0,signal=null,{force=false,argsOverride=null}={}){
   const args=argsOverride||healthWorklistArgsV2040(filter,stage,raw,offset);
   const stableKey=`health-worklist-v2040:${JSON.stringify(args)}`;
@@ -356,8 +360,9 @@ async function loadHealthPeople(options={}){
   if(error&&!usedAssignmentRpc&&healthWorklistSchemaFallbackAllowed(error)&&healthActiveViewName==='health_person_worklist_active_v1847'){healthActiveViewName='health_person_worklist_active_v1841';return loadHealthPeople({trigger});}
   if(error&&!usedAssignmentRpc&&healthWorklistSchemaFallbackAllowed(error)&&healthActiveViewName==='health_person_worklist_active_v1841'){healthActiveViewName='health_person_worklist';return loadHealthPeople({trigger});}
   if(error)throw error;
-  const pageRows=(data||[]).map(p=>({...p,has_cvd:Boolean(p.has_cvd),cvd_population_eligible:Boolean(p.cvd_population_eligible)}));
-  healthPeople=append?[...healthPeople,...pageRows]:pageRows;healthPageOffset=healthPeople.length;healthHasMore=usedAssignmentRpc?Boolean(pageResult?.has_more):false;
+  const rawPageRows=(data||[]).map(p=>({...p,has_cvd:Boolean(p.has_cvd),cvd_population_eligible:Boolean(p.cvd_population_eligible)}));
+  const pageRows=filter==='field_targets'?rawPageRows.filter(healthFieldQueuePendingV2042):rawPageRows;
+  healthPeople=append?[...healthPeople,...pageRows]:pageRows;healthPageOffset=usedAssignmentRpc?(Number(requestArgs.p_offset||0)+rawPageRows.length):healthPeople.length;healthHasMore=usedAssignmentRpc?Boolean(pageResult?.has_more):false;
   $('#health-person-body').innerHTML=healthPeople.map((p,i)=>{
     const status=p.latest_ncd_status||(p.known_ncd?'มี DM/HT เดิม':'ยังไม่มีผล');
     const fallback=p.assignment_status==='staff_fallback';
@@ -365,7 +370,8 @@ async function loadHealthPeople(options={}){
     return `<tr><td><button type="button" class="health-person-name" data-health-person="${i}">${esc(p.display_name)}</button><small>${p.known_ncd?`โรคเดิม: ${p.has_ht?'HT ':''}${p.has_dm?'DM':''}`:'ยังไม่พบ DM/HT ใน personchronic'}</small></td><td>${esc(p.age_years??'—')} ปี<small>${esc(p.life_stage||'—')}</small></td><td>บ้าน ${esc(p.house_no||p.hcode)}<small>หมู่ ${esc(p.moo||'—')} · ${esc(p.community||'—')}</small>${assignment}</td><td class="${healthClass(p.latest_severity)}">${esc(status)}<small>${p.latest_screened_on?esc(healthDateLabel(p.latest_screened_on)):''}</small></td><td><button type="button" class="row-open" data-phc190-screen data-pcucode="${esc(p.source_pcucode)}" data-pid="${esc(p.source_pid)}" data-name="${esc(p.display_name)}" data-plan-date="${esc(p.screening_plan_date||'')}" data-age-years="${esc(p.age_years??'')}" data-age-months="${esc(p.screening_age_months??'')}" data-screen-route="${esc(p.screening_route||'')}" data-route-label="${esc(p.screening_route_label||'')}" data-dspm-target="${esc(p.screening_dspm_target_months??'')}" data-latest-screened="${esc(p.latest_screened_on||'')}">คัดกรอง</button></td></tr>`;
   }).join('')||'<tr><td colspan="5">ไม่พบประชาชนตามตัวกรอง</td></tr>';
   const fallbackNote=healthAssignmentFilter==='fallback'?' · แสดงเฉพาะประชาชนที่ Staff ต้องดูแลแทน':healthAssignmentFilter==='unresolved'?' · คิวไม่ทราบชุมชนสำหรับ Admin ตรวจสอบ':'';
-  $('#health-list-note').textContent=`แสดง ${num(healthPeople.length)} ราย · โหลดครั้งละ ${HEALTH_PAGE_SIZE_V2033} ราย${fallbackNote}`;
+  const queueNote=filter==='field_targets'?' · แสดงผู้ที่ยังไม่ได้คัดกรองในรอบงานก่อน':'';
+  $('#health-list-note').textContent=`แสดง ${num(healthPeople.length)} ราย · โหลดครั้งละ ${HEALTH_PAGE_SIZE_V2033} ราย${queueNote}${fallbackNote}`;
   const more=$('#health-load-more');if(more){more.hidden=!healthHasMore;more.disabled=false;more.textContent='โหลดรายชื่อเพิ่ม';}
   document.querySelectorAll('[data-health-person]').forEach(b=>b.onclick=()=>selectHealthPerson(Number(b.dataset.healthPerson)));
   })();
@@ -702,9 +708,15 @@ function showHealthFieldStatus(saved,person){
   box.dataset.tone=tone;box.textContent=`บันทึก ${person?.display_name||'รายการนี้'} เรียบร้อย${suffix}`;box.hidden=false;
   healthFieldStatusTimer=setTimeout(()=>{if(box){box.hidden=true;box.textContent='';delete box.dataset.tone;}healthFieldStatusTimer=null;},tone==='danger'?7000:4200);
 }
+async function resetHealthWorkQueueV2042({refresh=false}={}){
+  const search=$('#health-search'),filter=$('#health-filter');
+  if(search)search.value='';if(filter)filter.value='field_targets';healthPageOffset=0;syncHealthTargetButtons();
+  if(refresh&&healthLoaded&&portalView==='health')await loadHealthPeople({trigger:'work-queue-reset'});
+}
 function returnToHealthWorklist(saved,person){
   closeNcdSaveConfirmation(false);closeHealthFeedbackCard();healthFeedbackModel=null;
   const card=$('#ncd-screen-card');if(card)card.hidden=true;selectedHealthPerson=null;
+  const search=$('#health-search'),filter=$('#health-filter');if(search)search.value='';if(filter)filter.value='field_targets';healthPageOffset=0;syncHealthTargetButtons();
   showHealthFieldStatus(saved,person);
   if(Number(person?.age_years)>=60&&window.PHCFiveFeatures190?.openAgeScreening){
     const box=$('#health-field-status');if(box&&!box.hidden)box.textContent+=' · ไปต่อคัดกรองผู้สูงอายุ 9 ด้าน';
@@ -755,7 +767,7 @@ async function loadHealthModule(){
   // Health field work must become interactive first; history is secondary and staggered to avoid concurrent spikes.
   setTimeout(()=>loadHealthHistory().catch(e=>console.warn('[health history]',e)),1600+Math.floor(Math.random()*1400));
   bindNcdSectionNav();
-  $('#ncd-form').onsubmit=saveHealthScreening; $('#ncd-close').onclick=()=>{closeNcdSaveConfirmation(false);closeHealthFeedbackCard();healthFeedbackModel=null;$('#ncd-screen-card').hidden=true;selectedHealthPerson=null;};
+  $('#ncd-form').onsubmit=saveHealthScreening; $('#ncd-close').onclick=async()=>{closeNcdSaveConfirmation(false);closeHealthFeedbackCard();healthFeedbackModel=null;$('#ncd-screen-card').hidden=true;selectedHealthPerson=null;try{await resetHealthWorkQueueV2042({refresh:true});}catch(e){$('#health-list-note').textContent=e.message;}};
   $('#ncd-clear-2q').onclick=()=>{$('#ncd-form').querySelectorAll('[name^="mental_2q_"]').forEach(el=>{el.checked=false;});renderMental2QPreview();};
   $('#ncd-reset-test').onclick=resetSelectedNcdTestV208;syncNcdTestResetV208();
   const saveConfirmation=$('#ncd-save-confirmation');$('#ncd-save-confirmation-ok').onclick=()=>{closeNcdSaveConfirmation(false);viewHealthFeedback();};$('#ncd-save-confirmation-close').onclick=()=>closeNcdSaveConfirmation();saveConfirmation.onclick=e=>{if(e.target===saveConfirmation)closeNcdSaveConfirmation();};saveConfirmation.onkeydown=e=>{if(e.key==='Escape')closeNcdSaveConfirmation();};
