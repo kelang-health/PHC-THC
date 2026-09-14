@@ -27,8 +27,8 @@ function initLoginKeypad(){
       button.classList.toggle('active',active);
       button.setAttribute('aria-pressed',String(active));
     });
-    login.type=numeric?'tel':'email';
-    login.inputMode=numeric?'numeric':'email';
+    login.type=numeric?'tel':'text';
+    login.inputMode=numeric?'numeric':'text';
     login.removeAttribute('placeholder');
     password.inputMode=numeric?'numeric':'text';
     password.removeAttribute('placeholder');
@@ -36,7 +36,7 @@ function initLoginKeypad(){
     setOptionalAttribute(login,'maxlength',numeric?'10':null);
     setOptionalAttribute(password,'pattern',numeric?'[0-9]*':null);
     setOptionalAttribute(password,'maxlength',numeric?'12':null);
-    if(loginLabel)loginLabel.textContent='ชื่อผู้ใช้';
+    if(loginLabel)loginLabel.textContent=numeric?'ชื่อผู้ใช้':'เบอร์โทรหรืออีเมล';
     if(passwordLabel)passwordLabel.textContent='รหัสผ่าน';
     if(help)help.textContent='หากเข้าสู่ระบบไม่ได้ กรุณาติดต่อเจ้าหน้าที่';
     if(focus)login.focus({preventScroll:true});
