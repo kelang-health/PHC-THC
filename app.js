@@ -1,4 +1,4 @@
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.33&p=2045';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.33&p=2046';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 import { getSharedSupabase, setSharedSession, setSharedProfile, clearSharedAuth, sharedCall, invalidateShared } from './shared-runtime-v2035.mjs?v=2.0.35';
 
@@ -112,7 +112,7 @@ function configurePortalNav(role){
     const label=b.querySelector('.portal-nav-label'),roleLabelText=labels[role]?.[b.dataset.portalView];if(label&&roleLabelText)label.textContent=roleLabelText;
     b.onclick=async()=>{
       const wasActive=portalView===b.dataset.portalView;setPortalView(b.dataset.portalView);
-      if(b.dataset.portalView==='work'){try{bindHealthPerformanceControls();bindPerformanceScopeControls();syncPerformanceScopeUI();await loadHealthSummary();}catch(e){const box=$('#health-stats');if(box)box.innerHTML=`<article class="stat"><small>อ่านสรุปผลงานไม่สำเร็จ</small><strong>—</strong></article>`;}}
+      // Phase 2J: field-work-reporting owns the Work panel snapshot.
       if(b.dataset.portalView==='health'){
         const filter=$('#health-filter'),stage=$('#health-stage');
         if(filter)filter.value='field_targets';
@@ -150,7 +150,7 @@ async function loadHealthTargetSettingsV2026(){const {data,error}=await supabase
 async function setHealthTargetGroupV2026(route,enabled){if(currentProfile?.role!=='admin')return;const status=$('#health-target-admin-status');if(status)status.textContent='กำลังประมวลผลเป้าหมายใหม่…';try{const {data,error}=await supabase.rpc('admin_set_screening_target_group_v2026',{p_route:route,p_enabled:Boolean(enabled)});if(error)throw error;renderHealthTargetAdminV2026(data||{});if(status)status.textContent='ประมวลผลเป้าหมายใหม่แล้ว';invalidateHealthWorklistCache();if(healthLoaded)await loadHealthPeople({force:true,trigger:'target-config'});}catch(e){if(status)status.textContent=e.message;}}
 async function refreshHealthTargetsV2026(){if(currentProfile?.role!=='admin')return;const b=$('#health-target-refresh'),status=$('#health-target-admin-status');if(b)b.disabled=true;if(status)status.textContent='กำลังประมวลผลเป้าหมายทั้งฐาน…';try{const {data,error}=await supabase.rpc('admin_refresh_screening_targets_v2026');if(error)throw error;const settings=data?.settings||await loadHealthTargetSettingsV2026();renderHealthTargetAdminV2026(settings);if(status)status.textContent=`พร้อมใช้งาน ${num(settings?.field_targets)} เป้าหมาย`;invalidateHealthWorklistCache();if(healthLoaded)await loadHealthPeople({force:true,trigger:'target-refresh'});}catch(e){if(status)status.textContent=e.message;}finally{if(b)b.disabled=false;}}
 function bindHealthTargetAdminV2026(){const b=$('#health-target-refresh');if(!b||b.dataset.bound==='1')return;b.dataset.bound='1';b.onclick=refreshHealthTargetsV2026;}
-async function refreshReportSnapshotsV2031(){if(currentProfile?.role!=='admin')return;const b=$('#report-snapshot-refresh'),status=$('#report-snapshot-status');if(b)b.disabled=true;if(status)status.textContent='กำลังประมวลผลตัวเลขสรุป…';try{const {data,error}=await supabase.rpc('admin_refresh_report_snapshots_v2031');if(error)throw error;if(!data?.ok)throw new Error(data?.status==='busy'?'มีการประมวลผลอยู่แล้ว กรุณารอสักครู่':(data?.error||'ประมวลผลไม่สำเร็จ'));if(status)status.textContent=`ประมวลผลแล้ว ${num(data.cache_rows)} ขอบเขต ใช้เวลา ${(Number(data.duration_ms||0)/1000).toFixed(1)} วินาที`;invalidateShared('report-snapshot:');document.dispatchEvent(new CustomEvent('phc:report-snapshot-refreshed',{detail:data}));await loadHealthSummary();}catch(e){if(status)status.textContent=e.message;}finally{if(b)b.disabled=false;}}
+async function refreshReportSnapshotsV2031(){if(currentProfile?.role!=='admin')return;const b=$('#report-snapshot-refresh'),status=$('#report-snapshot-status');if(b)b.disabled=true;if(status)status.textContent='กำลังประมวลผลตัวเลขสรุป…';try{const {data,error}=await supabase.rpc('admin_refresh_report_snapshots_v2031');if(error)throw error;if(!data?.ok)throw new Error(data?.status==='busy'?'มีการประมวลผลอยู่แล้ว กรุณารอสักครู่':(data?.error||'ประมวลผลไม่สำเร็จ'));if(status)status.textContent=`ประมวลผลแล้ว ${num(data.cache_rows)} ขอบเขต ใช้เวลา ${(Number(data.duration_ms||0)/1000).toFixed(1)} วินาที`;invalidateShared('report-snapshot:');document.dispatchEvent(new CustomEvent('phc:report-snapshot-refreshed',{detail:data}));}catch(e){if(status)status.textContent=e.message;}finally{if(b)b.disabled=false;}}
 function bindReportSnapshotAdminV2031(){const b=$('#report-snapshot-refresh');if(!b||b.dataset.bound==='1')return;b.dataset.bound='1';b.onclick=refreshReportSnapshotsV2031;}
 
 function effectivePerformanceScope(){
@@ -210,7 +210,7 @@ async function setPerformanceScope(next){
   try{localStorage.setItem('phc.care.scope',careScopeMode);localStorage.setItem('phc.field.scope',careScopeMode);if(careScopeVolunteerPid)localStorage.setItem('phc.care.volunteer',String(careScopeVolunteerPid));}catch{}
   syncPerformanceScopeUI();
   document.dispatchEvent(new CustomEvent('phc:care-scope-changed',{detail:{scope:careScopeMode,volunteer_pid:careScopeVolunteerPid,source:'performance'}}));
-  if(portalView==='work')await loadHealthSummary();if(healthLoaded&&portalView==='health')await scheduleHealthPeopleLoad(160,'scope-control');
+  if(healthLoaded&&portalView==='health')await scheduleHealthPeopleLoad(160,'scope-control');
 }
 function bindPerformanceScopeControls(){
   const control=$('#performance-scope-control');
@@ -1044,7 +1044,7 @@ document.addEventListener('phc:care-scope-changed',async event=>{
   if(!changed)return;
   if(currentProfile?.role==='staff'){try{localStorage.setItem('phc.care.scope',careScopeMode);localStorage.setItem('phc.field.scope',careScopeMode);if(careScopeVolunteerPid)localStorage.setItem('phc.care.volunteer',String(careScopeVolunteerPid));}catch{}}
   syncPerformanceScopeUI();syncHealthAssignmentControl();
-  try{if(portalView==='work')await loadHealthSummary();if(healthLoaded&&portalView==='health')await scheduleHealthPeopleLoad(160,'scope-event');}catch{}
+  try{if(healthLoaded&&portalView==='health')await scheduleHealthPeopleLoad(160,'scope-event');}catch{}
 });
 $('#portal-nav-toggle').addEventListener('click',()=>setPortalNavCollapsed(!$('#portal').classList.contains('nav-collapsed')));
 $('#ncd-form').addEventListener('change',event=>{if(event.target.matches('[name="smoking_state"],[name="alcohol_state"]'))syncBehaviorPanels(event.currentTarget);});

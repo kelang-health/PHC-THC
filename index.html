@@ -89,30 +89,7 @@
 
 
       <section class="card" data-portal-panel="work" hidden>
-        <section class="health-performance-overview" aria-labelledby="health-performance-title">
-          <div class="section-head health-center-heading performance-scope-head">
-            <div><p class="eyebrow">HEALTH PERFORMANCE</p><h2 id="health-performance-title">ผลงานสุขภาพของพื้นที่</h2></div>
-            <div id="performance-scope-control" class="performance-scope-control" role="group" aria-label="ขอบเขตผลงาน" hidden>
-              <button type="button" data-performance-scope="self" class="active" aria-pressed="true">ผลงานของฉัน</button>
-              <button type="button" data-performance-scope="volunteer" aria-pressed="false">ราย อสม.</button>
-              <button type="button" data-performance-scope="community" aria-pressed="false">ผลงานชุมชน</button>
-            </div>
-          </div>
-          <label id="performance-owner-wrap" class="performance-owner-wrap" hidden>เลือก อสม. ในชุมชน<select id="performance-owner" aria-label="เลือก อสม. ที่ต้องการดูงาน"></select></label>
-          <p id="performance-scope-note" class="muted performance-scope-note"></p>
-          <div id="health-admin-intro" class="health-admin-intro" hidden>
-            <p class="muted">สรุปจากฐานเดียวกับ อสม. พลัส ตามขอบเขตสิทธิ์ของบัญชี</p>
-            <button id="health-refresh" type="button" class="secondary">รีเฟรชข้อมูล</button>
-            <div class="notice go-live-note"><strong>ช่วงทดสอบก่อนเปิดใช้จริง:</strong> ผลคัดกรองก่อนวันที่ 1 ตุลาคม 2569 จะถูกบันทึกเป็นข้อมูลทดสอบและไม่นับเป็นผลงานปีงบประมาณ 2570</div>
-          </div>
-          <div id="health-stats" class="stats compact-stats"></div>
-          <section class="mental-2q-summary" aria-labelledby="mental-2q-summary-title">
-            <div><strong id="mental-2q-summary-title">สุขภาพจิต 2Q</strong><small>แยกสถานะจากผล NCD และนับเฉพาะผู้ตอบครบว่า “ประเมินแล้ว”</small></div>
-            <div id="mental-2q-stats" class="stats mental-2q-stats"></div>
-            <p id="mental-2q-note" class="muted"></p>
-          </section>
-          <div id="life-stage-stats" class="life-stage-grid"></div>
-        </section>
+        <!-- Phase 2J: Field Work & Reporting is the single Work snapshot owner. -->
         <div data-field200-host><div class="muted">กำลังเตรียมศูนย์ติดตามงาน…</div></div>
       </section>
 
@@ -304,7 +281,7 @@
   <script type="module" src="./auth-security.mjs?v=1.8.28&p=2035"></script>
   <script type="module" src="./line-login-v201.mjs?v=2.0.31&p=2035"></script>
   <script type="module" src="./line-login-settings-v2013.mjs?v=2.0.31&p=2035"></script>
-  <script type="module" src="./app.js?v=2.0.33&p=2045"></script>
+  <script type="module" src="./app.js?v=2.0.33&p=2046"></script>
 </body>
 </html>
 
