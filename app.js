@@ -46,6 +46,9 @@ function healthWorklistColumns(){return healthActiveViewName==='health_person_wo
 function healthWorklistSchemaFallbackAllowed(error){const code=String(error?.code||'');const message=String(error?.message||'').toLowerCase();return ['42703','42P01','PGRST204','PGRST205'].includes(code)||message.includes('does not exist')||message.includes('schema cache');}
 const PORTAL_NAV_STORAGE = 'phc.portal.nav-collapsed';
 const HEALTH_PAGE_SIZE_V2033 = 50;
+const HEALTH_WORKLIST_CACHE_MS_V2039 = 30000;
+const STAFF_SCOPE_CACHE_MS_V2039 = 300000;
+const HOUSEHOLD_CACHE_MS_V2039 = 30000;
 const CLOUD_RELEASE_VERSION = '2.0.33';
 const CLOUD_BRAND_LOGO_URL = `${SUPABASE_URL}/storage/v1/object/public/osm-public-assets/branding/logo`;
 
@@ -154,7 +157,7 @@ function renderStaffVolunteerOptionsV2033(){
 }
 async function loadStaffVolunteerOptionsV2033(){
   if(currentProfile?.role!=='staff')return [];
-  const {data,error}=await sharedCall('staff-volunteer-scope-v2033',()=>supabase.rpc('staff_volunteer_scope_v2033'),30000);if(error)throw error;
+  const {data,error}=await sharedCall('staff-volunteer-scope-v2033',()=>supabase.rpc('staff_volunteer_scope_v2033'),STAFF_SCOPE_CACHE_MS_V2039);if(error)throw error;
   staffVolunteerOptionsV2033=Array.isArray(data)?data:[];renderStaffVolunteerOptionsV2033();return staffVolunteerOptionsV2033;
 }
 function syncHealthAssignmentControl(){
@@ -285,16 +288,21 @@ function assignmentRpcUnavailableV2033(error){
   const code=String(error?.code||'');const message=String(error?.message||'').toLowerCase();
   return ['42883','PGRST202','PGRST204'].includes(code)||message.includes('health_worklist_assignment_json_v2033')||message.includes('could not find the function');
 }
-async function loadScopedHealthPeopleV2033(filter,stage,raw,offset=0,signal=null){
+async function loadScopedHealthPeopleV2033(filter,stage,raw,offset=0,signal=null,{force=false}={}){
   const term=String(raw||'').replace(/[%_,()]/g,'').slice(0,60).trim();
   const args={p_scope:effectivePerformanceScope(),p_filter:filter,p_stage:stage||null,p_search:term||null,p_community:healthCommunityFocus||null,p_assignment:healthAssignmentFilter,p_owner_pid:careScopeVolunteerPid,p_limit:HEALTH_PAGE_SIZE_V2033,p_offset:offset};
-  let request=supabase.rpc('health_worklist_assignment_json_v2033',args);if(signal&&typeof request.abortSignal==='function')request=request.abortSignal(signal);
-  const {data,error}=await request;if(error)throw error;
+  const stableKey=`health-worklist-v2039:${JSON.stringify(args)}`;
+  if(force)invalidateShared(stableKey);
+  const loader=()=>supabase.rpc('health_worklist_assignment_json_v2033',args);
+  let response;
+  if(offset===0&&!force){response=await sharedCall(stableKey,loader,HEALTH_WORKLIST_CACHE_MS_V2039);}
+  else{let request=loader();if(signal&&typeof request.abortSignal==='function')request=request.abortSignal(signal);response=await request;}
+  const {data,error}=response||{};if(error)throw error;
   if(Array.isArray(data))return {rows:data,has_more:data.length>=HEALTH_PAGE_SIZE_V2033};
   return {rows:Array.isArray(data?.rows)?data.rows:[],has_more:Boolean(data?.has_more)};
 }
 function scheduleHealthPeopleLoad(delay=160){clearTimeout(healthRefreshTimer);if(!healthRefreshPromise)healthRefreshPromise=new Promise((resolve,reject)=>{healthRefreshResolve=resolve;healthRefreshReject=reject;});healthRefreshTimer=setTimeout(async()=>{const resolve=healthRefreshResolve,reject=healthRefreshReject;healthRefreshTimer=null;healthRefreshPromise=null;healthRefreshResolve=null;healthRefreshReject=null;try{resolve?.(await loadHealthPeople());}catch(e){reject?.(e);}},delay);return healthRefreshPromise;}
-function invalidateHealthWorklistCache(){healthLastCompletedSignature='';healthLastCompletedAt=0;}
+function invalidateHealthWorklistCache(){healthLastCompletedSignature='';healthLastCompletedAt=0;invalidateShared('health-worklist-v2039:');}
 async function loadHealthPeople(options={}){
   const append=Boolean(options?.append),force=Boolean(options?.force);if(!append)healthPageOffset=0;
   let filter=$('#health-filter').value;
@@ -307,7 +315,7 @@ async function loadHealthPeople(options={}){
   healthAbortController?.abort();healthAbortController=new AbortController();const requestSequence=++healthRequestSequence;
   const run=(async()=>{
   let data=null,error=null,usedAssignmentRpc=false,pageResult=null;
-  try{pageResult=await loadScopedHealthPeopleV2033(filter,stage,raw,healthPageOffset,healthAbortController.signal);data=pageResult.rows;usedAssignmentRpc=true;}
+  try{pageResult=await loadScopedHealthPeopleV2033(filter,stage,raw,healthPageOffset,healthAbortController.signal,{force});data=pageResult.rows;usedAssignmentRpc=true;}
   catch(e){
     if(e?.name==='AbortError'||requestSequence!==healthRequestSequence)return;
     if(!assignmentRpcUnavailableV2033(e)||healthAssignmentFilter!=='all'||effectivePerformanceScope()==='volunteer')throw e;
@@ -849,7 +857,8 @@ async function loadPortal(session, requestId){
     let masterQuery=supabase.from('communities').select('name,moo,active').eq('active',true);
     if(profile.community)masterQuery=masterQuery.eq('name',profile.community);
     const fallbackMaster=profile.community?[{name:profile.community,moo:null,active:true}]:[];
-    const housePromise=profile.volunteer_pid!=null?safePortalQueryV2029('my houses',supabase.rpc('my_household_cards_v1860'),[]):Promise.resolve([]);
+    const houseKey=`my-household-cards-v2039:${profile.user_id}:${profile.volunteer_pid||''}`;
+    const housePromise=profile.volunteer_pid!=null?safePortalQueryV2029('my houses',sharedCall(houseKey,()=>supabase.rpc('my_household_cards_v1860'),HOUSEHOLD_CACHE_MS_V2039),[]):Promise.resolve([]);
     if(profile.role==='staff'){
       let summaryQuery=supabase.from('community_report_summary').select('*');
       let workloadQuery=supabase.from('volunteer_workload').select('*');

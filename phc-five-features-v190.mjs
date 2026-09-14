@@ -1,4 +1,4 @@
-import { getSharedSupabase, getSharedProfile, sharedCall, invalidateShared, bindPortalActivation } from './shared-runtime-v2035.mjs?v=2.0.35';
+import { getSharedSupabase, getSharedProfile, sharedCall, invalidateShared, bindPortalActivation, isPortalViewActive } from './shared-runtime-v2035.mjs?v=2.0.35';
 const VERSION='2.0.31';
 let supabase=null,profile=null,activeOverlay=null,globalBound=false,toastTimer=null;
 const $=(s,r=document)=>r.querySelector(s);
@@ -233,7 +233,10 @@ async function openAdminCommunication(){
   const fa=body.querySelector('[data-appointment]');fa.onsubmit=async e=>{e.preventDefault();const d=new FormData(fa),err=fa.querySelector('[data-err]');err.textContent='';const at=new Date(String(d.get('at')));if(!Number.isFinite(at.getTime())){err.textContent='กรุณาระบุวันเวลา';return}const {error}=await supabase.rpc('admin_create_appointment_v190',{p_app_user_id:d.get('user'),p_title:d.get('title'),p_appointment_at:at.toISOString(),p_location:d.get('location')||'',p_note:''});if(error)err.textContent=friendlyError(error);else{alert('สร้างนัดหมายแล้ว');fa.reset()}};
   const fg=body.querySelector('[data-line-group]');fg.onsubmit=async e=>{e.preventDefault();const err=fg.querySelector('[data-err]');err.textContent='';const ids=[...fg.elements.members.selectedOptions].map(o=>o.value);if(!ids.length){err.textContent='เลือกสมาชิกอย่างน้อย 1 คน';return}const {error}=await supabase.rpc('admin_save_line_group_v190',{p_group_id:null,p_name:fg.elements.name.value,p_user_ids:ids});if(error)err.textContent=friendlyError(error);else{alert('บันทึกกลุ่มแล้ว');closeModal();await openAdminCommunication()}};
 }
-async function loadMyLineStatusV2038(){return sharedCall('my-line-status-v190',()=>supabase.rpc('my_line_status_v190'),15000);}
+const LINE_STATUS_CACHE_MS_V2039=180000;
+async function loadMyLineStatusV2038(){return sharedCall('my-line-status-v190',()=>supabase.rpc('my_line_status_v190'),LINE_STATUS_CACHE_MS_V2039);}
+function armLineLinkReturnRefreshV2039(){window.__PHC_LINE_LINK_AWAITING_V2039__=true;}
+function bindLineLinkReturnRefreshV2039(){if(window.__PHC_LINE_LINK_VISIBILITY_V2039__)return;window.__PHC_LINE_LINK_VISIBILITY_V2039__=true;document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible'||!window.__PHC_LINE_LINK_AWAITING_V2039__)return;window.__PHC_LINE_LINK_AWAITING_V2039__=false;invalidateShared('my-line-status-v190');if(isPortalViewActive('work'))renderOverview().catch(()=>{});});}
 async function renderOverview(){
   const panel=$('[data-portal-panel="work"]');if(!panel||!profile?.active)return;
   let root=$('[data-phc190-overview]');
@@ -259,12 +262,12 @@ async function createLineCode(){
   body.innerHTML='<div class="phc190-note">กำลังสร้างรหัส…</div>';
   const {data,error}=await supabase.rpc('create_line_link_code_v190');
   if(error){body.innerHTML=`<div class="phc190-error">${esc(friendlyError(error))}</div>`;return}
-  const linkText=`LINK ${String(data.code||'')}`;
+  armLineLinkReturnRefreshV2039();const linkText=`LINK ${String(data.code||'')}`;
   body.innerHTML=`<div class="phc190-note">ส่งข้อความนี้ไปที่ LINE OA ของหน่วยงาน</div><div class="phc190-code" data-line-link-code>${esc(linkText)}</div><button type="button" class="phc190-primary" data-copy-line-link>คัดลอกรหัส LINE</button><div class="phc190-note" data-copy-line-status>หลัง LINE ยืนยันสำเร็จ กลับมาเปิดเมนู “ผลงาน/ติดตาม” อีกครั้งเพื่อดูสถานะ</div>`;
   const btn=body.querySelector('[data-copy-line-link]'),status=body.querySelector('[data-copy-line-status]');
   btn.onclick=async()=>{const ok=await copyTextV202(linkText);if(ok){btn.textContent='✓ คัดลอกแล้ว';status.textContent='คัดลอกแล้ว นำข้อความไปวางใน LINE OA ของหน่วยงานได้ทันที';setTimeout(()=>{if(document.body.contains(btn))btn.textContent='คัดลอกรหัส LINE'},1600)}else{status.textContent='คัดลอกอัตโนมัติไม่ได้ กรุณากดค้างที่รหัสเพื่อคัดลอก'}};
 }
 
 function bindGlobal(){if(globalBound)return;globalBound=true;document.addEventListener('click',e=>{const b=e.target.closest?.('[data-phc190-screen]');if(b){e.preventDefault();e.stopPropagation();const seed={plan_date:b.dataset.planDate||'',age_years:Number(b.dataset.ageYears),age_months:Number(b.dataset.ageMonths),route:b.dataset.screenRoute||'',route_label:b.dataset.routeLabel||'',dspm_target_months:b.dataset.dspmTarget?Number(b.dataset.dspmTarget):null,latest_screened_on:b.dataset.latestScreened||''};openAgeScreening(b.dataset.pcucode,Number(b.dataset.pid),b.dataset.name||'',seed).catch(x=>alert(friendlyError(x)));return}},true)}
-async function start(){const ver=$('.login-version');if(ver)ver.textContent=`Cloud v${VERSION}`;window.PHCFiveFeatures190={renderHouseMemberRequests,openAgeScreening,renderAdminMemberQueue,refreshOverview:renderOverview};bindGlobal();bindPortalActivation('work',async()=>{profile=await loadProfile();if(profile?.active)await renderOverview();});}
+async function start(){const ver=$('.login-version');if(ver)ver.textContent=`Cloud v${VERSION}`;window.PHCFiveFeatures190={renderHouseMemberRequests,openAgeScreening,renderAdminMemberQueue,refreshOverview:renderOverview};bindGlobal();bindLineLinkReturnRefreshV2039();bindPortalActivation('work',async()=>{profile=await loadProfile();if(profile?.active)await renderOverview();});}
 export async function initPHCFiveFeatures190(url,key){if(window.__PHC_FIVE_FEATURES_190__)return;window.__PHC_FIVE_FEATURES_190__=true;injectStyle();supabase=await getSharedSupabase(url,key);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else await start()}
