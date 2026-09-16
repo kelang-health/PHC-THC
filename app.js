@@ -1,4 +1,4 @@
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.44&p=2049';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.45&p=2050';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 import { getSharedSupabase, setSharedSession, setSharedProfile, clearSharedAuth, sharedCall, invalidateShared } from './shared-runtime-v2035.mjs?v=2.0.35';
 
@@ -52,7 +52,7 @@ const HEALTH_WORKLIST_CACHE_MS_V2039 = 30000;
 const STAFF_SCOPE_CACHE_MS_V2039 = 300000;
 const HOUSEHOLD_CACHE_MS_V2039 = 30000;
 const HEALTH_COORD_TRACE_MAX_V2040 = 40;
-const CLOUD_RELEASE_VERSION = '2.0.44';
+const CLOUD_RELEASE_VERSION = '2.0.45';
 function traceHealthCoordV2040(event,args={},trigger=''){
   const row={at:Date.now(),event:String(event||''),trigger:String(trigger||''),scope:String(args.p_scope||''),filter:String(args.p_filter||''),stage:String(args.p_stage||''),hasSearch:Boolean(args.p_search),hasCommunity:Boolean(args.p_community),assignment:String(args.p_assignment||''),hasOwner:Boolean(args.p_owner_pid),offset:Number(args.p_offset||0)};
   healthCoordTraceV2040.push(row);while(healthCoordTraceV2040.length>HEALTH_COORD_TRACE_MAX_V2040)healthCoordTraceV2040.shift();window.PHCHealthCoordTrace=healthCoordTraceV2040;
@@ -64,7 +64,7 @@ const CLOUD_BRAND_LOGO_URL = `${SUPABASE_URL}/storage/v1/object/public/osm-publi
 
 function configureCloudBrandLogo(){
   const image=$('#cloud-login-logo');if(!image)return;
-  const fallback='./logo.svg?v=2.0.44';
+  const fallback='./logo.svg?v=2.0.45';
   image.onerror=()=>{image.onerror=null;image.src=fallback;};
   image.src=`${CLOUD_BRAND_LOGO_URL}?t=${Math.floor(Date.now()/300000)}`;
 }
@@ -797,6 +797,30 @@ async function loginAlias(login){
   return `u-${hex.slice(0,48)}@phc-thc.local`;
 }
 
+async function monitoredCloudSignIn(email,password){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),15000);
+  try{
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/cloud-login`,{
+      method:'POST',
+      headers:{'content-type':'application/json','apikey':SUPABASE_PUBLISHABLE_KEY,'x-client-info':'osm-phc-web/2.0.45'},
+      body:JSON.stringify({email,password}),
+      signal:controller.signal,
+    });
+    const payload=await res.json().catch(()=>({}));
+    if(!res.ok){
+      const code=String(payload?.error||'');
+      if(code==='INVALID_CREDENTIALS')return {data:null,error:new Error('INVALID_CREDENTIALS')};
+      if(res.status===429)return {data:null,error:new Error('AUTH_RATE_LIMITED')};
+      return {data:null,error:new Error('AUTH_SERVICE_UNAVAILABLE')};
+    }
+    if(!payload.access_token||!payload.refresh_token)return {data:null,error:new Error('AUTH_SESSION_MISSING')};
+    return supabase.auth.setSession({access_token:payload.access_token,refresh_token:payload.refresh_token});
+  }catch(error){
+    return {data:null,error:new Error(error?.name==='AbortError'?'AUTH_TIMEOUT':'AUTH_SERVICE_UNAVAILABLE')};
+  }finally{clearTimeout(timer);}
+}
+
 function anchorLabel(status){ return ({confirmed:'ยืนยัน',community_review:'ตรวจชุมชน',outside_tambon:'นอกตำบล',missing:'ไม่มีพิกัด'})[status] || status || '—'; }
 
 function communityHouseRows(rows){
@@ -994,8 +1018,11 @@ $('#login-form').addEventListener('submit', async e => {
   let email;
   try{ email = await loginAlias(f.get('login')); }
   catch(error){ $('#login-error').textContent = error.message; return; }
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password:f.get('password') });
-  if(error){ $('#login-error').textContent = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'; return; }
+  const { data, error } = await monitoredCloudSignIn(email,String(f.get('password')||''));
+  if(error){
+    $('#login-error').textContent = error.message==='INVALID_CREDENTIALS'?'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง':error.message==='AUTH_RATE_LIMITED'?'ลองเข้าสู่ระบบหลายครั้งเกินไป กรุณารอสักครู่':'ระบบเข้าสู่ระบบไม่พร้อม กรุณาลองใหม่';
+    return;
+  }
   e.target.reset(); setLoginPasswordVisibility(false); await applyAuthSession(data.session);
 });
 
