@@ -1,4 +1,4 @@
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.45&p=2050';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.54&p=2054';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 import { getSharedSupabase, setSharedSession, setSharedProfile, clearSharedAuth, sharedCall, invalidateShared } from './shared-runtime-v2035.mjs?v=2.0.35';
 
@@ -52,7 +52,7 @@ const HEALTH_WORKLIST_CACHE_MS_V2039 = 30000;
 const STAFF_SCOPE_CACHE_MS_V2039 = 300000;
 const HOUSEHOLD_CACHE_MS_V2039 = 30000;
 const HEALTH_COORD_TRACE_MAX_V2040 = 40;
-const CLOUD_RELEASE_VERSION = '2.0.45';
+const CLOUD_RELEASE_VERSION = '2.0.54';
 function traceHealthCoordV2040(event,args={},trigger=''){
   const row={at:Date.now(),event:String(event||''),trigger:String(trigger||''),scope:String(args.p_scope||''),filter:String(args.p_filter||''),stage:String(args.p_stage||''),hasSearch:Boolean(args.p_search),hasCommunity:Boolean(args.p_community),assignment:String(args.p_assignment||''),hasOwner:Boolean(args.p_owner_pid),offset:Number(args.p_offset||0)};
   healthCoordTraceV2040.push(row);while(healthCoordTraceV2040.length>HEALTH_COORD_TRACE_MAX_V2040)healthCoordTraceV2040.shift();window.PHCHealthCoordTrace=healthCoordTraceV2040;
@@ -64,7 +64,7 @@ const CLOUD_BRAND_LOGO_URL = `${SUPABASE_URL}/storage/v1/object/public/osm-publi
 
 function configureCloudBrandLogo(){
   const image=$('#cloud-login-logo');if(!image)return;
-  const fallback='./logo.svg?v=2.0.45';
+  const fallback='./logo.svg?v=2.0.54';
   image.onerror=()=>{image.onerror=null;image.src=fallback;};
   image.src=`${CLOUD_BRAND_LOGO_URL}?t=${Math.floor(Date.now()/300000)}`;
 }
