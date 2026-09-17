@@ -7,7 +7,7 @@ if (typeof window !== 'undefined') {
       await initCommunityGIS1822(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initHouseRegistration } = await import('./community-house-registration-v1819.mjs?v=1.8.20&p=2045');
       await initHouseRegistration(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initMyHousesMobile } = await import('./my-houses-mobile-v1820.mjs?v=1.8.64&p=2045');
+      const { initMyHousesMobile } = await import('./my-houses-mobile-v1820.mjs?v=2.0.50&p=2050');
       await initMyHousesMobile(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initMobileSpatialCards } = await import('./mobile-community-volunteer-cards-v1821.mjs?v=1.8.63&p=2037');
       await initMobileSpatialCards(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
