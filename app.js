@@ -294,6 +294,10 @@ async function loadFastHealthTargetsV2030(stage,raw){
   }
   throw lastError||new Error('ไม่สามารถโหลดเป้าหมายคัดกรองได้');
 }
+function assignmentRpcUnavailableV2054(error){
+  const code=String(error?.code||'');const message=String(error?.message||'').toLowerCase();
+  return ['42883','PGRST202','PGRST204'].includes(code)||message.includes('health_worklist_assignment_json_v2054')||message.includes('could not find the function');
+}
 function assignmentRpcUnavailableV2033(error){
   const code=String(error?.code||'');const message=String(error?.message||'').toLowerCase();
   return ['42883','PGRST202','PGRST204'].includes(code)||message.includes('health_worklist_assignment_json_v2033')||message.includes('could not find the function');
@@ -310,9 +314,15 @@ function healthFieldQueuePendingV2042(row){
 }
 async function loadScopedHealthPeopleV2033(filter,stage,raw,offset=0,signal=null,{force=false,argsOverride=null}={}){
   const args=argsOverride||healthWorklistArgsV2040(filter,stage,raw,offset);
-  const stableKey=`health-worklist-v2040:${JSON.stringify(args)}`;
+  const stableKey=`health-worklist-v2054:${JSON.stringify(args)}`;
   if(force)invalidateShared(stableKey);
-  const loader=()=>supabase.rpc('health_worklist_assignment_json_v2033',args);
+  const loader=async()=>{
+    let response=await supabase.rpc('health_worklist_assignment_json_v2054',args);
+    if(response?.error&&assignmentRpcUnavailableV2054(response.error)){
+      response=await supabase.rpc('health_worklist_assignment_json_v2033',args);
+    }
+    return response;
+  };
   let response;
   if(offset===0&&!force){response=await sharedCall(stableKey,loader,HEALTH_WORKLIST_CACHE_MS_V2039);}
   else{let request=loader();if(signal&&typeof request.abortSignal==='function')request=request.abortSignal(signal);response=await request;}
@@ -325,7 +335,7 @@ function scheduleHealthPeopleLoad(delay=160,trigger='scheduled'){
   healthRequestSequence+=1;healthAbortController?.abort();healthAbortController=null;healthLoadPromise=null;healthLoadSignature='';traceHealthCoordV2040('scheduled',{},trigger);
   clearTimeout(healthRefreshTimer);if(!healthRefreshPromise)healthRefreshPromise=new Promise((resolve,reject)=>{healthRefreshResolve=resolve;healthRefreshReject=reject;});healthRefreshTimer=setTimeout(async()=>{const resolve=healthRefreshResolve,reject=healthRefreshReject;healthRefreshTimer=null;healthRefreshPromise=null;healthRefreshResolve=null;healthRefreshReject=null;if(portalView!=='health'){traceHealthCoordV2040('schedule-skip:left',{},trigger);resolve?.();return;}try{resolve?.(await loadHealthPeople({trigger}));}catch(e){reject?.(e);}},delay);return healthRefreshPromise;
 }
-function invalidateHealthWorklistCache(){healthLastCompletedSignature='';healthLastCompletedAt=0;invalidateShared('health-worklist-v2040:');}
+function invalidateHealthWorklistCache(){healthLastCompletedSignature='';healthLastCompletedAt=0;invalidateShared('health-worklist-v2054:');}
 async function loadHealthPeople(options={}){
   const append=Boolean(options?.append),force=Boolean(options?.force),allowInactive=Boolean(options?.allowInactive),trigger=String(options?.trigger||'direct');
   if(!allowInactive&&portalView!=='health'){traceHealthCoordV2040('load-skip:inactive',{},trigger);return;}
