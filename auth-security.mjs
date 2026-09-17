@@ -106,25 +106,16 @@ function startLockCountdown(seconds){
 }
 
 async function secureLogin(login,password){
-  let email = String(login || '').trim().toLowerCase();
-  if(!email.includes('@')){
-    let phone = email.replace(/\D/g,'');
-    if(phone.startsWith('66') && phone.length === 11) phone = `0${phone.slice(2)}`;
-    if(phone.length === 9 && ['6','8','9'].includes(phone[0])) phone = `0${phone}`;
-    if(!/^0\d{9}$/.test(phone)) return {response:{ok:false,status:400},payload:{error:'INVALID_LOGIN'}};
-    const digest = await crypto.subtle.digest('SHA-256',new TextEncoder().encode(phone));
-    const hex = [...new Uint8Array(digest)].map(byte=>byte.toString(16).padStart(2,'0')).join('');
-    email = `u-${hex.slice(0,48)}@phc-thc.local`;
-  }
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/cloud-login`, {
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/secure-login`, {
     method: 'POST',
     cache: 'no-store',
     headers: {
       'Content-Type': 'application/json',
       'apikey': SUPABASE_PUBLISHABLE_KEY,
-      'x-client-info': 'osm-phc-auth-security/2.0.46'
+      'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      'x-client-info': 'osm-phc-auth-security/2.0.46-hotfix1'
     },
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ login, password })
   });
   let payload = {};
   try{ payload = await response.json(); }catch{}
@@ -312,11 +303,11 @@ if(loginForm){
         }
         return;
       }
-      if(!payload.access_token || !payload.refresh_token) throw new Error('SESSION_MISSING');
+      if(!payload.session?.access_token || !payload.session?.refresh_token) throw new Error('SESSION_MISSING');
       stopLockCountdown();
       const { data, error:setError } = await supabase.auth.setSession({
-        access_token: payload.access_token,
-        refresh_token: payload.refresh_token
+        access_token: payload.session.access_token,
+        refresh_token: payload.session.refresh_token
       });
       if(setError || !data.session) throw setError || new Error('SESSION_SETUP_FAILED');
       if(!await requirePrivilegedMfa(data.session)) return;
