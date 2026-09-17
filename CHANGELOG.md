@@ -1,6 +1,7 @@
 ## Cloud v2.0.47 — CSP Console & Auth Client Stability
 
 - ลบ `frame-ancestors` จาก CSP แบบ meta เพราะเบราว์เซอร์ไม่รองรับ directive นี้ใน meta policy โดยคง allowlist อื่นเดิม
+- อนุญาต `https://cdn.jsdelivr.net` ใน `connect-src` เฉพาะโดเมน CDN ที่ใช้โหลด Supabase library เพื่อให้ DevTools อ่าน source map ได้โดยไม่เกิด CSP error
 - ป้องกัน race ขณะเริ่ม Supabase Auth เพื่อให้ทุกโมดูลใช้ client เดียวกัน
 - เพิ่ม favicon และปรับ cache key โดยคง `secure-login` และสถานะไม่บังคับ MFA
 
