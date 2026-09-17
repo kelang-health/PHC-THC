@@ -1,8 +1,12 @@
+## Cloud v2.0.46 Hotfix — Current Authentication State
+
+- คงการเข้าสู่ระบบ Cloud ผ่าน `secure-login` และไม่เปลี่ยนรหัส/PIN เดิมของ user, staff หรือ admin
+- ไม่บังคับ MFA ในสถานะปัจจุบัน และแก้ Privacy Notice ให้ตรงกับมาตรการที่ใช้งานจริง
+
 ## Cloud v2.0.46 — PDPA & Privileged Access Hardening
 
 - เพิ่ม Privacy Notice ตาม PDPA ที่เข้าถึงได้ก่อนเข้าสู่ระบบ
-- บังคับ TOTP MFA สำหรับบัญชี Cloud บทบาท admin และ staff ที่หน้าเว็บ
-- เปลี่ยน secure login interceptor ให้ใช้ `cloud-login` จริง เพื่อให้การแจ้ง Telegram เมื่อรหัสผิดครบ 3 ครั้งทำงานครบทุกหน้าจอ
+- ข้อเสนอ TOTP MFA และ `cloud-login` ในรุ่นนี้ถูกยกเลิกโดย hotfix; สถานะปัจจุบันใช้ `secure-login` และไม่บังคับ MFA
 - เพิ่ม CSP แบบ meta policy สำหรับ GitHub Pages
 
 ## Cloud v2.0.45 — Telegram Security & New House Alerts
