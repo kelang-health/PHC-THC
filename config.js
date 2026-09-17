@@ -21,11 +21,11 @@ if (typeof window !== 'undefined') {
       await initInteractionFeedback1827();
       const { initCareDashboard1860 } = await import('./care-dashboard-v1860.mjs?v=2.0.33&p=2040');
       await initCareDashboard1860(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initSystemAboutNote1829 } = await import('./system-about-note-v1829.mjs?v=2.0.31');
+      const { initSystemAboutNote1829 } = await import('./system-about-note-v1829.mjs?v=2.0.56&p=2056');
       initSystemAboutNote1829();
       const { initCommunityHouseholdQuality1831 } = await import('./community-household-quality-v1831.mjs?v=2.0.55&p=2055b');
       await initCommunityHouseholdQuality1831(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initPHCFiveFeatures190 } = await import('./phc-five-features-v190.mjs?v=2.0.43&p=2047');
+      const { initPHCFiveFeatures190 } = await import('./phc-five-features-v190.mjs?v=2.0.56&p=2056');
       await initPHCFiveFeatures190(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initFieldWorkReportingV200 } = await import('./field-work-reporting-v200.mjs?v=2.0.44&p=2049');
       await initFieldWorkReportingV200(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
