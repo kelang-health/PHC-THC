@@ -1,3 +1,10 @@
+## Cloud v2.0.46 — PDPA & Privileged Access Hardening
+
+- เพิ่ม Privacy Notice ตาม PDPA ที่เข้าถึงได้ก่อนเข้าสู่ระบบ
+- บังคับ TOTP MFA สำหรับบัญชี Cloud บทบาท admin และ staff ที่หน้าเว็บ
+- เปลี่ยน secure login interceptor ให้ใช้ `cloud-login` จริง เพื่อให้การแจ้ง Telegram เมื่อรหัสผิดครบ 3 ครั้งทำงานครบทุกหน้าจอ
+- เพิ่ม CSP แบบ meta policy สำหรับ GitHub Pages
+
 ## Cloud v2.0.45 — Telegram Security & New House Alerts
 
 - แจ้งผู้ดูแลผ่าน Telegram เมื่อมีการเพิ่มบ้านเลขที่ใหม่จากระบบภาคสนาม โดยส่งเฉพาะบ้านเลขที่ หมู่ และชุมชนสำหรับตรวจสอบ

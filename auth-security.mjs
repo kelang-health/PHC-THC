@@ -1,5 +1,5 @@
 import { getSharedSupabase } from './shared-runtime-v2035.mjs?v=2.0.35';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.44&p=2049';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.45&p=2050';
 
 const supabase = await getSharedSupabase(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
@@ -14,6 +14,7 @@ let idleLogoutInProgress = false;
 let lastActivityWrite = 0;
 let lockCountdownTimer = null;
 let loginBusyOverlay = null;
+let mfaOverlay = null;
 
 const $ = selector => document.querySelector(selector);
 
@@ -105,19 +106,98 @@ function startLockCountdown(seconds){
 }
 
 async function secureLogin(login,password){
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/secure-login`, {
+  let email = String(login || '').trim().toLowerCase();
+  if(!email.includes('@')){
+    let phone = email.replace(/\D/g,'');
+    if(phone.startsWith('66') && phone.length === 11) phone = `0${phone.slice(2)}`;
+    if(phone.length === 9 && ['6','8','9'].includes(phone[0])) phone = `0${phone}`;
+    if(!/^0\d{9}$/.test(phone)) return {response:{ok:false,status:400},payload:{error:'INVALID_LOGIN'}};
+    const digest = await crypto.subtle.digest('SHA-256',new TextEncoder().encode(phone));
+    const hex = [...new Uint8Array(digest)].map(byte=>byte.toString(16).padStart(2,'0')).join('');
+    email = `u-${hex.slice(0,48)}@phc-thc.local`;
+  }
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/cloud-login`, {
     method: 'POST',
     cache: 'no-store',
     headers: {
       'Content-Type': 'application/json',
       'apikey': SUPABASE_PUBLISHABLE_KEY,
-      'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+      'x-client-info': 'osm-phc-auth-security/2.0.46'
     },
-    body: JSON.stringify({ login, password })
+    body: JSON.stringify({ email, password })
   });
   let payload = {};
   try{ payload = await response.json(); }catch{}
   return { response, payload };
+}
+
+function ensureMfaOverlay(){
+  if(mfaOverlay && document.body.contains(mfaOverlay)) return mfaOverlay;
+  if(!document.getElementById('phc-mfa-style')){
+    const style=document.createElement('style');
+    style.id='phc-mfa-style';
+    style.textContent=`
+      #phc-mfa{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(18,43,39,.72);backdrop-filter:blur(5px)}
+      #phc-mfa[hidden]{display:none!important}.phc-mfa-card{width:min(440px,96vw);max-height:94vh;overflow:auto;background:#fff;border-radius:22px;padding:24px;box-shadow:0 28px 90px rgba(0,0,0,.34);color:#17312d}
+      .phc-mfa-card h2{margin:.15rem 0 .5rem}.phc-mfa-card p{color:#526b65;line-height:1.55}.phc-mfa-qr{display:block;width:min(260px,78vw);height:auto;margin:14px auto;border:1px solid #d8e5e1;border-radius:14px}
+      .phc-mfa-card label{display:grid;gap:7px;font-weight:700}.phc-mfa-card input{font-size:1.35rem;letter-spacing:.28em;text-align:center}.phc-mfa-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}.phc-mfa-error{min-height:1.4em;color:#a53f32}
+    `;
+    document.head.appendChild(style);
+  }
+  mfaOverlay=document.createElement('div');
+  mfaOverlay.id='phc-mfa';
+  mfaOverlay.hidden=true;
+  mfaOverlay.innerHTML=`<section class="phc-mfa-card" role="dialog" aria-modal="true" aria-labelledby="phc-mfa-title"><p class="eyebrow">SECURE ACCESS</p><h2 id="phc-mfa-title">ยืนยันตัวตน 2 ชั้น</h2><p data-mfa-message></p><img class="phc-mfa-qr" data-mfa-qr alt="QR Code สำหรับตั้งค่า Authenticator" hidden><form data-mfa-form><label>รหัส 6 หลักจาก Authenticator<input data-mfa-code inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label><p class="phc-mfa-error" data-mfa-error role="alert"></p><div class="phc-mfa-actions"><button type="button" class="secondary" data-mfa-cancel>ออกจากระบบ</button><button class="primary">ยืนยัน</button></div></form></section>`;
+  document.body.appendChild(mfaOverlay);
+  return mfaOverlay;
+}
+
+function requestMfaCode({enrollment=false,qrCode=''}){
+  const overlay=ensureMfaOverlay();
+  overlay.hidden=false;
+  overlay.querySelector('[data-mfa-message]').textContent=enrollment
+    ? 'บัญชีเจ้าหน้าที่/ผู้ดูแลต้องใช้ MFA กรุณาสแกน QR ด้วย Google Authenticator, Microsoft Authenticator หรือแอป TOTP แล้วกรอกรหัส'
+    : 'กรอกรหัสจากแอป Authenticator เพื่อเข้าถึงข้อมูลสิทธิ์สูง';
+  const image=overlay.querySelector('[data-mfa-qr]');
+  image.hidden=!qrCode;
+  if(qrCode) image.src=qrCode; else image.removeAttribute('src');
+  const form=overlay.querySelector('[data-mfa-form]');
+  const input=overlay.querySelector('[data-mfa-code]');
+  const error=overlay.querySelector('[data-mfa-error]');
+  input.value='';error.textContent='';
+  setTimeout(()=>input.focus(),50);
+  return new Promise(resolve=>{
+    const finish=value=>{form.onsubmit=null;overlay.querySelector('[data-mfa-cancel]').onclick=null;overlay.hidden=true;resolve(value);};
+    form.onsubmit=event=>{event.preventDefault();const code=input.value.replace(/\D/g,'');if(code.length!==6){error.textContent='กรุณากรอกรหัส 6 หลัก';return;}finish(code);};
+    overlay.querySelector('[data-mfa-cancel]').onclick=()=>finish(null);
+  });
+}
+
+async function requirePrivilegedMfa(session){
+  const {data:profile,error:profileError}=await supabase.from('profiles').select('role,active').eq('user_id',session.user.id).maybeSingle();
+  if(profileError) throw profileError;
+  if(!profile?.active || !['admin','staff'].includes(profile.role)) return true;
+  const {data:assurance,error:assuranceError}=await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if(assuranceError) throw assuranceError;
+  if(assurance?.currentLevel==='aal2') return true;
+  const {data:listed,error:listError}=await supabase.auth.mfa.listFactors();
+  if(listError) throw listError;
+  let factor=(listed?.totp||[]).find(item=>item.status==='verified');
+  let enrollment=null;
+  if(!factor){
+    for(const stale of (listed?.all||[]).filter(item=>item.factor_type==='totp'&&item.status!=='verified')){
+      try{await supabase.auth.mfa.unenroll({factorId:stale.id});}catch{}
+    }
+    const {data,error}=await supabase.auth.mfa.enroll({factorType:'totp',friendlyName:`OSM-PHC ${profile.role}`});
+    if(error) throw error;
+    enrollment=data;
+    factor={id:data.id};
+  }
+  const code=await requestMfaCode({enrollment:Boolean(enrollment),qrCode:enrollment?.totp?.qr_code||''});
+  if(!code){await supabase.auth.signOut({scope:'local'});return false;}
+  const {error:verifyError}=await supabase.auth.mfa.challengeAndVerify({factorId:factor.id,code});
+  if(verifyError){await supabase.auth.signOut({scope:'local'});throw new Error('รหัส MFA ไม่ถูกต้อง กรุณาเข้าระบบใหม่');}
+  return true;
 }
 
 function readLastActivity(){
@@ -232,19 +312,22 @@ if(loginForm){
         }
         return;
       }
-      if(!payload.session?.access_token || !payload.session?.refresh_token) throw new Error('SESSION_MISSING');
+      if(!payload.access_token || !payload.refresh_token) throw new Error('SESSION_MISSING');
       stopLockCountdown();
       const { data, error:setError } = await supabase.auth.setSession({
-        access_token: payload.session.access_token,
-        refresh_token: payload.session.refresh_token
+        access_token: payload.access_token,
+        refresh_token: payload.refresh_token
       });
       if(setError || !data.session) throw setError || new Error('SESSION_SETUP_FAILED');
+      if(!await requirePrivilegedMfa(data.session)) return;
       writeLastActivity(Date.now(),true);
       try{ sessionStorage.setItem(LOGIN_SUCCESS_KEY,'1'); }catch{}
       loginSucceeded = true;
       window.location.reload();
-    }catch{
-      if(error) error.textContent = 'ไม่สามารถเชื่อมต่อระบบเข้าสู่ระบบได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่';
+    }catch(loginErrorValue){
+      if(error) error.textContent = String(loginErrorValue?.message||'').startsWith('รหัส MFA')
+        ? loginErrorValue.message
+        : 'ไม่สามารถเชื่อมต่อระบบเข้าสู่ระบบได้ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่';
     }finally{
       if(!loginSucceeded) hideLoginBusy();
       if(button && !lockCountdownTimer && !loginSucceeded){
