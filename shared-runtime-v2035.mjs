@@ -1,5 +1,6 @@
 const KEY='__PHC_SHARED_RUNTIME_V2035__';
-const state=window[KEY]||(window[KEY]={client:null,session:null,profile:null,profileUserId:null,profileAt:0,inflight:new Map(),cache:new Map(),authHooked:false});
+const state=window[KEY]||(window[KEY]={client:null,clientPromise:null,session:null,profile:null,profileUserId:null,profileAt:0,inflight:new Map(),cache:new Map(),authHooked:false});
+if(!Object.prototype.hasOwnProperty.call(state,'clientPromise'))state.clientPromise=null;
 
 function hookAuth(client){
   if(state.authHooked||!client?.auth?.onAuthStateChange)return;
@@ -25,10 +26,17 @@ export function registerSharedSupabase(client){
 
 export async function getSharedSupabase(url,key){
   if(state.client)return state.client;
-  const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-  state.client=createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-  hookAuth(state.client);
-  return state.client;
+  if(state.clientPromise)return state.clientPromise;
+  state.clientPromise=(async()=>{
+    const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    if(!state.client)state.client=createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    hookAuth(state.client);
+    return state.client;
+  })().catch(error=>{
+    state.clientPromise=null;
+    throw error;
+  });
+  return state.clientPromise;
 }
 
 export function setSharedSession(session){state.session=session||null;}
