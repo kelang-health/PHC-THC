@@ -1,3 +1,9 @@
+## Cloud v2.0.47 — CSP Console & Auth Client Stability
+
+- ลบ `frame-ancestors` จาก CSP แบบ meta เพราะเบราว์เซอร์ไม่รองรับ directive นี้ใน meta policy โดยคง allowlist อื่นเดิม
+- ป้องกัน race ขณะเริ่ม Supabase Auth เพื่อให้ทุกโมดูลใช้ client เดียวกัน
+- เพิ่ม favicon และปรับ cache key โดยคง `secure-login` และสถานะไม่บังคับ MFA
+
 ## Cloud v2.0.46 Hotfix — Current Authentication State
 
 - คงการเข้าสู่ระบบ Cloud ผ่าน `secure-login` และไม่เปลี่ยนรหัส/PIN เดิมของ user, staff หรือ admin

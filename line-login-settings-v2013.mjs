@@ -1,4 +1,4 @@
-import { getSharedSupabase, getSharedProfile } from './shared-runtime-v2035.mjs?v=2.0.35';
+import { getSharedSupabase, getSharedProfile } from './shared-runtime-v2035.mjs?v=2.0.47-csp1';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.44&p=2049';
 
 const supabase=await getSharedSupabase(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
