@@ -9,9 +9,9 @@ if (typeof window !== 'undefined') {
       await initHouseRegistration(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initMyHousesMobile } = await import('./my-houses-mobile-v1820.mjs?v=2.0.55&p=2055');
       await initMyHousesMobile(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initMobileSpatialCards } = await import('./mobile-community-volunteer-cards-v1821.mjs?v=2.0.55&p=2055');
+      const { initMobileSpatialCards } = await import('./mobile-community-volunteer-cards-v1821.mjs?v=2.0.55&p=2055b');
       await initMobileSpatialCards(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initCommunityWorkflow1822 } = await import('./community-workflow-v1822.mjs?v=2.0.55&p=2055');
+      const { initCommunityWorkflow1822 } = await import('./community-workflow-v1822.mjs?v=2.0.55&p=2055b');
       await initCommunityWorkflow1822(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initMobileUIPolish1824 } = await import('./mobile-ui-polish-v1824.mjs?v=1.8.24b&p=2035');
       await initMobileUIPolish1824(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
@@ -23,7 +23,7 @@ if (typeof window !== 'undefined') {
       await initCareDashboard1860(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initSystemAboutNote1829 } = await import('./system-about-note-v1829.mjs?v=2.0.31');
       initSystemAboutNote1829();
-      const { initCommunityHouseholdQuality1831 } = await import('./community-household-quality-v1831.mjs?v=2.0.55&p=2055');
+      const { initCommunityHouseholdQuality1831 } = await import('./community-household-quality-v1831.mjs?v=2.0.55&p=2055b');
       await initCommunityHouseholdQuality1831(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initPHCFiveFeatures190 } = await import('./phc-five-features-v190.mjs?v=2.0.43&p=2047');
       await initPHCFiveFeatures190(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
