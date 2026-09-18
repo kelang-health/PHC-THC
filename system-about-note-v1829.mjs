@@ -1,4 +1,4 @@
-const VERSION=document.querySelector('meta[name="phc-release"]')?.content||'2.0.58';
+const VERSION=document.querySelector('meta[name="phc-release"]')?.content||'2.0.59';
 
 function injectStyle(){
   if(document.getElementById('system-about-note-v1829-style')) return;

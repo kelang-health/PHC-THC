@@ -1,5 +1,5 @@
 import { getSharedSupabase, getSharedProfile, sharedCall, invalidateShared, bindPortalActivation, isPortalViewActive } from './shared-runtime-v2035.mjs?v=2.0.35';
-const VERSION=document.querySelector('meta[name="phc-release"]')?.content||'2.0.58';
+const VERSION=document.querySelector('meta[name="phc-release"]')?.content||'2.0.59';
 let supabase=null,profile=null,activeOverlay=null,globalBound=false,toastTimer=null;
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

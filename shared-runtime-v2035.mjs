@@ -1,6 +1,7 @@
 const KEY='__PHC_SHARED_RUNTIME_V2035__';
-const state=window[KEY]||(window[KEY]={client:null,clientPromise:null,session:null,profile:null,profileUserId:null,profileAt:0,inflight:new Map(),cache:new Map(),authHooked:false});
+const state=window[KEY]||(window[KEY]={client:null,clientPromise:null,session:null,profile:null,profileUserId:null,profileAt:0,inflight:new Map(),cache:new Map(),authHooked:false,refreshPromise:null});
 if(!Object.prototype.hasOwnProperty.call(state,'clientPromise'))state.clientPromise=null;
+if(!Object.prototype.hasOwnProperty.call(state,'refreshPromise'))state.refreshPromise=null;
 
 function hookAuth(client){
   if(state.authHooked||!client?.auth?.onAuthStateChange)return;
@@ -13,8 +14,9 @@ function hookAuth(client){
       state.profileAt=0;
       state.cache.clear();
       state.inflight.clear();
+      state.refreshPromise=null;
     }
-    if(event==='USER_UPDATED'||event==='TOKEN_REFRESHED')state.session=session||state.session;
+    if(event==='USER_UPDATED'||event==='TOKEN_REFRESHED'||event==='SIGNED_IN')state.session=session||state.session;
   });
 }
 
@@ -50,18 +52,57 @@ export function clearSharedAuth(){
   state.profile=null;
   state.profileUserId=null;
   state.profileAt=0;
+  state.refreshPromise=null;
   state.cache.clear();
   state.inflight.clear();
+}
+
+export function isSharedAuthError(error){
+  const status=Number(error?.status||error?.statusCode||error?.response?.status||0);
+  const code=String(error?.code||'').toLowerCase();
+  const message=String(error?.message||error?.error_description||'').toLowerCase();
+  return status===401
+    || code.includes('jwt')
+    || code==='pgrst301'
+    || message.includes('jwt expired')
+    || message.includes('invalid jwt')
+    || message.includes('token is expired')
+    || message.includes('invalid token');
+}
+
+export async function refreshSharedSession(client=state.client){
+  if(!client?.auth?.refreshSession)return null;
+  if(state.refreshPromise)return state.refreshPromise;
+  state.refreshPromise=(async()=>{
+    const {data,error}=await client.auth.refreshSession();
+    if(error)throw error;
+    state.session=data?.session||null;
+    return state.session;
+  })().finally(()=>{state.refreshPromise=null;});
+  return state.refreshPromise;
 }
 
 export async function getSharedSession(client=state.client){
   if(state.session)return state.session;
   if(!client)return null;
   return sharedCall('auth:session',async()=>{
-    const {data:{session}}=await client.auth.getSession();
+    const {data:{session},error}=await client.auth.getSession();
+    if(error)throw error;
     state.session=session||null;
     return state.session;
   },750);
+}
+
+export async function ensureSharedSession(client=state.client,session=state.session,{minValiditySeconds=60}={}){
+  let candidate=session||state.session||await getSharedSession(client);
+  if(!candidate)return null;
+  state.session=candidate;
+  const expiresAt=Number(candidate.expires_at||0);
+  const nowSeconds=Math.floor(Date.now()/1000);
+  if(expiresAt&&expiresAt-nowSeconds<=Math.max(0,Number(minValiditySeconds)||0)){
+    candidate=await refreshSharedSession(client);
+  }
+  return candidate||null;
 }
 
 export async function getSharedProfile(client=state.client,{force=false,ttlMs=300000}={}){
@@ -120,5 +161,5 @@ export function bindPortalActivation(view,handler,{runIfActive=true}={}){
 }
 
 export function sharedDiagnostics(){
-  return {hasClient:Boolean(state.client),hasSession:Boolean(state.session),profileUserId:state.profileUserId,inflight:[...state.inflight.keys()],cacheKeys:[...state.cache.keys()]};
+  return {hasClient:Boolean(state.client),hasSession:Boolean(state.session),profileUserId:state.profileUserId,refreshInFlight:Boolean(state.refreshPromise),inflight:[...state.inflight.keys()],cacheKeys:[...state.cache.keys()]};
 }

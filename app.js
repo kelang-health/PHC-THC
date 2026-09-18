@@ -1,6 +1,6 @@
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.58&p=2058';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.59&p=2059';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
-import { getSharedSupabase, setSharedSession, setSharedProfile, clearSharedAuth, sharedCall, invalidateShared } from './shared-runtime-v2035.mjs?v=2.0.35';
+import { getSharedSupabase, setSharedSession, setSharedProfile, clearSharedAuth, sharedCall, invalidateShared, ensureSharedSession, refreshSharedSession, isSharedAuthError } from './shared-runtime-v2035.mjs?v=2.0.59';
 
 const supabase = await getSharedSupabase(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 const $ = s => document.querySelector(s);
@@ -50,12 +50,14 @@ const HEALTH_TARGET_FAST_COLUMNS=HEALTH_WORKLIST_BASE_COLUMNS+',has_cvd,cvd_popu
 function healthWorklistColumns(){return healthActiveViewName==='health_person_worklist_active_v1847'?HEALTH_WORKLIST_BASE_COLUMNS+',has_cvd,cvd_population_eligible,screening_plan_date,screening_age_months,screening_route,screening_route_label,screening_dspm_target_months,field_target_enabled,screening_plan_updated_at':HEALTH_WORKLIST_BASE_COLUMNS;}
 function healthWorklistSchemaFallbackAllowed(error){const code=String(error?.code||'');const message=String(error?.message||'').toLowerCase();return ['42703','42P01','PGRST204','PGRST205'].includes(code)||message.includes('does not exist')||message.includes('schema cache');}
 const PORTAL_NAV_STORAGE = 'phc.portal.nav-collapsed';
+const PORTAL_VIEW_QUERY_V2059 = 'view';
+const PORTAL_DEFAULT_VIEW_V2059 = 'overview';
 const HEALTH_PAGE_SIZE_V2033 = 50;
 const HEALTH_WORKLIST_CACHE_MS_V2039 = 30000;
 const STAFF_SCOPE_CACHE_MS_V2039 = 300000;
 const HOUSEHOLD_CACHE_MS_V2039 = 30000;
 const HEALTH_COORD_TRACE_MAX_V2040 = 40;
-const CLOUD_RELEASE_VERSION = document.querySelector('meta[name="phc-release"]')?.content || '2.0.58';
+const CLOUD_RELEASE_VERSION = document.querySelector('meta[name="phc-release"]')?.content || '2.0.59';
 function traceHealthCoordV2040(event,args={},trigger=''){
   const row={at:Date.now(),event:String(event||''),trigger:String(trigger||''),scope:String(args.p_scope||''),filter:String(args.p_filter||''),stage:String(args.p_stage||''),hasSearch:Boolean(args.p_search),hasCommunity:Boolean(args.p_community),assignment:String(args.p_assignment||''),hasOwner:Boolean(args.p_owner_pid),offset:Number(args.p_offset||0)};
   healthCoordTraceV2040.push(row);while(healthCoordTraceV2040.length>HEALTH_COORD_TRACE_MAX_V2040)healthCoordTraceV2040.shift();window.PHCHealthCoordTrace=healthCoordTraceV2040;
@@ -67,7 +69,7 @@ const CLOUD_BRAND_LOGO_URL = `${SUPABASE_URL}/storage/v1/object/public/osm-publi
 
 function configureCloudBrandLogo(){
   const image=$('#cloud-login-logo');if(!image)return;
-  const fallback='./logo.svg?v=2.0.58';
+  const fallback='./logo.svg?v=2.0.59';
   image.onerror=()=>{image.onerror=null;image.src=fallback;};
   image.src=`${CLOUD_BRAND_LOGO_URL}?t=${Math.floor(Date.now()/300000)}`;
 }
@@ -96,7 +98,8 @@ function renderAuthView(view){
 function renderLoggedOut(){
   authRequestId += 1;
   clearSharedAuth();
-  currentProfile=null; passwordPanelOpen=false; renderedPortalUserId=null; healthFeedbackModel=null; portalView='overview';
+  currentProfile=null; passwordPanelOpen=false; renderedPortalUserId=null; healthFeedbackModel=null; portalView=PORTAL_DEFAULT_VIEW_V2059;
+  writePortalViewHistoryV2059(PORTAL_DEFAULT_VIEW_V2059,'replace');
   renderAuthView('login');
 }
 function roleLabel(role){ return ({admin:'เจ้าหน้าที่',staff:'ประธาน อสม.',user:'อสม.'})[role] || role || 'ไม่ระบุ'; }
@@ -107,7 +110,41 @@ function setPortalNavCollapsed(collapsed,persist=true){
   if(persist){try{localStorage.setItem(PORTAL_NAV_STORAGE,isCollapsed?'1':'0');}catch{}}
 }
 function restorePortalNavPreference(){let collapsed=false;try{collapsed=localStorage.getItem(PORTAL_NAV_STORAGE)==='1';}catch{}setPortalNavCollapsed(collapsed,false);}
-function setPortalView(next){const allowed=[...document.querySelectorAll('#portal-nav [data-portal-view]')].filter(b=>!b.hidden).map(b=>b.dataset.portalView);const previous=portalView;portalView=allowed.includes(next)?next:'overview';document.querySelectorAll('[data-portal-panel]').forEach(x=>x.hidden=x.dataset.portalPanel!==portalView);document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>b.classList.toggle('active',b.dataset.portalView===portalView));if(previous!==portalView){if(previous==='health'&&portalView!=='health')cancelScheduledHealthLoadV2040('view-left');document.dispatchEvent(new CustomEvent('phc:portal-view-changed',{detail:{view:portalView,previous}}));}if(window.innerWidth<=900)window.scrollTo({top:0,behavior:'smooth'});}
+function portalViewFromLocationV2059(){
+  try{return new URL(window.location.href).searchParams.get(PORTAL_VIEW_QUERY_V2059)||PORTAL_DEFAULT_VIEW_V2059;}catch{return PORTAL_DEFAULT_VIEW_V2059;}
+}
+function writePortalViewHistoryV2059(view,mode='replace'){
+  if(mode!=='push'&&mode!=='replace')return;
+  try{
+    const url=new URL(window.location.href);url.searchParams.set(PORTAL_VIEW_QUERY_V2059,view);
+    const state={...(history.state||{}),phcPortalView:view};
+    if(mode==='push')history.pushState(state,'',url);else history.replaceState(state,'',url);
+  }catch{}
+}
+function setPortalView(next,{historyMode='none',scroll=true}={}){
+  const allowed=[...document.querySelectorAll('#portal-nav [data-portal-view]')].filter(b=>!b.hidden).map(b=>b.dataset.portalView);
+  const previous=portalView,requested=String(next||PORTAL_DEFAULT_VIEW_V2059);
+  portalView=allowed.includes(requested)?requested:PORTAL_DEFAULT_VIEW_V2059;
+  document.querySelectorAll('[data-portal-panel]').forEach(x=>x.hidden=x.dataset.portalPanel!==portalView);
+  document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>b.classList.toggle('active',b.dataset.portalView===portalView));
+  if(previous!==portalView){
+    if(previous==='health'&&portalView!=='health')cancelScheduledHealthLoadV2040('view-left');
+    document.dispatchEvent(new CustomEvent('phc:portal-view-changed',{detail:{view:portalView,previous}}));
+  }
+  if(historyMode==='replace'||(historyMode==='push'&&previous!==portalView))writePortalViewHistoryV2059(portalView,historyMode);
+  if(scroll&&window.innerWidth<=900&&previous!==portalView)window.scrollTo({top:0,behavior:'smooth'});
+  return portalView;
+}
+async function restorePortalViewFromHistoryV2059(){
+  if(authView!=='portal')return;
+  const requested=portalViewFromLocationV2059();
+  const resolved=setPortalView(requested,{historyMode:'none',scroll:false});
+  if(resolved!==requested)writePortalViewHistoryV2059(resolved,'replace');
+  if(resolved==='health'){
+    try{if(!healthLoaded)await loadHealthModule();else await scheduleHealthPeopleLoad(120,'history-pop-v2059');}
+    catch(e){const body=$('#health-person-body');if(body)body.innerHTML='<tr><td colspan="5">'+esc(e.message)+'</td></tr>';}
+  }
+}
 function setHealthIntentV2058(intent={}){
   pendingHealthIntentV2058={
     filter:String(intent.filter||'field_targets'),
@@ -124,7 +161,7 @@ function configurePortalNav(role){
     b.hidden=!(b.dataset.roles||'').split(/\s+/).includes(role);
     const label=b.querySelector('.portal-nav-label'),roleLabelText=labels[role]?.[b.dataset.portalView];if(label&&roleLabelText)label.textContent=roleLabelText;
     b.onclick=async()=>{
-      const wasActive=portalView===b.dataset.portalView;setPortalView(b.dataset.portalView);
+      const wasActive=portalView===b.dataset.portalView;setPortalView(b.dataset.portalView,{historyMode:'push'});
       // Phase 2J: field-work-reporting owns the Work panel snapshot.
       if(b.dataset.portalView==='health'){
         const filter=$('#health-filter'),stage=$('#health-stage'),assignment=$('#health-assignment'),search=$('#health-search');
@@ -147,7 +184,7 @@ function configurePortalNav(role){
   });
   // Preserve the panel the user is currently working in during session refreshes.
   // setPortalView() falls back to overview only when that panel is unavailable.
-  setPortalView(portalView);
+  setPortalView(portalViewFromLocationV2059()||portalView,{historyMode:'replace',scroll:false});
 }
 function configureHealthAdminUI(role){
   const adminIntro=$('#health-admin-intro'),targetAdmin=$('#health-target-admin');
@@ -908,7 +945,7 @@ async function openCommunity(index){
     workspace.innerHTML=`<div class="community-workspace-head"><div><p class="eyebrow">OSM-PHC COMMUNITY WORKSPACE</p><h3>${esc(row.community||'ไม่ระบุชุมชน')}</h3><p>ข้อมูลครัวเรือน อสม. พิกัด และงานสุขภาพที่บัญชี ${esc(roleLabel(currentProfile?.role))} มีสิทธิ์เห็น</p></div><button type="button" class="secondary" data-community-close>ปิด</button></div><div class="community-actions"><button type="button" class="active" data-community-action="overview"><span>◫</span><strong>สรุปชุมชน</strong><small>${num(houses.length)} หลัง</small></button><button type="button" data-community-action="houses"><span>⌂</span><strong>ครัวเรือน</strong><small>เปิดทะเบียนบ้าน</small></button><button type="button" data-community-action="volunteers"><span>♧</span><strong>อสม.</strong><small>${num(volunteers.length)} คนในสิทธิ์</small></button><button type="button" data-community-action="review"><span>✓</span><strong>ตรวจข้อมูล</strong><small>${num(review.length)} รายการ</small></button><button type="button" data-community-action="health"><span>✚</span><strong>งานสุขภาพ</strong><small>NCD และ 2Q</small></button></div><section class="community-view" data-community-view="overview"><div class="community-metrics"><article><small>ครัวเรือนในสิทธิ์</small><strong>${num(houses.length)}</strong></article><article><small>มอบหมาย อสม.</small><strong>${num(houses.filter(h=>h.volunteer_pid!==null).length)}</strong></article><article><small>มีพิกัด</small><strong>${num(mapped.length)}</strong></article><article><small>ต้องตรวจข้อมูล</small><strong>${num(review.length)}</strong></article></div><p class="community-scope-note">ระบบใช้ RLS กรองข้อมูลอัตโนมัติ ไม่สามารถเปิดชุมชนหรือบ้านนอกขอบเขตของบัญชีนี้ได้</p></section><section class="community-view" data-community-view="houses" hidden><h4>ทะเบียนครัวเรือน</h4><div class="table-wrap"><table><thead><tr><th>บ้าน</th><th>หมู่</th><th>สถานะ</th><th>คุณภาพข้อมูล</th><th>พิกัด</th></tr></thead><tbody>${communityHouseRows(houses)}</tbody></table></div></section><section class="community-view" data-community-view="volunteers" hidden><h4>ทะเบียน อสม. และเขตรับผิดชอบ</h4><div class="table-wrap"><table><thead><tr><th>อสม.</th><th>Anchor</th><th>บ้าน</th><th>ต้องตรวจ</th><th>ข้ามชุมชน</th></tr></thead><tbody>${volunteerRows}</tbody></table></div></section><section class="community-view" data-community-view="review" hidden><h4>รายการที่ต้องตรวจสอบ</h4><div class="table-wrap"><table><thead><tr><th>บ้าน</th><th>หมู่</th><th>สถานะ</th><th>คุณภาพข้อมูล</th><th>พิกัด</th></tr></thead><tbody>${communityHouseRows(review)}</tbody></table></div></section>`;
     workspace.querySelector('[data-community-close]').onclick=()=>{communityRequestId+=1;workspace.hidden=true;};
     workspace.querySelectorAll('[data-community-action]').forEach(button=>button.onclick=async()=>{
-      const action=button.dataset.communityAction;if(action==='health'){healthCommunityFocus=row.community;setPortalView('health');try{if(!healthLoaded)await loadHealthModule();else{const focus=$('#health-community-focus');focus.hidden=false;focus.querySelector('strong').textContent=healthCommunityFocus;await loadHealthPeople({trigger:'community-focus'});}}catch(e){$('#health-list-note').textContent=e.message;}return;}
+      const action=button.dataset.communityAction;if(action==='health'){healthCommunityFocus=row.community;setPortalView('health',{historyMode:'push'});try{if(!healthLoaded)await loadHealthModule();else{const focus=$('#health-community-focus');focus.hidden=false;focus.querySelector('strong').textContent=healthCommunityFocus;await loadHealthPeople({trigger:'community-focus'});}}catch(e){$('#health-list-note').textContent=e.message;}return;}
       workspace.querySelectorAll('[data-community-action]').forEach(x=>x.classList.toggle('active',x===button));workspace.querySelectorAll('[data-community-view]').forEach(x=>x.hidden=x.dataset.communityView!==action);
     });
   }catch(error){if(request===communityRequestId)workspace.innerHTML=`<p class="error">${esc(error.message)}</p>`;}
@@ -941,6 +978,7 @@ async function getProfile(userId){
     const {data,error}=await supabase.from('profiles').select('user_id,display_name,role,community,volunteer_pid,active,must_change_password').eq('user_id',userId).maybeSingle();
     if(!error)return data;
     lastError=error;
+    if(isSharedAuthError(error))break;
     if(!String(error?.message||'').toLowerCase().includes('statement timeout')||attempt===1)break;
     await new Promise(resolve=>setTimeout(resolve,220));
   }
@@ -1045,16 +1083,34 @@ async function applyAuthSession(session){
   if(passwordPanelOpen) return;
   // INITIAL_SESSION/SIGNED_IN may be emitted repeatedly for the same user.
   // Avoid rebuilding a completed portal because that can interrupt the active menu.
-  if(authView==='portal' && renderedPortalUserId===session.user.id && currentProfile?.user_id===session.user.id) return;
+  if(authView==='portal' && renderedPortalUserId===session.user.id && currentProfile?.user_id===session.user.id){setSharedSession(session);return;}
   const requestId = ++authRequestId;
-  try{ await loadPortal(session, requestId); }
+  let activeSession=session,authRecoveryAttempted=false;
+  try{
+    activeSession=await ensureSharedSession(supabase,session,{minValiditySeconds:60});
+    if(!activeSession){renderLoggedOut();return;}
+    await loadPortal(activeSession, requestId);
+  }
   catch(error){
     if(requestId !== authRequestId || passwordPanelOpen) return;
+    if(isSharedAuthError(error)&&!authRecoveryAttempted){
+      authRecoveryAttempted=true;
+      try{
+        const recovered=await refreshSharedSession(supabase);
+        if(recovered&&requestId===authRequestId&&!passwordPanelOpen){
+          await loadPortal(recovered,requestId);
+          return;
+        }
+      }catch(refreshError){error=refreshError;}
+      renderLoggedOut();
+      return;
+    }
     currentProfile = null;
-    $('#blocked').innerHTML = `<p class="eyebrow">ACCESS ERROR</p><h2>ไม่สามารถอ่านข้อมูลได้</h2><p>${esc(error.message)}</p>`;
+    $('#blocked').innerHTML = '<p class="eyebrow">ACCESS ERROR</p><h2>ไม่สามารถอ่านข้อมูลได้</h2><p>'+esc(error.message)+'</p>';
     renderAuthView('blocked');
   }
 }
+
 async function refreshAuth(){
   const { data: { session } } = await supabase.auth.getSession();
   await applyAuthSession(session);
@@ -1113,6 +1169,7 @@ $('#logout').addEventListener('click', async ()=>{
 supabase.auth.onAuthStateChange((event,session)=>{
   if(event==='SIGNED_OUT'){ renderLoggedOut(); return; }
   if(passwordPanelOpen) return;
+  if(event==='TOKEN_REFRESHED'&&session){setSharedSession(session);return;}
   if((event==='INITIAL_SESSION' || event==='SIGNED_IN') && session){
     setTimeout(()=>applyAuthSession(session),0);
   }
@@ -1131,6 +1188,8 @@ document.addEventListener('phc:care-scope-changed',async event=>{
   syncPerformanceScopeUI();syncHealthAssignmentControl();
   try{if(healthLoaded&&portalView==='health')await scheduleHealthPeopleLoad(160,'scope-event');}catch{}
 });
+window.addEventListener('popstate',()=>{restorePortalViewFromHistoryV2059().catch(()=>{});});
+window.addEventListener('pageshow',event=>{if(event.persisted){refreshAuth().then(()=>restorePortalViewFromHistoryV2059()).catch(()=>{});}});
 $('#portal-nav-toggle').addEventListener('click',()=>setPortalNavCollapsed(!$('#portal').classList.contains('nav-collapsed')));
 $('#ncd-form').addEventListener('change',event=>{if(event.target.matches('[name="smoking_state"],[name="alcohol_state"]'))syncBehaviorPanels(event.currentTarget);});
 restorePortalNavPreference();

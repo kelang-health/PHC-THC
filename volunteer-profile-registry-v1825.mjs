@@ -1,5 +1,5 @@
 import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall } from './shared-runtime-v2035.mjs?v=2.0.35';
-const VERSION='2.0.58';
+const VERSION='2.0.59';
 const WORK_PROFILE_DEFER_MS_V2044=2400;
 const WORK_AVATAR_DEFER_MS_V2044=700;
 const PHOTO_URL_CACHE_MS_V2044=25*60*1000;

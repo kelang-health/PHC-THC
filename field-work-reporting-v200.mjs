@@ -1,5 +1,5 @@
 import { getSharedSupabase, getSharedProfile, sharedCall, bindPortalActivation, isPortalViewActive } from './shared-runtime-v2035.mjs?v=2.0.35';
-const VERSION='2.0.58';
+const VERSION='2.0.59';
 const PAGE_SIZE=50;
 let supabase=null,profile=null,scope='self',ownerPid=null,staffVolunteers=[],loading=false,observer=null,lastDashboard=null,loadEpochV2040=0;
 const $=(s,r=document)=>r.querySelector(s);

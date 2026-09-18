@@ -1,3 +1,12 @@
+## Cloud v2.0.59 — Phase 2I Navigation & Session Resilience
+
+- ผูกเมนู Portal กับ URL `?view=...`; การกดเมนูสร้าง browser history และ Back/Forward คืนหน้าที่ถูกต้องโดยไม่ reload ทั้งระบบ
+- Refresh/BFCache คืนหน้าล่าสุดเฉพาะเมนูที่ role ปัจจุบันมีสิทธิ์; ถ้า URL ขอหน้าที่ไม่มีสิทธิ์จะกลับ `overview` และแก้ URL ให้ตรง
+- Logout ล้าง navigation state กลับ `overview` เพื่อไม่พาสิทธิ์/หน้าจอของ session ก่อนหน้าไปยังการเข้าสู่ระบบครั้งถัดไป
+- เพิ่ม shared single-flight session refresh และ proactive refresh เมื่อ token ใกล้หมดอายุ
+- เมื่อ bootstrap โปรไฟล์พบ 401/JWT expiry จะ refresh session และ retry การเปิด Portal เพียง 1 ครั้ง; permission error จริงยังคงแสดง ACCESS ERROR
+- รองรับ `TOKEN_REFRESHED`, `popstate` และ `pageshow` เพื่อให้ session/navigation เสถียรบน mobile browser และ browser Back/Forward cache
+
 ## Cloud v2.0.45 — Telegram Security & New House Alerts
 
 - แจ้งผู้ดูแลผ่าน Telegram เมื่อมีการเพิ่มบ้านเลขที่ใหม่จากระบบภาคสนาม โดยส่งเฉพาะบ้านเลขที่ หมู่ และชุมชนสำหรับตรวจสอบ
