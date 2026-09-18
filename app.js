@@ -1,4 +1,4 @@
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.57&p=2057';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.58&p=2058';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 import { getSharedSupabase, setSharedSession, setSharedProfile, clearSharedAuth, sharedCall, invalidateShared } from './shared-runtime-v2035.mjs?v=2.0.35';
 
@@ -26,6 +26,7 @@ let careScopeMode = 'self';
 let careScopeVolunteerPid = null;
 let staffVolunteerOptionsV2033 = [];
 let healthAssignmentFilter = 'all';
+let pendingHealthIntentV2058 = null;
 let healthPageOffset = 0;
 let healthHasMore = false;
 let healthAbortController = null;
@@ -54,7 +55,7 @@ const HEALTH_WORKLIST_CACHE_MS_V2039 = 30000;
 const STAFF_SCOPE_CACHE_MS_V2039 = 300000;
 const HOUSEHOLD_CACHE_MS_V2039 = 30000;
 const HEALTH_COORD_TRACE_MAX_V2040 = 40;
-const CLOUD_RELEASE_VERSION = document.querySelector('meta[name="phc-release"]')?.content || '2.0.57';
+const CLOUD_RELEASE_VERSION = document.querySelector('meta[name="phc-release"]')?.content || '2.0.58';
 function traceHealthCoordV2040(event,args={},trigger=''){
   const row={at:Date.now(),event:String(event||''),trigger:String(trigger||''),scope:String(args.p_scope||''),filter:String(args.p_filter||''),stage:String(args.p_stage||''),hasSearch:Boolean(args.p_search),hasCommunity:Boolean(args.p_community),assignment:String(args.p_assignment||''),hasOwner:Boolean(args.p_owner_pid),offset:Number(args.p_offset||0)};
   healthCoordTraceV2040.push(row);while(healthCoordTraceV2040.length>HEALTH_COORD_TRACE_MAX_V2040)healthCoordTraceV2040.shift();window.PHCHealthCoordTrace=healthCoordTraceV2040;
@@ -66,7 +67,7 @@ const CLOUD_BRAND_LOGO_URL = `${SUPABASE_URL}/storage/v1/object/public/osm-publi
 
 function configureCloudBrandLogo(){
   const image=$('#cloud-login-logo');if(!image)return;
-  const fallback='./logo.svg?v=2.0.57';
+  const fallback='./logo.svg?v=2.0.58';
   image.onerror=()=>{image.onerror=null;image.src=fallback;};
   image.src=`${CLOUD_BRAND_LOGO_URL}?t=${Math.floor(Date.now()/300000)}`;
 }
@@ -107,6 +108,16 @@ function setPortalNavCollapsed(collapsed,persist=true){
 }
 function restorePortalNavPreference(){let collapsed=false;try{collapsed=localStorage.getItem(PORTAL_NAV_STORAGE)==='1';}catch{}setPortalNavCollapsed(collapsed,false);}
 function setPortalView(next){const allowed=[...document.querySelectorAll('#portal-nav [data-portal-view]')].filter(b=>!b.hidden).map(b=>b.dataset.portalView);const previous=portalView;portalView=allowed.includes(next)?next:'overview';document.querySelectorAll('[data-portal-panel]').forEach(x=>x.hidden=x.dataset.portalPanel!==portalView);document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>b.classList.toggle('active',b.dataset.portalView===portalView));if(previous!==portalView){if(previous==='health'&&portalView!=='health')cancelScheduledHealthLoadV2040('view-left');document.dispatchEvent(new CustomEvent('phc:portal-view-changed',{detail:{view:portalView,previous}}));}if(window.innerWidth<=900)window.scrollTo({top:0,behavior:'smooth'});}
+function setHealthIntentV2058(intent={}){
+  pendingHealthIntentV2058={
+    filter:String(intent.filter||'field_targets'),
+    stage:String(intent.stage||''),
+    assignment:String(intent.assignment||'all'),
+    search:String(intent.search||'')
+  };
+  return true;
+}
+window.PHCSetHealthIntentV2058=setHealthIntentV2058;
 function configurePortalNav(role){
   const labels={admin:{communities:'ชุมชนทั้งหมด',volunteers:'ทะเบียน อสม.'},staff:{communities:'ชุมชนที่ดูแล',houses:'บ้านของฉัน'},user:{communities:'ชุมชนของฉัน',houses:'บ้านของฉัน'}};
   document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>{
@@ -116,11 +127,21 @@ function configurePortalNav(role){
       const wasActive=portalView===b.dataset.portalView;setPortalView(b.dataset.portalView);
       // Phase 2J: field-work-reporting owns the Work panel snapshot.
       if(b.dataset.portalView==='health'){
-        const filter=$('#health-filter'),stage=$('#health-stage');
-        if(filter)filter.value='field_targets';
-        if(stage)stage.value='';
+        const filter=$('#health-filter'),stage=$('#health-stage'),assignment=$('#health-assignment'),search=$('#health-search');
+        const intent=pendingHealthIntentV2058;pendingHealthIntentV2058=null;
+        if(intent){
+          if(filter)filter.value=intent.filter;
+          if(stage)stage.value=intent.stage;
+          if(assignment)assignment.value=intent.assignment;
+          if(search)search.value=intent.search;
+          healthAssignmentFilter=intent.assignment||'all';
+          traceHealthCoordV2040('intent-applied',healthWorklistArgsV2040(intent.filter,intent.stage,intent.search,0),'nav-intent-v2058');
+        }else{
+          if(filter)filter.value='field_targets';
+          if(stage)stage.value='';
+        }
         syncHealthTargetButtons();
-        try{if(!healthLoaded)await loadHealthModule();else if(!wasActive)await scheduleHealthPeopleLoad(160,'nav');}catch(e){$('#health-person-body').innerHTML=`<tr><td colspan="5">${esc(e.message)}</td></tr>`;}
+        try{if(!healthLoaded)await loadHealthModule();else if(!wasActive)await scheduleHealthPeopleLoad(260,intent?'nav-intent-v2058':'nav-settle-v2058');}catch(e){$('#health-person-body').innerHTML=`<tr><td colspan="5">${esc(e.messae)}</td></tr>`;}
       }
     };
   });

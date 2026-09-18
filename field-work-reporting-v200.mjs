@@ -1,5 +1,5 @@
 import { getSharedSupabase, getSharedProfile, sharedCall, bindPortalActivation, isPortalViewActive } from './shared-runtime-v2035.mjs?v=2.0.35';
-const VERSION='2.0.44';
+const VERSION='2.0.58';
 const PAGE_SIZE=50;
 let supabase=null,profile=null,scope='self',ownerPid=null,staffVolunteers=[],loading=false,observer=null,lastDashboard=null,loadEpochV2040=0;
 const $=(s,r=document)=>r.querySelector(s);
@@ -104,7 +104,7 @@ async function load(){
     if((error||!data)&&effectiveScope()!=='volunteer'){const live=await supabase.rpc('field_work_dashboard_v200',{p_scope:effectiveScope()});data=live.data;error=live.error;if(!ownsFieldLoadV2040(epoch))return;}
     if(error)throw error;data=data||{};
     if((profile?.role==='staff'&&effectiveScope()==='community')||profile?.role==='admin'){
-      if(!ownsFieldLoadV2040(epoch))return;const a=await sharedCall(`assignment-summary:${effectiveScope()}:`,()=>supabase.rpc('assignment_summary_v2033',{p_scope:effectiveScope(),p_owner_pid:null}),60000);
+      if(!ownsFieldLoadV2040(epoch))return;const a=await sharedCall(`assignment-summary-v2058:${effectiveScope()}:`,async()=>{let r=await supabase.rpc('assignment_summary_fast_v2058',{p_scope:effectiveScope(),p_owner_pid:null});if(r.error)r=await supabase.rpc('assignment_summary_v2033',{p_scope:effectiveScope(),p_owner_pid:null});return r;},300000);
       if(!ownsFieldLoadV2040(epoch))return;if(!a.error&&a.data)data={...data,assignment_summary:a.data};
     }
     if(ownsFieldLoadV2040(epoch))renderDashboard(data);

@@ -1,5 +1,5 @@
 import { getSharedSupabase, getSharedProfile, sharedCall, invalidateShared, bindPortalActivation, isPortalViewActive } from './shared-runtime-v2035.mjs?v=2.0.35';
-const VERSION=document.querySelector('meta[name="phc-release"]')?.content||'2.0.57';
+const VERSION=document.querySelector('meta[name="phc-release"]')?.content||'2.0.58';
 let supabase=null,profile=null,activeOverlay=null,globalBound=false,toastTimer=null;
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -119,7 +119,7 @@ async function reviewRequest(id,decision,note='',linkPcucode=null,linkPid=null){
     await renderAdminMemberQueue();
   }catch(e){alert(friendlyError(e))}
 }
-function openExistingNcd(personName,pcucode,pid){closeModal();document.querySelector('[data-portal-view="health"]')?.click();setTimeout(()=>{const filter=$('#health-filter');if(filter){filter.value='all';filter.dispatchEvent(new Event('change',{bubbles:true}))}const search=$('#health-search');if(search){search.value=personName||'';search.dispatchEvent(new Event('input',{bubbles:true}));search.dispatchEvent(new Event('change',{bubbles:true}))}setTimeout(()=>{if(window.PHCOpenLegacyNcd190?.(pcucode,pid)){document.querySelector('#ncd-screen-card')?.scrollIntoView({behavior:'smooth',block:'start'});return}const names=[...document.querySelectorAll('.health-person-name')];const b=names.find(x=>x.textContent.trim()===(personName||'').trim());if(b){const i=Number(b.dataset.healthPerson);window.PHCOpenLegacyNcd190?.(pcucode,pid)}},700)},200)}
+function openExistingNcd(personName,pcucode,pid){closeModal();window.PHCSetHealthIntentV2058?.({filter:'all',stage:'',assignment:'all',search:personName||''});document.querySelector('[data-portal-view="health"]')?.click();setTimeout(()=>{if(window.PHCOpenLegacyNcd190?.(pcucode,pid)){document.querySelector('#ncd-screen-card')?.scrollIntoView({behavior:'smooth',block:'start'});return}const names=[...document.querySelectorAll('.health-person-name')];const b=names.find(x=>x.textContent.trim()===(personName||'').trim());if(b)window.PHCOpenLegacyNcd190?.(pcucode,pid)},900)}
 
 const SCREENING_ROUTES_V2023=new Set(['child_0_5','school_6_14','youth_15_34','ncd_35_59','elderly_60_plus']);
 function normalizeScreeningSeedV2023(seed,pcucode,pid,personName=''){

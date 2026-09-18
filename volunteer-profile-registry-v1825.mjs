@@ -1,9 +1,12 @@
 import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall } from './shared-runtime-v2035.mjs?v=2.0.35';
-const VERSION='2.0.57';
+const VERSION='2.0.58';
 const WORK_PROFILE_DEFER_MS_V2044=2400;
 const WORK_AVATAR_DEFER_MS_V2044=700;
 const PHOTO_URL_CACHE_MS_V2044=25*60*1000;
 const PHOTO_MEDIA_CACHE_MS_V2057=5*60*1000;
+const PHOTO_FETCH_CONCURRENCY_V2058=3;
+const PHOTO_ROOT_MARGIN_V2058='80px';
+let photoFetchActiveV2058=0,photoFetchQueueV2058=[];
 let supabase=null,profile=null,rows=[],avatarObserver=null,portalObserver=null,statusFilter='all',searchText='',communityFilter='',enhancePromise=null,authSubscription=null,syncInfo={},trainingCache=new Map(),workProfileTimer=null,workAvatarTimer=null;
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -90,32 +93,54 @@ function avatarHtml(v,small=false){
   const p=String(v.photo_object_path||'').trim(),source=validPhotoSourceUrl(v.photo_source_url)?String(v.photo_source_url):'',pid=String(v.source_pid||'').trim();
   return `<span class="vreg25-avatar${small?' small':''}" data-v25-avatar${pid?` data-photo-pid="${esc(pid)}"`:''}${p?` data-photo-path="${esc(p)}"`:''}${source?` data-photo-source="${esc(source)}"`:''} data-photo-name="${esc(v.display_name||'อสม.')}"><span>${esc(initials(v.display_name))}</span><img loading="lazy" fetchpriority="low" decoding="async" alt="รูป ${esc(v.display_name||'อสม.')}" referrerpolicy="no-referrer"></span>`;
 }
+function runPhotoQueueV2058(){
+  while(photoFetchActiveV2058<PHOTO_FETCH_CONCURRENCY_V2058&&photoFetchQueueV2058.length){
+    const job=photoFetchQueueV2058.shift();photoFetchActiveV2058+=1;
+    Promise.resolve().then(job.task).then(job.resolve,job.reject).finally(()=>{photoFetchActiveV2058-=1;runPhotoQueueV2058();});
+  }
+}
+function enqueuePhotoFetchV2058(task){
+  return new Promise((resolve,reject)=>{photoFetchQueueV2058.push({task,resolve,reject});runPhotoQueueV2058();});
+}
+function waitAvatarImageV2058(img,src,el){
+  return new Promise(resolve=>{
+    let done=false;
+    const finish=ok=>{if(done)return;done=true;clearTimeout(timer);if(ok){img.classList.add('v25-photo-loaded');const t=el.querySelector(':scope > span');if(t)t.hidden=true;}else{img.classList.remove('v25-photo-loaded');const t=el.querySelector(':scope > span');if(t)t.hidden=false;}resolve(ok);};
+    const timer=setTimeout(()=>finish(false),12000);
+    img.onload=()=>finish(true);img.onerror=()=>finish(false);img.src=src;
+  });
+}
 async function resolveAvatar(el){
-  if(!el||el.dataset.photoLoaded==='1')return;el.dataset.photoLoaded='1';
-  let path=String(el.dataset.photoPath||'').trim(),source=validPhotoSourceUrl(el.dataset.photoSource)?el.dataset.photoSource:'';
+  if(!el||el.dataset.photoLoaded==='1'||el.dataset.photoQueued==='1')return;
+  el.dataset.photoQueued='1';
   try{
-    if(!path&&!source&&el.dataset.photoPid){
-      const media=await loadPhotoMediaV2057(el.dataset.photoPid),m=media?.data?.[0];
-      if(!media?.error&&m){
-        path=String(m.photo_object_path||'').trim();source=validPhotoSourceUrl(m.photo_source_url)?String(m.photo_source_url):'';
-        if(path)el.dataset.photoPath=path;if(source)el.dataset.photoSource=source;
+    await enqueuePhotoFetchV2058(async()=>{
+      if(!document.body.contains(el))return;
+      let path=String(el.dataset.photoPath||'').trim(),source=validPhotoSourceUrl(el.dataset.photoSource)?el.dataset.photoSource:'';
+      if(!path&&!source&&el.dataset.photoPid){
+        const media=await loadPhotoMediaV2057(el.dataset.photoPid),m=media?.data?.[0];
+        if(!media?.error&&m){
+          path=String(m.photo_object_path||'').trim();source=validPhotoSourceUrl(m.photo_source_url)?String(m.photo_source_url):'';
+          if(path)el.dataset.photoPath=path;if(source)el.dataset.photoSource=source;
+        }
       }
-    }
-    if(!path&&!source)return;
-    let src=source;
-    if(path){
-      const signed=await sharedCall(`volunteer-photo-url-v2044:${path}`,()=>supabase.storage.from('volunteer-profiles').createSignedUrl(path,1800),PHOTO_URL_CACHE_MS_V2044);
-      const signedUrl=signed?.data?.signedUrl||signed?.data?.signedURL||'';
-      if(!signed?.error&&signedUrl)src=signedUrl;
-    }
-    if(!src)return;
-    const img=el.querySelector('img');if(!img)return;
-    img.onload=()=>{img.classList.add('v25-photo-loaded');const t=el.querySelector(':scope > span');if(t)t.hidden=true;};
-    img.onerror=()=>{img.classList.remove('v25-photo-loaded');const t=el.querySelector(':scope > span');if(t)t.hidden=false;delete el.dataset.photoLoaded;};img.src=src;
-  }catch{delete el.dataset.photoLoaded;}
+      if(!path&&!source)return;
+      let src=source;
+      if(path){
+        const signed=await sharedCall(`volunteer-photo-url-v2044:${path}`,()=>supabase.storage.from('volunteer-profiles').createSignedUrl(path,1800),PHOTO_URL_CACHE_MS_V2044);
+        const signedUrl=signed?.data?.signedUrl||signed?.data?.signedURL||'';
+        if(!signed?.error&&signedUrl)src=signedUrl;
+      }
+      if(!src||!document.body.contains(el))return;
+      const img=el.querySelector('img');if(!img)return;
+      const ok=await waitAvatarImageV2058(img,src,el);
+      if(ok)el.dataset.photoLoaded='1';
+    });
+  }catch{}
+  finally{delete el.dataset.photoQueued;if(el.dataset.photoLoaded!=='1')delete el.dataset.photoLoaded;}
 }
 function observeAvatars(root=document){
-  if(!avatarObserver&&'IntersectionObserver'in window)avatarObserver=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){avatarObserver.unobserve(e.target);resolveAvatar(e.target);}}),{rootMargin:'180px'});
+  if(!avatarObserver&&'IntersectionObserver'in window)avatarObserver=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){avatarObserver.unobserve(e.target);resolveAvatar(e.target);}}),{rootMargin:PHOTO_ROOT_MARGIN_V2058});
   root.querySelectorAll?.('[data-v25-avatar][data-photo-pid]').forEach(el=>avatarObserver?avatarObserver.observe(el):resolveAvatar(el));
 }
 
