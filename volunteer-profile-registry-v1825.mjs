@@ -1,8 +1,9 @@
 import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall } from './shared-runtime-v2035.mjs?v=2.0.35';
-const VERSION='1.8.37';
+const VERSION='2.0.57';
 const WORK_PROFILE_DEFER_MS_V2044=2400;
 const WORK_AVATAR_DEFER_MS_V2044=700;
 const PHOTO_URL_CACHE_MS_V2044=25*60*1000;
+const PHOTO_MEDIA_CACHE_MS_V2057=5*60*1000;
 let supabase=null,profile=null,rows=[],avatarObserver=null,portalObserver=null,statusFilter='all',searchText='',communityFilter='',enhancePromise=null,authSubscription=null,syncInfo={},trainingCache=new Map(),workProfileTimer=null,workAvatarTimer=null;
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -48,24 +49,17 @@ async function loadRows({light=false}={}){
   }
   if(light&&profile?.volunteer_pid!=null){
     rows=rows.filter(r=>String(r.source_pid)===String(profile.volunteer_pid));
-    if(rows.length&&!rows.some(r=>String(r.photo_object_path||'').trim())){
-      const {data:media,error:mediaError}=await supabase.from('volunteer_profile_media').select('source_pid,photo_object_path,photo_source_url,photo_alt').eq('source_pid',profile.volunteer_pid).limit(1);
-      if(!mediaError&&media?.length)rows=rows.map(r=>({...r,...media[0]}));
-    }
     return;
-  }
-  if(!rows.some(r=>String(r.photo_object_path||'').trim())){
-    const {data:media,error:mediaError}=await supabase.from('volunteer_profile_media').select('source_pid,photo_object_path,photo_source_url,photo_alt');
-    if(!mediaError&&media?.length){
-      const byPid=new Map(media.map(m=>[String(m.source_pid),m]));
-      rows=rows.map(r=>({...r,...(byPid.get(String(r.source_pid))||{})}));
-    }
   }
   const {data:registry,error:registryError}=await supabase.from('volunteers').select('source_pid,active,updated_at');
   if(!registryError&&registry?.length){
     const byPid=new Map(registry.map(v=>[String(v.source_pid),v]));
     rows=rows.map(r=>{const v=byPid.get(String(r.source_pid));return v?{...r,active:v.active,registry_updated_at:v.updated_at}:r;});
   }
+}
+async function loadPhotoMediaV2057(pid){
+  const key=String(pid||'');if(!key)return {data:[],error:null};
+  return sharedCall(`volunteer-photo-media-v2057:${key}`,()=>supabase.from('volunteer_profile_media').select('source_pid,photo_object_path,photo_source_url,photo_alt').eq('source_pid',Number(pid)).limit(1),PHOTO_MEDIA_CACHE_MS_V2057);
 }
 
 
@@ -93,32 +87,36 @@ async function renderTraining(detail,pid){
 }
 
 function avatarHtml(v,small=false){
-  const p=String(v.photo_object_path||'').trim(),source=validPhotoSourceUrl(v.photo_source_url)?String(v.photo_source_url):'';
-  const hasPhoto=Boolean(p||source);
-  return `<span class="vreg25-avatar${small?' small':''}" data-v25-avatar${p?` data-photo-path="${esc(p)}"`:''}${source?` data-photo-source="${esc(source)}"`:''} data-photo-name="${esc(v.display_name||'อสม.')}"><span>${esc(initials(v.display_name))}</span>${hasPhoto?`<img loading="lazy" fetchpriority="low" decoding="async" alt="รูป ${esc(v.display_name||'อสม.')}" referrerpolicy="no-referrer">`:''}</span>`;
+  const p=String(v.photo_object_path||'').trim(),source=validPhotoSourceUrl(v.photo_source_url)?String(v.photo_source_url):'',pid=String(v.source_pid||'').trim();
+  return `<span class="vreg25-avatar${small?' small':''}" data-v25-avatar${pid?` data-photo-pid="${esc(pid)}"`:''}${p?` data-photo-path="${esc(p)}"`:''}${source?` data-photo-source="${esc(source)}"`:''} data-photo-name="${esc(v.display_name||'อสม.')}"><span>${esc(initials(v.display_name))}</span><img loading="lazy" fetchpriority="low" decoding="async" alt="รูป ${esc(v.display_name||'อสม.')}" referrerpolicy="no-referrer"></span>`;
 }
 async function resolveAvatar(el){
   if(!el||el.dataset.photoLoaded==='1')return;el.dataset.photoLoaded='1';
-  const path=String(el.dataset.photoPath||'').trim(),source=validPhotoSourceUrl(el.dataset.photoSource)?el.dataset.photoSource:'';
-  if(!path&&!source){delete el.dataset.photoLoaded;return;}
+  let path=String(el.dataset.photoPath||'').trim(),source=validPhotoSourceUrl(el.dataset.photoSource)?el.dataset.photoSource:'';
   try{
+    if(!path&&!source&&el.dataset.photoPid){
+      const media=await loadPhotoMediaV2057(el.dataset.photoPid),m=media?.data?.[0];
+      if(!media?.error&&m){
+        path=String(m.photo_object_path||'').trim();source=validPhotoSourceUrl(m.photo_source_url)?String(m.photo_source_url):'';
+        if(path)el.dataset.photoPath=path;if(source)el.dataset.photoSource=source;
+      }
+    }
+    if(!path&&!source)return;
     let src=source;
     if(path){
       const signed=await sharedCall(`volunteer-photo-url-v2044:${path}`,()=>supabase.storage.from('volunteer-profiles').createSignedUrl(path,1800),PHOTO_URL_CACHE_MS_V2044);
       const signedUrl=signed?.data?.signedUrl||signed?.data?.signedURL||'';
       if(!signed?.error&&signedUrl)src=signedUrl;
     }
-    if(!src){delete el.dataset.photoLoaded;return;}
-    const img=el.querySelector('img');if(!img){delete el.dataset.photoLoaded;return;}
+    if(!src)return;
+    const img=el.querySelector('img');if(!img)return;
     img.onload=()=>{img.classList.add('v25-photo-loaded');const t=el.querySelector(':scope > span');if(t)t.hidden=true;};
     img.onerror=()=>{img.classList.remove('v25-photo-loaded');const t=el.querySelector(':scope > span');if(t)t.hidden=false;delete el.dataset.photoLoaded;};img.src=src;
   }catch{delete el.dataset.photoLoaded;}
 }
 function observeAvatars(root=document){
-  if(!avatarObserver&&'IntersectionObserver'in window){
-    avatarObserver=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){avatarObserver.unobserve(e.target);resolveAvatar(e.target);}}),{rootMargin:'180px'});
-  }
-  root.querySelectorAll?.('[data-v25-avatar][data-photo-path],[data-v25-avatar][data-photo-source]').forEach(el=>avatarObserver?avatarObserver.observe(el):resolveAvatar(el));
+  if(!avatarObserver&&'IntersectionObserver'in window)avatarObserver=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){avatarObserver.unobserve(e.target);resolveAvatar(e.target);}}),{rootMargin:'180px'});
+  root.querySelectorAll?.('[data-v25-avatar][data-photo-pid]').forEach(el=>avatarObserver?avatarObserver.observe(el):resolveAvatar(el));
 }
 
 function filteredRows(){

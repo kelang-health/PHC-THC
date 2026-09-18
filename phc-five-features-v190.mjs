@@ -1,5 +1,5 @@
 import { getSharedSupabase, getSharedProfile, sharedCall, invalidateShared, bindPortalActivation, isPortalViewActive } from './shared-runtime-v2035.mjs?v=2.0.35';
-const VERSION=document.querySelector('meta[name="phc-release"]')?.content||'2.0.56';
+const VERSION=document.querySelector('meta[name="phc-release"]')?.content||'2.0.57';
 let supabase=null,profile=null,activeOverlay=null,globalBound=false,toastTimer=null;
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -8,6 +8,42 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
 const GO_LIVE_V208='2026-10-01';
 const thaiDayV208=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'});
 const preGoLiveV208=()=>thaiDayV208()<GO_LIVE_V208;
+
+const ADMIN_WORK_CACHE_MS_V2057=15000;
+let adminWorkLoadSeqV2057=0;
+function adminWorkAliveV2057(root,seq){return seq===adminWorkLoadSeqV2057&&document.body.contains(root)&&isPortalViewActive('work');}
+function renderAdminWorkShellV2057(root){
+  root.innerHTML=`<h3>ศูนย์ปฏิบัติการ v${VERSION}</h3><div class="phc190-kpis"><div class="phc190-kpi"><small>คำขอเพิ่มสมาชิก</small><strong data-admin-member-kpi>…</strong></div><div class="phc190-kpi"><small>เชื่อม LINE</small><strong data-admin-line-kpi>…</strong></div><div class="phc190-kpi"><small>ส่ง LINE ไม่สำเร็จ</small><strong data-admin-line-failed>…</strong></div></div><div class="phc190-note" data-admin-line-self><strong>LINE ของบัญชีผู้ดูแล</strong><br>กำลังโหลดสถานะ…</div><div data-admin-next-appointment></div><div class="phc190-actions"><button class="phc190-primary" data-admin-requests>ตรวจคำขอสมาชิก</button><button class="phc190-primary" data-admin-line>LINE / นัดหมาย</button><span data-admin-line-action><button class="phc190-secondary" disabled>กำลังโหลด LINE…</button></span></div><button class="phc190-secondary" data-admin-youth-campaign>ตั้งค่าคัดกรองเสริม 15–34 ปี</button><button class="phc190-secondary" data-admin-notices disabled>แจ้งเตือนล่าสุด …</button><div data-admin-test-reset></div><div class="phc190-note">Telegram ใช้เฉพาะ Admin event ผ่าน server worker และไม่ส่งข้อมูลส่วนบุคคลละเอียดในข้อความ</div>`;
+  root.querySelector('[data-admin-requests]').onclick=renderAdminMemberQueue;
+  root.querySelector('[data-admin-line]').onclick=openAdminCommunication;
+  root.querySelector('[data-admin-youth-campaign]').onclick=openYouthCampaignSettingsV206;
+  root.querySelector('[data-admin-notices]').onclick=()=>showNotifications(root.__adminNoticesV2057||[]);
+}
+function paintAdminLineSelfV2057(root,data){
+  const connected=Boolean(data?.connected),note=root.querySelector('[data-admin-line-self]'),action=root.querySelector('[data-admin-line-action]'),appt=root.querySelector('[data-admin-next-appointment]');
+  if(note)note.innerHTML=`<strong>LINE ของบัญชีผู้ดูแล</strong><br>${connected?'✅ เชื่อมแล้ว · ใช้ LINE Login ได้':'⚪ ยังไม่ได้เชื่อม · ยังใช้รหัสผ่านปกติได้'}`;
+  if(appt)appt.innerHTML=appointmentCardV205(data?.next_appointment);
+  if(action){action.innerHTML=connected?'<button class="phc190-secondary" data-admin-unlink-my-line>ยกเลิก LINE ของฉัน</button>':'<button class="phc190-secondary" data-admin-link-my-line>เชื่อม LINE ของฉัน</button>';action.querySelector('[data-admin-link-my-line]')?.addEventListener('click',createLineCode);action.querySelector('[data-admin-unlink-my-line]')?.addEventListener('click',async()=>{if(!confirm('ยืนยันยกเลิกการเชื่อม LINE ของบัญชีผู้ดูแลนี้?'))return;await supabase.rpc('unlink_my_line_v190');invalidateShared('my-line-status-v190');await renderOverview()});}
+  bindAppointmentResponseV205(root);
+}
+function paintAdminTestResetV2057(root,x){
+  const host=root.querySelector('[data-admin-test-reset]');if(!host||!x?.reset_open)return;
+  host.innerHTML=`<section class="phc190-note phc190-warning"><strong>ข้อมูลทดสอบก่อน 1 ต.ค. 2569</strong><br>Session ${x.sessions||0} · NCD ${x.ncd||0} · Growth ${x.growth||0} · พัฒนาการ ${x.child_development||0} · 2Q ${x.mental_2q||0} · 9 ด้าน ${x.elderly_domains||0}<button type="button" class="phc190-secondary phc190-danger" style="width:100%;margin-top:8px" data-admin-reset-all-test>รีเซ็ตผลทดสอบทั้งหมด</button></section>`;
+  host.querySelector('[data-admin-reset-all-test]').onclick=async()=>{if(!confirm('รีเซ็ตผลคัดกรองทดสอบทั้งหมดก่อน 1 ต.ค. 2569?\n\nประวัติจาก JHCIS / J-Report / 3Doctor จะไม่ถูกลบ'))return;const reason=prompt('ระบุเหตุผลการรีเซ็ต','เตรียมระบบก่อนเปิดใช้จริง 1 ต.ค. 2569')||'';if(reason.trim().length<5){showPhcToast('กรุณาระบุเหตุผลอย่างน้อย 5 ตัวอักษร','warn');return}try{const {data,error}=await supabase.rpc('admin_reset_all_test_screenings_v208',{p_reason:reason.trim()});if(error)throw error;showPhcToast(`รีเซ็ตผลทดสอบแล้ว · Archive ${data?.archived_rows||0} รายการ`,'success',3200);await renderOverview()}catch(e){showPhcToast(friendlyError(e),'warn',3500)}};
+}
+async function renderAdminWorkProgressiveV2057(root){
+  const seq=++adminWorkLoadSeqV2057;renderAdminWorkShellV2057(root);
+  const member=sharedCall('admin-work-member-v2057',()=>supabase.rpc('admin_member_request_queue_v190',{p_status:'pending'}),ADMIN_WORK_CACHE_MS_V2057);
+  const line=sharedCall('admin-work-line-v2057',()=>supabase.rpc('admin_line_overview_v190'),ADMIN_WORK_CACHE_MS_V2057);
+  const notices=sharedCall('admin-work-notices-v2057',()=>supabase.rpc('admin_notification_center_v190',{p_limit:5}),ADMIN_WORK_CACHE_MS_V2057);
+  const myLine=loadMyLineStatusV2038();
+  const reset=preGoLiveV208()?sharedCall('admin-work-reset-v2057',()=>supabase.rpc('test_reset_preview_v208'),ADMIN_WORK_CACHE_MS_V2057):Promise.resolve({data:null,error:null});
+  member.then(r=>{if(!adminWorkAliveV2057(root,seq))return;const e=root.querySelector('[data-admin-member-kpi]');if(e)e.textContent=r.error?'—':String(r.data?.length||0)});
+  line.then(r=>{if(!adminWorkAliveV2057(root,seq))return;const a=root.querySelector('[data-admin-line-kpi]'),b=root.querySelector('[data-admin-line-failed]');if(a)a.textContent=r.error?'—':String(r.data?.line_connected||0);if(b)b.textContent=r.error?'—':String(r.data?.message_failed||0)});
+  notices.then(r=>{if(!adminWorkAliveV2057(root,seq))return;root.__adminNoticesV2057=r.error?[]:(r.data||[]);const b=root.querySelector('[data-admin-notices]');if(b){b.disabled=false;b.textContent=`แจ้งเตือนล่าสุด ${root.__adminNoticesV2057.length}`}});
+  myLine.then(r=>{if(!adminWorkAliveV2057(root,seq))return;if(r.error){const n=root.querySelector('[data-admin-line-self]');if(n)n.textContent='ยังโหลดสถานะ LINE ไม่ได้';return}paintAdminLineSelfV2057(root,r.data||{})});
+  reset.then(r=>{if(adminWorkAliveV2057(root,seq)&&!r.error)paintAdminTestResetV2057(root,r.data||null)});
+}
 
 function injectStyle(){if($('#phc190-style'))return;const s=document.createElement('style');s.id='phc190-style';s.textContent=`
 .phc190-screen-button,.phc190-primary,.phc190-secondary,.phc190-state{min-height:56px;border-radius:14px;border:2px solid #bcd5cc;background:#fff;color:#174f45;font:inherit;font-weight:900;padding:10px 14px;cursor:pointer}.phc190-primary{background:#0d7766;border-color:#0d7766;color:#fff}.phc190-danger{background:#fff0ed!important;border-color:#dda79d!important;color:#8f392f!important}.phc190-screen-button{width:100%;margin-top:9px;background:#e9f6f2;border-color:#9bcdbd}.phc190-request-wrap{display:grid;gap:9px;margin:12px 0;padding:12px;border:2px solid #d4e4de;border-radius:16px;background:#f8fbfa}.phc190-request-head{display:flex;gap:9px;justify-content:space-between;align-items:center}.phc190-request-head h3{margin:0;font-size:1.08rem}.phc190-request-list{display:grid;gap:7px}.phc190-request{padding:10px;border:1px solid #d9e6e1;border-radius:12px;background:#fff}.phc190-request strong{display:block}.phc190-request small{display:block;margin-top:3px;color:#647871}.phc190-status{display:inline-flex;margin-top:7px;padding:5px 8px;border-radius:999px;font-weight:900;font-size:.78rem}.phc190-status.pending{background:#fff3c8;color:#71570e}.phc190-status.verified{background:#e5f6eb;color:#17623f}.phc190-status.needs_correction{background:#fff0df;color:#92520e}.phc190-status.rejected{background:#fde5e3;color:#8f2f29}
@@ -269,14 +305,7 @@ async function renderOverview(){
   if(!root){root=document.createElement('section');root.className='phc190-overview';root.dataset.phc190Overview='1'}
   if(root.parentElement!==panel){const fieldHost=panel.querySelector('[data-field200-host]');if(fieldHost)panel.insertBefore(root,fieldHost);else panel.prepend(root)}
   if(profile.role==='admin'){
-    const [q,l,n,me,tr]=await Promise.all([supabase.rpc('admin_member_request_queue_v190',{p_status:'pending'}),supabase.rpc('admin_line_overview_v190'),supabase.rpc('admin_notification_center_v190',{p_limit:5}),loadMyLineStatusV2038(),preGoLiveV208()?supabase.rpc('test_reset_preview_v208'):Promise.resolve({data:null})]);
-    const myLineConnected=Boolean(me.data?.connected),testReset=tr.data||null;
-    root.innerHTML=`<h3>ศูนย์ปฏิบัติการ v${VERSION}</h3><div class="phc190-kpis"><div class="phc190-kpi"><small>คำขอเพิ่มสมาชิก</small><strong>${q.data?.length||0}</strong></div><div class="phc190-kpi"><small>เชื่อม LINE</small><strong>${l.data?.line_connected||0}</strong></div><div class="phc190-kpi"><small>ส่ง LINE ไม่สำเร็จ</small><strong>${l.data?.message_failed||0}</strong></div></div><div class="phc190-note"><strong>LINE ของบัญชีผู้ดูแลนี้</strong><br>${myLineConnected?'🟢 เชื่อมต่อแล้ว · ใช้ LINE Login ได้':'🟡 ยังไม่ได้เชื่อม · เชื่อมก่อนจึงใช้ LINE Login ได้'}</div>${appointmentCardV205(me.data?.next_appointment)}<div class="phc190-actions"><button class="phc190-primary" data-admin-requests>ตรวจคำขอสมาชิก</button><button class="phc190-primary" data-admin-line>LINE / นัดหมาย</button>${myLineConnected?'<button class="phc190-secondary" data-admin-unlink-my-line>ยกเลิก LINE ของฉัน</button>':'<button class="phc190-secondary" data-admin-link-my-line>เชื่อม LINE ของฉัน</button>'}</div><button class="phc190-secondary" data-admin-youth-campaign>ตั้งค่าคัดกรองเสริม 15–34 ปี</button><button class="phc190-secondary" data-admin-notices>การแจ้งเตือนล่าสุด ${n.data?.length||0}</button>${testReset?.reset_open?`<section class="phc190-note phc190-warning"><strong>ข้อมูลทดสอบก่อน 1 ต.ค. 2569</strong><br>Session ${testReset.sessions||0} · NCD ${testReset.ncd||0} · Growth ${testReset.growth||0} · พัฒนาการ ${testReset.child_development||0} · 2Q ${testReset.mental_2q||0} · 9 ด้าน ${testReset.elderly_domains||0}<button type="button" class="phc190-secondary phc190-danger" style="width:100%;margin-top:8px" data-admin-reset-all-test>รีเซทผลทดสอบทั้งหมด</button></section>`:''}<div class="phc190-note">Telegram ใช้เฉพาะ Admin event ผ่าน server worker และไม่ใส่ข้อมูลส่วนบุคคลละเอียดในข้อความ</div>`;
-    root.querySelector('[data-admin-requests]').onclick=renderAdminMemberQueue;root.querySelector('[data-admin-line]').onclick=openAdminCommunication;root.querySelector('[data-admin-youth-campaign]').onclick=openYouthCampaignSettingsV206;root.querySelector('[data-admin-notices]').onclick=()=>showNotifications(n.data||[]);
-    root.querySelector('[data-admin-reset-all-test]')?.addEventListener('click',async()=>{if(!confirm('รีเซทผลคัดกรองทดสอบทั้งหมดก่อน 1 ต.ค. 2569?\n\nประวัติจาก JHCIS / J-Report / 3Doctor จะไม่ถูกลบ และข้อมูลที่รีเซทจะถูกเก็บใน Audit Archive'))return;const reason=prompt('ระบุเหตุผลการรีเซท','เตรียมระบบก่อนเปิดใช้จริง 1 ต.ค. 2569')||'';if(reason.trim().length<5){showPhcToast('กรุณาระบุเหตุผลอย่างน้อย 5 ตัวอักษร','warn');return}try{const {data,error}=await supabase.rpc('admin_reset_all_test_screenings_v208',{p_reason:reason.trim()});if(error)throw error;showPhcToast(`รีเซทข้อมูลทดสอบแล้ว · เก็บ Archive ${data?.archived_rows||0} รายการ`,'success',3200);await renderOverview()}catch(e){showPhcToast(friendlyError(e),'warn',3500)}});
-    bindAppointmentResponseV205(root);
-    root.querySelector('[data-admin-link-my-line]')?.addEventListener('click',createLineCode);
-    root.querySelector('[data-admin-unlink-my-line]')?.addEventListener('click',async()=>{if(!confirm('ยืนยันยกเลิกการเชื่อม LINE ของบัญชีผู้ดูแลนี้?'))return;await supabase.rpc('unlink_my_line_v190');invalidateShared('my-line-status-v190');await renderOverview()});
+    await renderAdminWorkProgressiveV2057(root);
   }else{
     const {data,error}=await loadMyLineStatusV2038();root.innerHTML=`<h3>LINE ของฉัน</h3>${error?'<div class="phc190-note">ยังไม่สามารถอ่านสถานะ LINE ได้</div>':data.connected?`<div class="phc190-note">🟢 เชื่อมต่อแล้ว</div>${appointmentCardV205(data.next_appointment)}<button class="phc190-secondary" data-unlink-line>ยกเลิกการเชื่อม LINE</button>`:`<div class="phc190-note">🟡 ยังไม่ได้เชื่อมบัญชี</div><button class="phc190-primary" data-link-line>เชื่อม LINE</button>`}`;
     bindAppointmentResponseV205(root);root.querySelector('[data-link-line]')?.addEventListener('click',createLineCode);root.querySelector('[data-unlink-line]')?.addEventListener('click',async()=>{if(!confirm('ยืนยันยกเลิกการเชื่อม LINE?'))return;await supabase.rpc('unlink_my_line_v190');invalidateShared('my-line-status-v190');await renderOverview()});
