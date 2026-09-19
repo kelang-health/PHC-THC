@@ -40,7 +40,7 @@ async function renderAdminWorkProgressiveV2057(root){
   const reset=preGoLiveV208()?sharedCall('admin-work-reset-v2057',()=>supabase.rpc('test_reset_preview_v208'),ADMIN_WORK_CACHE_MS_V2057):Promise.resolve({data:null,error:null});
   member.then(r=>{if(!adminWorkAliveV2057(root,seq))return;const e=root.querySelector('[data-admin-member-kpi]');if(e)e.textContent=r.error?'—':String(r.data?.length||0)});
   line.then(r=>{if(!adminWorkAliveV2057(root,seq))return;const a=root.querySelector('[data-admin-line-kpi]'),b=root.querySelector('[data-admin-line-failed]');if(a)a.textContent=r.error?'—':String(r.data?.line_connected||0);if(b)b.textContent=r.error?'—':String(r.data?.message_failed||0)});
-  notices.then(r=>{if(!adminWorkAliveV2057(root,seq))return;root.__adminNoticesV2057=r.error?[]:(r.data||[]);const b=root.querySelector('[data-admin-notices]');if(b){b.disabled=false;b.textContent=`แจ้งเตือนล่าสุด ${root.__adminNoticesV2057.length}`}});
+  notices.then(r=>{if(!adminWorkAliveV2057(root,seq))return;root.__adminNoticesV2057=r.error?[]:(r.data||[]).filter(n=>!n.read_at);const b=root.querySelector('[data-admin-notices]');if(b){b.disabled=false;b.textContent=`แจ้งเตือนล่าสุด ${root.__adminNoticesV2057.length}`}});
   myLine.then(r=>{if(!adminWorkAliveV2057(root,seq))return;if(r.error){const n=root.querySelector('[data-admin-line-self]');if(n)n.textContent='ยังโหลดสถานะ LINE ไม่ได้';return}paintAdminLineSelfV2057(root,r.data||{})});
   reset.then(r=>{if(adminWorkAliveV2057(root,seq)&&!r.error)paintAdminTestResetV2057(root,r.data||null)});
 }
