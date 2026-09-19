@@ -1,5 +1,5 @@
 import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall, invalidateShared } from './shared-runtime-v2035.mjs?v=2.0.35';
-const VERSION='2.0.60';
+const VERSION='2.0.61';
 const DEFAULT_CENTER=[18.2696,99.5071];
 const HOUSEHOLD_CACHE_MS_V2039=300000;
 const HOUSE_SECONDARY_CACHE_MS_V2055=60000;
