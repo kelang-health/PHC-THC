@@ -1,5 +1,5 @@
 import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall, invalidateShared } from './shared-runtime-v2035.mjs?v=2.0.35';
-const VERSION='2.0.61';
+const VERSION='2.0.62';
 const DEFAULT_CENTER=[18.2696,99.5071];
 const HOUSEHOLD_CACHE_MS_V2039=300000;
 const HOUSE_SECONDARY_CACHE_MS_V2055=60000;
@@ -38,7 +38,7 @@ async function loadCompletionNoticesV2069(){
   const {data,error}=await supabase.from('notifications')
     .select('title,body,created_at,event_type')
     .eq('recipient_user_id',profile.user_id)
-    .in('event_type',['house.jhcis_verified','member_request.jhcis_verified'])
+    .in('event_type',['house.jhcis_verified','member_request.jhcis_verified','house.admin_cancelled','member_request.admin_cancelled'])
     .order('created_at',{ascending:false}).limit(5);
   if(error)return;
   target.hidden=!(data||[]).length;

@@ -7,7 +7,7 @@ if (typeof window !== 'undefined') {
       await initCommunityGIS1822(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initHouseRegistration } = await import('./community-house-registration-v1819.mjs?v=1.8.20&p=2045');
       await initHouseRegistration(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initMyHousesMobile } = await import('./my-houses-mobile-v1820.mjs?v=2.0.61&p=2061');
+      const { initMyHousesMobile } = await import('./my-houses-mobile-v1820.mjs?v=2.0.62&p=2062');
       await initMyHousesMobile(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initMobileSpatialCards } = await import('./mobile-community-volunteer-cards-v1821.mjs?v=2.0.57&p=2057');
       await initMobileSpatialCards(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
@@ -25,7 +25,7 @@ if (typeof window !== 'undefined') {
       initSystemAboutNote1829();
       const { initCommunityHouseholdQuality1831 } = await import('./community-household-quality-v1831.mjs?v=2.0.57&p=2057');
       await initCommunityHouseholdQuality1831(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initPHCFiveFeatures190 } = await import('./phc-five-features-v190.mjs?v=2.0.61&p=2061');
+      const { initPHCFiveFeatures190 } = await import('./phc-five-features-v190.mjs?v=2.0.62&p=2062');
       await initPHCFiveFeatures190(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initFieldWorkReportingV200 } = await import('./field-work-reporting-v200.mjs?v=2.0.59&p=2059');
       await initFieldWorkReportingV200(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);

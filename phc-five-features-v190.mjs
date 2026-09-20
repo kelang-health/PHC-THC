@@ -13,8 +13,9 @@ const ADMIN_WORK_CACHE_MS_V2057=15000;
 let adminWorkLoadSeqV2057=0;
 function adminWorkAliveV2057(root,seq){return seq===adminWorkLoadSeqV2057&&document.body.contains(root)&&isPortalViewActive('work');}
 function renderAdminWorkShellV2057(root){
-  root.innerHTML=`<h3>ศูนย์ปฏิบัติการ v${VERSION}</h3><div class="phc190-kpis"><div class="phc190-kpi"><small>คำขอเพิ่มสมาชิก</small><strong data-admin-member-kpi>…</strong></div><div class="phc190-kpi"><small>เชื่อม LINE</small><strong data-admin-line-kpi>…</strong></div><div class="phc190-kpi"><small>ส่ง LINE ไม่สำเร็จ</small><strong data-admin-line-failed>…</strong></div></div><div class="phc190-note" data-admin-line-self><strong>LINE ของบัญชีผู้ดูแล</strong><br>กำลังโหลดสถานะ…</div><div data-admin-next-appointment></div><div class="phc190-actions"><button class="phc190-primary" data-admin-requests>ตรวจคำขอสมาชิก</button><button class="phc190-primary" data-admin-line>LINE / นัดหมาย</button><span data-admin-line-action><button class="phc190-secondary" disabled>กำลังโหลด LINE…</button></span></div><button class="phc190-secondary" data-admin-youth-campaign>ตั้งค่าคัดกรองเสริม 15–34 ปี</button><button class="phc190-secondary" data-admin-notices disabled>แจ้งเตือนล่าสุด …</button><div data-admin-test-reset></div><div class="phc190-note">Telegram ใช้เฉพาะ Admin event ผ่าน server worker และไม่ส่งข้อมูลส่วนบุคคลละเอียดในข้อความ</div>`;
+  root.innerHTML=`<h3>ศูนย์ปฏิบัติการ v${VERSION}</h3><div class="phc190-kpis"><div class="phc190-kpi"><small>คำขอเพิ่มสมาชิก</small><strong data-admin-member-kpi>…</strong></div><div class="phc190-kpi"><small>เชื่อม LINE</small><strong data-admin-line-kpi>…</strong></div><div class="phc190-kpi"><small>ส่ง LINE ไม่สำเร็จ</small><strong data-admin-line-failed>…</strong></div></div><div class="phc190-note" data-admin-line-self><strong>LINE ของบัญชีผู้ดูแล</strong><br>กำลังโหลดสถานะ…</div><div data-admin-next-appointment></div><div class="phc190-actions"><button class="phc190-primary" data-admin-requests>ตรวจคำขอสมาชิก</button><button class="phc190-secondary" data-admin-field-house-cancel>จัดการบ้านที่รอ JHCIS</button><button class="phc190-primary" data-admin-line>LINE / นัดหมาย</button><span data-admin-line-action><button class="phc190-secondary" disabled>กำลังโหลด LINE…</button></span></div><button class="phc190-secondary" data-admin-youth-campaign>ตั้งค่าคัดกรองเสริม 15–34 ปี</button><button class="phc190-secondary" data-admin-notices disabled>แจ้งเตือนล่าสุด …</button><div data-admin-test-reset></div><div class="phc190-note">Telegram ใช้เฉพาะ Admin event ผ่าน server worker และไม่ส่งข้อมูลส่วนบุคคลละเอียดในข้อความ</div>`;
   root.querySelector('[data-admin-requests]').onclick=renderAdminMemberQueue;
+  root.querySelector('[data-admin-field-house-cancel]').onclick=renderAdminPendingHouseQueueV2070;
   root.querySelector('[data-admin-line]').onclick=openAdminCommunication;
   root.querySelector('[data-admin-youth-campaign]').onclick=openYouthCampaignSettingsV206;
   root.querySelector('[data-admin-notices]').onclick=()=>showNotifications(root.__adminNoticesV2057||[]);
@@ -33,7 +34,7 @@ function paintAdminTestResetV2057(root,x){
 }
 async function renderAdminWorkProgressiveV2057(root){
   const seq=++adminWorkLoadSeqV2057;renderAdminWorkShellV2057(root);
-  const member=sharedCall('admin-work-member-v2057',()=>supabase.rpc('admin_member_request_queue_v190',{p_status:'pending'}),ADMIN_WORK_CACHE_MS_V2057);
+  const member=sharedCall('admin-work-member-v2070',()=>supabase.rpc('admin_cancellable_member_requests_v2070'),ADMIN_WORK_CACHE_MS_V2057);
   const line=sharedCall('admin-work-line-v2057',()=>supabase.rpc('admin_line_overview_v190'),ADMIN_WORK_CACHE_MS_V2057);
   const notices=sharedCall('admin-work-notices-v2057',()=>supabase.rpc('admin_notification_center_v190',{p_limit:5}),ADMIN_WORK_CACHE_MS_V2057);
   const myLine=loadMyLineStatusV2038();
@@ -87,15 +88,93 @@ function openMemberRequest(houseId,onDone){
   const f=$('[data-member-form]',body);f.onsubmit=async e=>{e.preventDefault();const err=$('[data-err]',f);err.textContent='';const d=new FormData(f),cid=String(d.get('cid')||'').trim(),first=String(d.get('first_name')||'').trim(),last=String(d.get('last_name')||'').trim(),birth=String(d.get('birth')||'');if(!cidValid(cid)){err.textContent='เลขประจำตัวประชาชนไม่ถูกต้อง กรุณาตรวจสอบ 13 หลัก';return}if(!first){err.textContent='กรุณากรอกชื่อ';return}if(!last){err.textContent='กรุณากรอกนามสกุล';return}if(!birth||birth>new Date().toISOString().slice(0,10)){err.textContent='วันเกิดไม่ถูกต้อง';return}const btn=f.querySelector('button');btn.disabled=true;try{const {data,error}=await supabase.rpc('submit_household_member_request_v2043',{p_house_id:houseId,p_citizen_id:cid,p_first_name:first,p_last_name:last,p_birth_date:birth});if(error)throw error;closeModal();await onDone?.();showPhcToast(data?.existing_person_found?'พบข้อมูลบุคคลเดิม · ส่งให้ Admin ตรวจเชื่อม PID แล้ว':'ส่งคำขอเพิ่มสมาชิกแล้ว');}catch(x){err.textContent=friendlyError(x)}finally{btn.disabled=false}};
 }
 
+function invalidateCancelledFieldCachesV2070(){
+  for(const prefix of ['admin-work-member-v2070','admin-work-notices-v2057',
+    'my-household-cards-v2039:','my-pending-houses-v2055:',
+    'house-add-quota-v2055:','staff-community-bundle-v2055:',
+    'spatial-community-cards-v1854','spatial-role-dashboard-v1854',
+    'community-scope:','field-own-houses-v2037:'])
+    invalidateShared(prefix);
+  document.dispatchEvent(new CustomEvent('phc:spatial-data-changed',
+    {detail:{source:'admin-field-cancellation-v2070'}}));
+}
+
+function requestCancelReasonV2070(label){
+  const reason=prompt('ระบุเหตุผลยกเลิก'+label+' (อย่างน้อย 5 ตัวอักษร; ไม่กรอกเลขบัตรประชาชนหรือข้อมูลสุขภาพ)')?.trim()||'';
+  if(!reason)return null;
+  if(reason.length<5||reason.length>200||/[0-9]{13}/.test(reason)){
+    showPhcToast('ระบุเหตุผล 5–200 ตัวอักษร โดยไม่ใส่เลขบัตรประชาชน','warn',3500);
+    return null;
+  }
+  return reason;
+}
+
+async function cancelMemberRequestV2070(id,label){
+  const reason=requestCancelReasonV2070('คำขอเพิ่มสมาชิก');
+  if(!reason||!confirm('ยืนยันยกเลิกคำขอเพิ่มสมาชิก '+label+' ?\nข้อมูล JHCIS และประวัติคำขอจะไม่ถูกลบ'))return;
+  try{
+    const {error}=await supabase.rpc('admin_cancel_member_request_v2070',
+      {p_request_id:id,p_reason:reason});
+    if(error)throw error;
+    invalidateCancelledFieldCachesV2070();
+    showPhcToast('ยกเลิกคำขอแล้ว และแจ้งผลไปยัง อสม. ผู้ส่งคำขอ', 'success',3200);
+    await renderAdminMemberQueue();
+  }catch(e){showPhcToast(friendlyError(e),'warn',4500)}
+}
+
+async function renderAdminPendingHouseQueueV2070(){
+  const body=openModal('จัดการบ้านที่ อสม. เพิ่ม','ยกเลิกได้เฉพาะบ้านที่ยังไม่ยืนยันกับ JHCIS และไม่มีคำขอสมาชิกค้าง ระบบเก็บประวัติการยกเลิกไว้');
+  body.innerHTML='<div class="phc190-note">กำลังตรวจรายการบ้านที่ยังรอ JHCIS…</div>';
+  const {data,error}=await supabase.rpc('admin_cancellable_field_houses_v2070');
+  if(error){body.innerHTML='<div class="phc190-error">'+esc(friendlyError(error))+'</div>';return;}
+  const rows=data||[];
+  body.innerHTML='<div class="phc190-request-list">'+rows.map(h=>
+    '<article class="phc190-request" data-admin-field-cancel="'+esc(h.id)+'">'+
+    '<strong>บ้านเลขที่ '+esc(h.house_no||'ไม่ระบุ')+'</strong>'+
+    '<small>หมู่ '+esc(h.moo||'—')+' · '+esc(h.community||'—')+
+    ' · รหัสบ้าน '+esc(h.house_id_11||'—')+'</small>'+
+    '<small>สถานะ '+esc(h.verification_status)+' · คำขอสมาชิกที่ยังต้องจัดการ '+Number(h.open_member_requests||0)+'</small>'+
+    (h.verification_status!=='pending_jhcis_create'
+      ?'<div class="phc190-note">ต้องตรวจทะเบียน JHCIS ก่อน บ้านนี้มีสถานะพบข้อมูลเดิมหรือต้องตรวจเพิ่มเติม จึงยังยกเลิกบน Cloud ไม่ได้</div>'
+      :Number(h.open_member_requests||0)>0
+      ?'<div class="phc190-note">ยกเลิกบ้านไม่ได้จนกว่าจะจัดการคำขอสมาชิกที่ค้างก่อน</div><button type="button" class="phc190-secondary" data-manage-members>จัดการคำขอสมาชิก</button>'
+      :'<button type="button" class="phc190-secondary phc190-danger" data-cancel-house>ยกเลิกคำขอเพิ่มบ้าน</button>')+
+    '</article>').join('')+
+    (rows.length?'':'<div class="phc190-note">ไม่มีบ้านจาก อสม. ที่รอยืนยัน JHCIS</div>')+'</div>';
+  body.querySelectorAll('[data-admin-field-cancel]').forEach(card=>{
+    const h=rows.find(row=>String(row.id)===card.dataset.adminFieldCancel);
+    card.querySelector('[data-manage-members]')?.addEventListener('click',renderAdminMemberQueue);
+    card.querySelector('[data-cancel-house]')?.addEventListener('click',async e=>{
+      const reason=requestCancelReasonV2070('บ้าน');
+      if(!reason||!confirm('ยืนยันยกเลิกคำขอเพิ่มบ้านเลขที่ '+String(h?.house_no||'')+
+        ' ?\nรายการบ้านจะไม่ถูกลบถาวร และข้อมูล JHCIS จะไม่ถูกแก้ไข'))return;
+      const b=e.currentTarget;b.disabled=true;
+      try{
+        const {error}=await supabase.rpc('admin_cancel_field_house_v2070',
+          {p_house_id:h.id,p_reason:reason});
+        if(error)throw error;
+        invalidateCancelledFieldCachesV2070();
+        showPhcToast('ยกเลิกบ้านที่รอ JHCIS แล้ว และแจ้งผลกลับผู้ส่งคำขอ','success',3400);
+        await renderAdminPendingHouseQueueV2070();
+      }catch(err){showPhcToast(friendlyError(err),'warn',4500);b.disabled=false;}
+    });
+  });
+}
+
 async function renderAdminMemberQueue(){
   const body=openModal('คำขอเพิ่มสมาชิก','Admin ต้องตรวจข้อมูลเดิมก่อนยืนยัน คำขอที่ยังไม่เชื่อมบุคคลจาก JHCIS จะยังไม่ถูกนับเป็นประชากรจริง');
   body.innerHTML='<div class="phc190-note">กำลังโหลด…</div>';
-  const {data,error}=await supabase.rpc('admin_member_request_queue_v190',{p_status:'pending'});
+  const {data,error}=await supabase.rpc('admin_cancellable_member_requests_v2070');
   if(error){body.innerHTML=`<div class="phc190-error">${esc(friendlyError(error))}</div>`;return}
   const rows=data||[];
-  body.innerHTML=`<div class="phc190-request-list">${rows.map(r=>`<article class="phc190-request" data-admin-request="${esc(r.id)}"><strong>${esc(r.full_name)}</strong><small>บ้าน ${esc(r.house_no)} · ${esc(r.community)} · ${esc(r.masked_citizen_id)} · เกิด ${esc(fmt(r.birth_date))}</small><div class="phc190-actions"><button class="phc190-secondary" data-sensitive>ดูเลขเพื่อเทียบ</button><button class="phc190-secondary" data-match>ค้นหาบุคคลเดิม</button></div><div class="phc190-actions"><button class="phc190-primary" data-verify>ยืนยันข้อมูล / รอ Sync</button><button class="phc190-secondary" data-correct>ขอแก้ไข</button></div><button class="phc190-secondary phc190-danger" data-reject>ไม่อนุมัติ</button><div data-detail></div></article>`).join('')||'<div class="phc190-note">ไม่มีคำขอรอตรวจ</div>'}</div>`;
+  body.innerHTML=`<div class="phc190-request-list">${rows.map(r=>`<article class="phc190-request" data-admin-request="${esc(r.id)}"><strong>${esc(r.full_name)}</strong><small>บ้าน ${esc(r.house_no)} · ${esc(r.community)} · ${esc(r.masked_citizen_id)} · เกิด ${esc(fmt(r.birth_date))}</small><div class="phc190-actions"><button class="phc190-secondary" data-sensitive>ดูเลขเพื่อเทียบ</button><button class="phc190-secondary" data-match>ค้นหาบุคคลเดิม</button></div><div class="phc190-actions"><button class="phc190-primary" data-verify>ยืนยันข้อมูล / รอ Sync</button><button class="phc190-secondary" data-correct>ขอแก้ไข</button></div><button class="phc190-secondary phc190-danger" data-cancel>ยกเลิกคำขอ</button><div data-detail></div></article>`).join('')||'<div class="phc190-note">ไม่มีคำขอรอตรวจ</div>'}</div>`;
   body.querySelectorAll('[data-admin-request]').forEach(card=>{
     const id=card.dataset.adminRequest,box=card.querySelector('[data-detail]');
+     const item=rows.find(r=>String(r.id)===id);
+     if(item?.status==='verified'){
+       card.querySelector('[data-verify]')?.remove();card.querySelector('[data-correct]')?.remove();
+       const matchButton=card.querySelector('[data-match]');if(matchButton)matchButton.disabled=true;
+     }
     card.querySelector('[data-sensitive]').onclick=async()=>{const {data,error}=await supabase.rpc('admin_member_request_sensitive_v190',{p_request_id:id});box.innerHTML=error?`<div class="phc190-error">${esc(friendlyError(error))}</div>`:`<div class="phc190-note">เลขสำหรับตรวจสอบ: <strong>${esc(data.citizen_id)}</strong><br>การเปิดดูครั้งนี้ถูกบันทึก Audit แล้ว</div>`};
     card.querySelector('[data-match]').onclick=async()=>{
       box.innerHTML='<div class="phc190-note">กำลังตรวจทะเบียนเดิม…</div>';
@@ -104,9 +183,9 @@ async function renderAdminMemberQueue(){
       box.innerHTML=(matches||[]).map(m=>`<div class="phc190-note"><strong>${esc(m.display_name)}</strong><br>บ้าน ${esc(m.house_no)} · ${esc(m.community)} · ${m.match_type==='citizen_id_hash'?'ตรงจากรหัสบุคคลแบบ Hash':'ชื่อ + วันเกิดตรงกัน'}<br>${m.same_house?'🟢 บ้านตรงกัน':'🟠 อยู่บ้านอื่น ต้องตรวจ/ย้ายใน JHCIS ก่อน'}${m.same_house?`<button type="button" class="phc190-primary" style="width:100%;margin-top:8px" data-link-pcucode="${esc(m.source_pcucode)}" data-link-pid="${esc(m.source_pid)}">ยืนยันและเชื่อมบุคคลนี้</button>`:''}</div>`).join('')||'<div class="phc190-note">ไม่พบบุคคลเดิมที่ตรงกัน ระบบจะรอ JHCIS Sync หลัง Admin ยืนยันข้อมูล</div>';
       box.querySelectorAll('[data-link-pid]').forEach(b=>b.onclick=()=>reviewRequest(id,'verify','',b.dataset.linkPcucode,Number(b.dataset.linkPid)));
     };
-    card.querySelector('[data-correct]').onclick=()=>reviewRequest(id,'needs_correction');
-    card.querySelector('[data-reject]').onclick=()=>reviewRequest(id,'reject');
-    card.querySelector('[data-verify]').onclick=()=>reviewRequest(id,'verify');
+    card.querySelector('[data-correct]')?.addEventListener('click',()=>reviewRequest(id,'needs_correction'));
+    card.querySelector('[data-cancel]').onclick=()=>cancelMemberRequestV2070(id,card.querySelector('strong')?.textContent||'');
+    card.querySelector('[data-verify]')?.addEventListener('click',()=>reviewRequest(id,'verify'));
   });
 }
 async function reviewRequest(id,decision,note='',linkPcucode=null,linkPid=null){
