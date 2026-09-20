@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="phc-training-release" content="2.0.65">
+<title>OSM-PHC · พื้นที่ฝึกอบรม</title>
+<link rel="stylesheet" href="./style.css?v=2.0.63">
+<style>
+body{background:#f4f8f6;color:#19473a;font-family:system-ui,'Noto Sans Thai',sans-serif}
+.training-wrap{width:min(1120px,96%);margin:14px auto;display:grid;gap:12px}
+.training-banner{background:#fff1d9;color:#5c3c0a;border:2px dashed #cd9551;border-radius:13px;padding:12px;font-weight:750}
+.training-banner small{display:block;font-weight:400;margin-top:5px}
+.training-login,.training-section{background:#fff;border:1px solid #d5e4dd;border-radius:14px;padding:17px;display:grid;gap:12px}
+.training-login{max-width:480px;margin:auto;width:100%}
+.training-login label{display:grid;gap:4px}
+.training-login input{min-height:48px;border:1px solid #a9bbb3;border-radius:9px;padding:9px;font:inherit;width:100%}
+.training-nav{display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:#fff;border-radius:12px}
+.training-btn{min-height:47px;border:1px solid #90b8a7;background:#ecf5ef;color:#174d3a;border-radius:10px;padding:8px 12px;font:inherit;font-weight:750;cursor:pointer}
+.training-btn.active,.training-btn.primary{background:#156d56;color:#fff}
+.training-btn:disabled{opacity:.48}
+.training-btn.danger{background:#fff0e9;color:#982f24;border-color:#d3a199}
+.training-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.training-stat,.training-item{border:1px solid #d5e4dd;border-radius:11px;padding:10px;background:#f7fbf8}
+.training-stat strong{display:block;font-size:1.5rem}
+.training-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.training-house{display:grid;gap:10px}.training-item{display:grid;gap:6px}
+.training-pending{color:#87600d;background:#fff2d6;padding:2px 7px;border-radius:10px}
+.training-notice{font-size:.9rem;color:#5d7069}
+.training-error{color:#b1261b}
+.training-panel[hidden],.training-section[hidden],.training-login[hidden],.training-nav[hidden]{display:none}
+@media(min-width:840px){.training-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:12px}}
+</style>
+<script type="module" src="./training-app-v2065.mjs?v=2.0.65&p=2065"></script>
+</head>
+<body>
+<main class="training-wrap">
+<div class="training-banner">DEMO · หมู่ 9 · ชุมชนทดสอบ
+<small>ใช้ข้อมูลสมมติเท่านั้น ไม่ใช่ระบบปฏิบัติงานจริง บัญชีทดสอบไม่ใช่บัญชี Cloud Production</small></div>
+<section class="training-login" id="training-login">
+<h1>เข้าสู่พื้นที่ฝึกอบรม OSM-PHC</h1>
+<p>ใช้บัญชีทดสอบ Staff หรือ User ที่ผู้ควบคุมการอบรมจัดให้เท่านั้น</p>
+<form id="training-login-form" class="training-login">
+<label>ชื่อผู้ใช้<input name="username" autocomplete="username" required maxlength="48" placeholder="demo_user_01"></label>
+<label>รหัสผ่าน<input name="password" type="password" autocomplete="current-password" required></label>
+<button type="submit" class="training-btn primary">เข้าสู่การฝึกอบรม</button>
+</form>
+<p class="training-notice">บัญชีนี้ไม่สามารถใช้เข้าสู่ Cloud จริง และไม่แสดงข้อมูลประชาชนจริง</p>
+<p id="training-login-error" class="training-error" aria-live="polite"></p>
+</section>
+<section class="training-section" id="training-portal" hidden>
+<div class="training-row"><div><h2 id="training-role-label"></h2><p class="training-notice">หมู่ 9 · ชุมชนทดสอบ · บัญชีสำหรับฝึกอบรมเท่านั้น</p></div><button id="training-logout" class="training-btn danger">ออกจากระบบ</button></div>
+<nav class="training-nav" id="training-nav" aria-label="เมนูฝึกอบรม">
+<button class="training-btn" data-training-view="overview">ภาพรวม</button>
+<button class="training-btn" data-training-view="communities">ชุมชนของฉัน</button>
+<button class="training-btn" data-training-view="houses">บ้านของฉัน</button>
+<button class="training-btn" data-training-view="health">งานสุขภาพ</button>
+<button class="training-btn" data-training-view="work">ผลงาน/ติดตาม</button>
+</nav>
+<div id="training-content" class="training-section"></div>
+<p id="training-status" class="training-notice" aria-live="polite"></p>
+</section>
+</main>
+</body></html>

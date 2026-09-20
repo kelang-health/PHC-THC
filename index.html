@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="utf-8">
-  <meta name="phc-release" content="2.0.64">
+  <meta name="phc-release" content="2.0.65">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#f4f7f5">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -43,7 +43,7 @@
         <button class="primary login-submit">เข้าสู่ระบบ</button>
         <p id="login-error" class="error"></p>
       </form>
-      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v2.0.64</footer>
+      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v2.0.65</footer>
     </section>
 
     <section id="blocked" class="card" hidden>
@@ -84,7 +84,6 @@
         <button type="button" data-portal-view="houses" data-roles="staff user"><span class="portal-nav-icon">⌂</span><span><strong class="portal-nav-label">บ้านของฉัน</strong><small>เขตรับผิดชอบ</small></span></button>
         <button type="button" data-portal-view="health" data-roles="admin staff user"><span class="portal-nav-icon">✚</span><span><strong class="portal-nav-label">งานสุขภาพ</strong><small>NCD และ 2Q</small></span></button>
         <button type="button" data-portal-view="work" data-roles="admin staff user"><span class="portal-nav-icon">▦</span><span><strong class="portal-nav-label">ผลงาน</strong><small>สรุปงานและติดตาม</small></span></button>
-        <button type="button" data-portal-view="demo" data-roles="admin"><span class="portal-nav-icon">◇</span><span><strong class="portal-nav-label">พื้นที่สาธิต</strong><small>หมู่ 9 · DEMO</small></span></button>
       </nav>
 
       <div id="stats" class="stats" data-portal-panel="overview"></div>
@@ -93,10 +92,6 @@
       <section class="card" data-portal-panel="work" hidden>
         <!-- Phase 2J: Field Work & Reporting is the single Work snapshot owner. -->
         <div data-field200-host><div class="muted">กำลังเตรียมศูนย์ติดตามงาน…</div></div>
-      </section>
-
-      <section class="card" data-portal-panel="demo" hidden aria-label="พื้นที่สาธิตสำหรับ Admin">
-        <div data-demo2064-host><p class="muted">กำลังเตรียมพื้นที่สาธิตแยกจากข้อมูลจริง…</p></div>
       </section>
 
       <section class="card" data-portal-panel="communities" hidden>
@@ -287,6 +282,6 @@
   <script type="module" src="./auth-security.mjs?v=2.0.59&p=2059"></script>
   <script type="module" src="./line-login-v201.mjs?v=2.0.45&p=2050"></script>
   <script type="module" src="./line-login-settings-v2013.mjs?v=2.0.45&p=2050"></script>
-  <script type="module" src="./app.js?v=2.0.64&p=2064"></script>
+  <script type="module" src="./app.js?v=2.0.65&p=2065"></script>
 </body>
 </html>
