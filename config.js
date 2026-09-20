@@ -31,5 +31,4 @@ if (typeof window !== 'undefined') {
       await initFieldWorkReportingV200(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     })
     .catch(error => console.error('Community GIS/house/mobile workflow modules load failed', error));
-
 }
