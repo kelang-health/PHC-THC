@@ -31,4 +31,10 @@ if (typeof window !== 'undefined') {
       await initFieldWorkReportingV200(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     })
     .catch(error => console.error('Community GIS/house/mobile workflow modules load failed', error));
+
+  // An independent Admin-only DEMO entry must remain available even when an
+  // unrelated operational feature fails during its own initialization.
+  import('./demo-mode-v2064.mjs?v=2.0.64&p=2064')
+    .then(({initDemoModeV2064})=>initDemoModeV2064(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY))
+    .catch(error=>console.error('Isolated Demo Mode initialization failed',error));
 }
