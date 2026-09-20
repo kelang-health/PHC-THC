@@ -1,11 +1,11 @@
 import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall } from './shared-runtime-v2035.mjs?v=2.0.35';
-const VERSION='2.0.59';
+const VERSION=document.querySelector('meta[name="phc-release"]')?.content||'2.0.63';
 const WORK_PROFILE_DEFER_MS_V2044=2400;
 const WORK_AVATAR_DEFER_MS_V2044=700;
 const PHOTO_URL_CACHE_MS_V2044=25*60*1000;
 const PHOTO_MEDIA_CACHE_MS_V2057=5*60*1000;
 const PHOTO_FETCH_CONCURRENCY_V2058=3;
-const PHOTO_ROOT_MARGIN_V2058='80px';
+const PHOTO_ROOT_MARGIN_V2058='0px';
 let photoFetchActiveV2058=0,photoFetchQueueV2058=[];
 let supabase=null,profile=null,rows=[],avatarObserver=null,portalObserver=null,statusFilter='all',searchText='',communityFilter='',enhancePromise=null,authSubscription=null,syncInfo={},trainingCache=new Map(),workProfileTimer=null,workAvatarTimer=null;
 const $=(s,r=document)=>r.querySelector(s);
@@ -125,16 +125,30 @@ async function resolveAvatar(el){
         }
       }
       if(!path&&!source)return;
-      let src=source;
-      if(path){
-        const signed=await sharedCall(`volunteer-photo-url-v2044:${path}`,()=>supabase.storage.from('volunteer-profiles').createSignedUrl(path,1800),PHOTO_URL_CACHE_MS_V2044);
-        const signedUrl=signed?.data?.signedUrl||signed?.data?.signedURL||'';
-        if(!signed?.error&&signedUrl)src=signedUrl;
-      }
-      if(!src||!document.body.contains(el))return;
+      if(!document.body.contains(el))return;
       const img=el.querySelector('img');if(!img)return;
-      const ok=await waitAvatarImageV2058(img,src,el);
-      if(ok)el.dataset.photoLoaded='1';
+      const signPhoto=async(pathToSign,kind)=>{
+        const signed=await sharedCall(`volunteer-photo-url-v2063:${kind}:${pathToSign}`,
+          ()=>supabase.storage.from('volunteer-profiles').createSignedUrl(pathToSign,1800),
+          PHOTO_URL_CACHE_MS_V2044);
+        return signed?.error?'':signed?.data?.signedUrl||signed?.data?.signedURL||'';
+      };
+      // The small avatar is a separate private-bucket object created by the
+      // manual Local photo sync; no paid on-the-fly image transformation.
+      // Legacy/custom paths fall back to the original untouched portrait.
+      let loaded=false;
+      const pid=String(el.dataset.photoPid||'').trim();
+      if(path&&/^\d+$/.test(pid)&&path===`${pid}/profile.jpg`){
+        const thumb=await signPhoto(`${pid}/avatar-128-v1.jpg`,'thumb');
+        if(thumb&&document.body.contains(el))
+          loaded=await waitAvatarImageV2058(img,thumb,el);
+      }
+      if(!loaded&&document.body.contains(el)){
+        const original=path?await signPhoto(path,'original'):'';
+        const fallback=original||source;
+        if(fallback)loaded=await waitAvatarImageV2058(img,fallback,el);
+      }
+      if(loaded)el.dataset.photoLoaded='1';
     });
   }catch{}
   finally{delete el.dataset.photoQueued;if(el.dataset.photoLoaded!=='1')delete el.dataset.photoLoaded;}

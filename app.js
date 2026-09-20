@@ -361,9 +361,15 @@ function syncHealthTargetButtons(){
   $('#health-view-all-targets').classList.toggle('active',filter==='targets');
 }
 async function setHealthTargetFilter(filter){
+  const select=$('#health-filter');
+  if(!select)return;
+  if(select.value===filter&&!healthCommunityFocus)return;
   healthCommunityFocus='';
   const focus=$('#health-community-focus');if(focus)focus.hidden=true;
-  $('#health-filter').value=filter;syncHealthTargetButtons();await loadHealthPeople({trigger:'filter'});
+  select.value=filter;syncHealthTargetButtons();
+  // Coalesce quick repeated taps before an RPC starts; keep the button visual
+  // state immediate and let the existing request-generation guard discard stale data.
+  return scheduleHealthPeopleLoad(110,'filter');
 }
 async function loadFastHealthTargetsV2030(stage,raw){
   const term=String(raw||'').replace(/[%_,()]/g,'').slice(0,60).trim();
