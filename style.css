@@ -276,3 +276,56 @@ html,body{max-width:100%;overflow-x:hidden}.shell{width:100%;min-width:0}.login-
  .field200 .field200-panel--tasks .field200-table td:nth-child(4),
  .field200 .field200-panel--tasks .field200-table td:nth-child(5){border-radius:8px;padding-inline:6px}
 }
+
+/* v2.0.67: compact task-category cards on mobile without changing data, controls or roles.
+   This also supports an older cached work module (first section in .field200). */
+@media(max-width:700px){
+ .field200 > .field200-panel:first-of-type .field200-table tbody{display:grid;gap:10px}
+ .field200 > .field200-panel:first-of-type .field200-table tbody > tr:not(:has(td[colspan])){
+   display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;
+   gap:7px;padding:12px;border-radius:15px;min-width:0
+ }
+ .field200 > .field200-panel:first-of-type .field200-table tbody > tr:not(:has(td[colspan])) > td{
+   display:block;min-width:0;padding:8px 7px;border:1px solid #dfe9e5;
+   border-radius:10px;background:#f8faf9;line-height:1.35;font-variant-numeric:tabular-nums
+ }
+ .field200 > .field200-panel:first-of-type .field200-table tbody > tr > td::before{
+   display:block;content:attr(data-label);font-size:.73rem;line-height:1.3;
+   margin-bottom:5px;font-weight:750;color:#465c59
+ }
+ .field200 > .field200-panel:first-of-type .field200-table tbody > tr > td:first-child{
+   grid-column:1/-1;border:0;background:transparent;padding:0 0 4px
+ }
+ .field200 > .field200-panel:first-of-type .field200-table tbody > tr > td:first-child::before{display:none}
+ .field200 > .field200-panel:first-of-type .field200-table tbody > tr > td:first-child strong{
+   font-size:1.02rem;line-height:1.4;overflow-wrap:anywhere
+ }
+ .field200 > .field200-panel:first-of-type .field200-table tbody > tr > td:nth-child(2){background:var(--phc-tone-info-bg)}
+ .field200 > .field200-panel:first-of-type .field200-table tbody > tr > td:nth-child(3){
+   background:var(--phc-tone-success-bg);color:var(--phc-tone-success);font-weight:850
+ }
+ .field200 > .field200-panel:first-of-type .field200-table tbody > tr > td:nth-child(4){
+   background:var(--phc-tone-warning-bg);color:var(--phc-tone-warning);font-weight:850
+ }
+ .field200 > .field200-panel:first-of-type .field200-table tbody > tr > td:nth-child(5){
+   background:var(--phc-tone-neutral-bg);color:var(--phc-tone-neutral);font-weight:850
+ }
+ .field200 > .field200-panel:first-of-type .field200-table tbody > tr > td:nth-child(6){
+   grid-column:span 2;background:#f0f8f5;color:var(--phc-tone-primary);font-weight:850
+ }
+ .field200 > .field200-panel:first-of-type .field200-table tbody > tr > td:last-child{
+   grid-column:1/-1;border:0;background:transparent;padding:0;margin-top:2px
+ }
+ .field200 > .field200-panel:first-of-type .field200-table tbody > tr > td:last-child::before{display:none}
+ .field200 > .field200-panel:first-of-type .field200-table tbody > tr > td:last-child .field200-open{
+   width:100%;min-height:48px;background:var(--phc-tone-primary-bg);color:var(--phc-tone-primary);
+   border:1px solid #c5ded5
+ }
+ .field200 > .field200-panel:first-of-type .field200-table tbody > tr > td:last-child .field200-open:focus-visible{
+   outline:3px solid var(--phc-tone-primary);outline-offset:2px
+ }
+ .field200 > .field200-panel:first-of-type .field200-table tbody > tr:has(td[colspan]){display:block}
+ .field200 > .field200-panel:first-of-type .field200-table tbody > tr:has(td[colspan]) > td{
+   display:block!important;white-space:normal
+ }
+}
