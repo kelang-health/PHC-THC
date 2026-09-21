@@ -159,9 +159,11 @@ function setHealthIntentV2058(intent={}){
 window.PHCSetHealthIntentV2058=setHealthIntentV2058;
 function configurePortalNav(role){
   const labels={admin:{communities:'ชุมชนทั้งหมด',volunteers:'ทะเบียน อสม.'},staff:{communities:'ชุมชนที่ดูแล',houses:'บ้านและงานดูแลแทน'},user:{communities:'ชุมชนของฉัน',houses:'บ้านของฉัน'}};
+  const mobileLabels={overview:'ภาพรวม',communities:'ชุมชน',volunteers:'อสม.',houses:'บ้าน',health:'สุขภาพ',work:'ผลงาน'};
   document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>{
     b.hidden=!(b.dataset.roles||'').split(/\s+/).includes(role);
     const label=b.querySelector('.portal-nav-label'),roleLabelText=labels[role]?.[b.dataset.portalView];if(label&&roleLabelText)label.textContent=roleLabelText;
+    b.dataset.mobileLabel=mobileLabels[b.dataset.portalView]||label?.textContent||'';
     if(role==='staff'&&b.dataset.portalView==='houses'){const sub=b.querySelector('small');if(sub)sub.textContent='บ้านโดยตรง / บ้านไม่มี อสม.';}
     b.onclick=async()=>{
       const wasActive=portalView===b.dataset.portalView;setPortalView(b.dataset.portalView,{historyMode:'push'});
@@ -948,6 +950,20 @@ function communityHouseRows(rows){
    return `<tr class="staff-assignment-row--${tone}"><td><strong>บ้าน ${esc(h.house_no||'ไม่ระบุ')}</strong><small>${esc(h.hcode||'—')}</small></td><td>${esc(h.moo||'—')}</td><td>${staffAssignmentBadgeV2072(h)}</td><td>${esc(h.record_status||'—')}</td><td class="${h.review_required?'warn':'good'}">${h.review_required?`ต้องตรวจ<small>${esc(h.review_reason||'')}</small>`:'ปกติ'}</td><td>${map}</td></tr>`;
  }).join('')||'<tr><td colspan="6">ไม่พบข้อมูลตามสิทธิ์</td></tr>';
 }
+
+function communityUnassignedCardsV2073(rows){
+ if(!rows?.length)return '<div class="community-empty-v2073">ไม่พบบ้านที่ไม่มี อสม. ในชุมชนนี้</div>';
+ return `<div class="community-unassigned-list-v2073">${rows.map((h,index)=>{
+   const hasMap=h.latitude!=null&&h.longitude!=null;
+   const map=hasMap?`<a class="community-map-link" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${h.latitude},${h.longitude}`)}" target="_blank" rel="noopener noreferrer">ดูพิกัด</a>`:'<span class="community-unassigned-no-map-v2073">ไม่มีพิกัด</span>';
+   const quality=h.review_required?`<span class="community-unassigned-quality-v2073 warn">ต้องตรวจ${h.review_reason?` · ${esc(h.review_reason)}`:''}</span>`:'<span class="community-unassigned-quality-v2073 good">ข้อมูลปกติ</span>';
+   return `<article class="community-unassigned-card-v2073">
+     <div class="community-unassigned-card-head-v2073"><span class="community-unassigned-index-v2073">${index+1}</span><div><strong>บ้าน ${esc(h.house_no||'ไม่ระบุ')}</strong><small>หมู่ ${esc(h.moo||'—')} · HCODE ${esc(h.hcode||'—')}</small></div></div>
+     <div class="community-unassigned-card-meta-v2073"><span>${staffAssignmentBadgeV2072(h)}</span><span>สถานะ: ${esc(h.record_status||'—')}</span></div>
+     <div class="community-unassigned-card-foot-v2073">${quality}${map}</div>
+   </article>`;
+ }).join('')}</div>`;
+}
 async function fetchCommunityHouses(community){
   if(currentProfile?.role==='staff'){
     const {data,error}=await supabase.rpc('staff_household_cards_v2072',{p_community:community});
@@ -992,7 +1008,7 @@ async function openCommunity(index){
     <article><small>มีพิกัด</small><strong>${num(mapped.length)}</strong></article><article><small>ต้องตรวจข้อมูล</small><strong>${num(review.length)}</strong></article>
     </div><p class="community-scope-note staff-workspace-note">${esc(warning)}</p></section>
     <section class="community-view" data-community-view="houses" hidden><h4>ทะเบียนครัวเรือน · ${num(houses.length)} หลัง</h4><div class="table-wrap"><table><thead>${tableHeader}</thead><tbody>${communityHouseRows(houses)}</tbody></table></div></section>
-    <section class="community-view" data-community-view="unassigned" hidden><h4>บ้านไม่มี อสม. · ${num(unassigned.length)} หลัง</h4><p class="staff-workspace-note">${esc(viewOnly?'แสดงเพื่อดูข้อมูลชุมชนอื่นในหมู่เดียวกันเท่านั้น ไม่เพิ่มเป็นงานของ Staff บัญชีนี้':staffOwned?'Staff ประจำชุมชนดูแลชั่วคราวระหว่างรอผูก อสม. โดยไม่เปลี่ยนผู้รับผิดชอบในฐาน JHCIS หรือ Cloud':'ยังไม่มีผู้รับผิดชอบที่ผูกกับบ้านในทะเบียน')}</p><div class="table-wrap"><table><thead>${tableHeader}</thead><tbody>${communityHouseRows(unassigned)}</tbody></table></div></section>
+    <section class="community-view community-unassigned-view-v2073" data-community-view="unassigned" hidden><div class="community-unassigned-title-v2073"><div><h4>บ้านไม่มี อสม. · ${num(unassigned.length)} หลัง</h4><small>แสดงรายชื่อบ้านที่ต้องติดตามทั้งหมดในชุมชนนี้</small></div><span class="staff-unassigned-count">${num(unassigned.length)} หลัง</span></div><p class="staff-workspace-note">${esc(viewOnly?'แสดงเพื่อดูข้อมูลชุมชนอื่นในหมู่เดียวกันเท่านั้น ไม่เพิ่มเป็นงานของ Staff บัญชีนี้':staffOwned?'Staff ประจำชุมชนดูแลชั่วคราวระหว่างรอผูก อสม. โดยไม่เปลี่ยนผู้รับผิดชอบในฐาน JHCIS หรือ Cloud':'ยังไม่มีผู้รับผิดชอบที่ผูกกับบ้านในทะเบียน')}</p>${communityUnassignedCardsV2073(unassigned)}</section>
     <section class="community-view" data-community-view="volunteers" hidden><h4>ทะเบียน อสม. และเขตรับผิดชอบ</h4><div class="table-wrap"><table><thead><tr><th>อสม.</th><th>Anchor</th><th>บ้าน</th><th>ต้องตรวจ</th><th>ข้ามชุมชน</th></tr></thead><tbody>${volunteerRows}</tbody></table></div></section>
     <section class="community-view" data-community-view="review" hidden><h4>รายการที่ต้องตรวจสอบ</h4><div class="table-wrap"><table><thead>${tableHeader}</thead><tbody>${communityHouseRows(review)}</tbody></table></div></section>`;
    workspace.querySelector('[data-community-close]').onclick=()=>{communityRequestId+=1;workspace.hidden=true;};
