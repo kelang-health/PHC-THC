@@ -32,10 +32,10 @@ function render(d){
   host.innerHTML=`<section class="care60">
     <div class="care60-head"><div><p class="eyebrow">CARE DASHBOARD</p><h2>ภาพรวมการดูแลประชากร</h2><p>${esc(d.scope_label||'ข้อมูลตามสิทธิ์')} · ${num(d.houses)} หลัง${esc(snapshotLabel(d.snapshot_generated_at))}</p></div>${scopeToggle}</div>
     <div class="care60-kpis">
-      <article class="care60-kpi"><button type="button" data-care60-open="houses"><small>ประชากรฐานบริการ</small><strong>${num(d.service_people??d.people)} คน</strong></button></article>
-      <article class="care60-kpi"><button type="button" data-care60-health="targets"><small>เป้าหมาย NCD งานเชิงรุก</small><strong>${num(d.ncd_targets)}</strong></button></article>
-      <article class="care60-kpi"><button type="button" data-care60-health="targets"><small>คัดกรองแล้วปีงบฯ</small><strong>${num(d.ncd_done)}</strong></button></article>
-      <article class="care60-kpi"><button type="button" data-care60-health="due"><small>คงเหลือ</small><strong>${num(d.ncd_due)}</strong></button></article>
+      <article class="care60-kpi tone-info"><button type="button" data-care60-open="houses"><small>ประชากรฐานบริการ</small><strong>${num(d.service_people??d.people)} คน</strong></button></article>
+      <article class="care60-kpi tone-info"><button type="button" data-care60-health="targets"><small>เป้าหมาย NCD งานเชิงรุก</small><strong>${num(d.ncd_targets)}</strong></button></article>
+      <article class="care60-kpi ${Number(d.ncd_done)>0?'tone-success':'tone-neutral'}"><button type="button" data-care60-health="targets"><small>คัดกรองแล้วปีงบฯ</small><strong>${num(d.ncd_done)}</strong></button></article>
+      <article class="care60-kpi ${Number(d.ncd_due)>0?'tone-warning':'tone-neutral'}"><button type="button" data-care60-health="due"><small>คงเหลือ</small><strong>${num(d.ncd_due)}</strong></button></article>
     </div>
     <div class="care60-progress"><div class="care60-progress-head"><div><small>ความก้าวหน้า NCD ตามบัญชีปฏิบัติงาน J-Report/JHCIS</small><strong>${num(done)} / ${num(target)} คน</strong></div><b>${pct}%</b></div><div class="care60-bar"><i style="width:${Math.min(100,pct)}%"></i></div></div>
     <div class="care60-note care60-source">ตัวเลขรายบุคคลใช้ JHCIS/J-Report แบบอ่านอย่างเดียว · ฐานประชากรปฏิบัติงาน = JHCIS Type 1 และ 3 เท่านั้น · สถานะอยู่จริง/คุณภาพข้อมูลติดตามแยกต่างหาก · HDC ใช้เป็นตัวเลขอ้างอิงทางการ</div>
