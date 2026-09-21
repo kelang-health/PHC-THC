@@ -1007,7 +1007,13 @@ async function openCommunity(index){
      workspace.querySelectorAll('[data-community-action]').forEach(x=>x.classList.toggle('active',x===button));
      workspace.querySelectorAll('[data-community-view]').forEach(x=>x.hidden=x.dataset.communityView!==action);
    });
- }catch(error){if(request===communityRequestId)workspace.innerHTML=`<p class="error">${esc(error.message)}</p>`;}
+ }catch(error){
+   if(request===communityRequestId){
+     const message=String(error?.message||'');
+     const display=message.includes('COMMUNITY_MOO_CONFLICT_REQUIRES_ADMIN_REVIEW')?'ข้อมูลหมู่ของชุมชนไม่ตรงกับข้อมูลบ้านจาก JHCIS จึงยังไม่อนุญาตให้ดูข้อมูลข้ามชุมชน โปรดให้ Admin ตรวจสอบทะเบียนหมู่ก่อน':message;
+     workspace.innerHTML=`<p class="error">${esc(display)}</p>`;
+   }
+ } 
 }
 const PORTAL_QUERY_BUDGET_MS_V2029=2500;
 async function safePortalQueryV2029(label,promise,fallback=[]){
@@ -1118,6 +1124,9 @@ const workloadQuery=supabase.from('volunteer_workload').select('*').eq('communit
    console.warn('[staff house scope v2072]',houseResult.error?.code||houseResult.error?.message||'INVALID_RESPONSE');
  }else{
    staffCommunityHousesV2072=houseResult.data;
+   if(!myHouses.length){
+     myHouses=staffCommunityHousesV2072.filter(h=>h.assignment_state==='staff_direct');
+   }
  }
  if(!fastResult.error&&Array.isArray(fastResult.data?.cards)&&fastResult.data.cards.length){
    const cards=fastResult.data.cards;
