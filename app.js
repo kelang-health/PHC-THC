@@ -1071,16 +1071,60 @@ async function loadPortal(session, requestId){
     const houseKey=`my-household-cards-v2039:${profile.user_id}:${profile.volunteer_pid||''}`;
     const housePromise=profile.volunteer_pid!=null?safePortalQueryV2029('my houses',sharedCall(houseKey,()=>supabase.rpc('my_household_cards_v1860'),HOUSEHOLD_CACHE_MS_V2039),[]):Promise.resolve([]);
     if(profile.role==='staff'){
-      let summaryQuery=supabase.from('community_report_summary').select('*');
-      let workloadQuery=supabase.from('volunteer_workload').select('*');
-      if(profile.community){summaryQuery=summaryQuery.eq('community',profile.community);workloadQuery=workloadQuery.eq('community',profile.community);}
-      [master,myHouses,communities,workload]=await Promise.all([
-        safePortalQueryV2029('communities',masterQuery,fallbackMaster),housePromise,
-        safePortalQueryV2029('staff community summary',summaryQuery,[]),
-        safePortalQueryV2029('staff volunteer workload',workloadQuery,[])
-      ]);
-      if(!master.length)master=fallbackMaster;
-      if(!communities.length&&myHouses.length)communities=summarizeMyHousesV2029(myHouses,profile.community);
+const workloadQuery=supabase.from('volunteer_workload').select('*').eq('community',profile.community);
+ const [masterResult,directHouses,fastResult,houseResult,volunteerResult]=await Promise.all([
+   safePortalQueryV2029('staff community master',masterQuery,fallbackMaster),
+   housePromise,
+   supabase.rpc('staff_community_fast_bundle_v2055'),
+   supabase.rpc('staff_household_cards_v2072'),
+   safePortalQueryV2029('staff volunteer workload',workloadQuery,[])
+ ]);
+ master=masterResult.length?masterResult:fallbackMaster;
+ myHouses=directHouses;
+ workload=volunteerResult;
+ staffCommunityHousesV2072=[];
+ staffHouseScopeIssueV2072='';
+ if(houseResult.error||!Array.isArray(houseResult.data)){
+   staffHouseScopeIssueV2072='ไม่สามารถโหลดบ้านที่ Staff ต้องดูแลแทนได้ กรุณาเปิดเมนูใหม่อีกครั้ง';
+   console.warn('[staff house scope v2072]',houseResult.error?.code||houseResult.error?.message||'INVALID_RESPONSE');
+ }else{
+   staffCommunityHousesV2072=houseResult.data;
+ }
+ if(!fastResult.error&&Array.isArray(fastResult.data?.cards)&&fastResult.data.cards.length){
+   const cards=fastResult.data.cards;
+   master=cards.map(c=>({name:c.community,moo:c.moo,active:true}));
+   communities=cards.map(c=>({
+     community:c.community,moo:c.moo,houses:Number(c.houses||0),
+     assigned_houses:Number(c.assigned_houses||0),
+     unassigned_houses:Math.max(0,Number(c.houses||0)-Number(c.assigned_houses||0)),
+     review_houses:Number(c.review_houses||0),
+     outside_tambon:Number(c.outside_tambon||0),
+     missing_coordinates:Number(c.missing_coordinates||0),
+     volunteers_with_work:Number(c.volunteers||0),
+     is_assigned:Boolean(c.is_assigned),
+     access_mode:c.access_mode
+   }));
+ }else{
+   console.warn('[staff community fast bundle v2072]',fastResult.error?.code||fastResult.error?.message||'NO_CARDS');
+   const legacy=await safePortalQueryV2029('staff community fallback summary',
+     supabase.from('community_report_summary').select('*').eq('community',profile.community),[]);
+   communities=legacy.map(c=>({...c,is_assigned:true,
+     unassigned_houses:Math.max(0,Number(c.houses||0)-Number(c.assigned_houses||0))}));
+   if(!staffHouseScopeIssueV2072)staffHouseScopeIssueV2072='ไม่สามารถโหลดภาพรวมชุมชนอื่นในหมู่เดียวกันได้ กรุณาเปิดเมนูใหม่อีกครั้ง';
+ }
+ if(!communities.length&&staffCommunityHousesV2072.length){
+   communities=summarizeMyHousesV2029(staffCommunityHousesV2072,profile.community)
+     .map(c=>({...c,is_assigned:true,unassigned_houses:Math.max(0,Number(c.houses||0)-Number(c.assigned_houses||0))}));
+   master=communities.map(c=>({name:c.community,moo:c.moo,active:true}));
+ }
+ if(!workload.length&&staffVolunteerOptionsV2033.length&&staffCommunityHousesV2072.length){
+   workload=staffVolunteerOptionsV2033.map(v=>{
+     const own=staffCommunityHousesV2072.filter(h=>h.volunteer_pid===v.volunteer_pid);
+     return {display_name:v.display_name,community:v.community||profile.community,
+       anchor_status:'confirmed',house_count:own.length,
+       review_count:own.filter(h=>h.review_required).length,cross_community_count:0};
+   });
+ }
     }else{
       // User bootstrap stays to one scoped household RPC after profile; community metadata is already present on the profile/houses.
       master=fallbackMaster;
