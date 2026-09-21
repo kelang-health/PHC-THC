@@ -1,3 +1,10 @@
+## Cloud v2.0.76 — Phase 4 Field Acceptance and Training Visibility
+
+- ลดความสูง Bottom Navigation บนมือถือจาก 68px เป็น 60px พร้อมลด padding/icon เล็กน้อย เพื่อคืนพื้นที่เนื้อหาโดยยังคง Safe Area และปุ่ม 5 เมนู
+- ทำให้ปุ่ม “ประวัติการอบรม” มองเห็นได้ชัดในหน้า “ผลงาน” ของ Staff/User และให้หน้า “บ้าน” ของ User ระบุ “โปรไฟล์ / การอบรม” ชัดเจนแม้หน้าจอ 390px
+- ตรวจสอบฐานจริงว่าบัญชี User/Staff เชื่อม volunteer_pid ครบตามบัญชี active; ประวัติอบรมจะแสดงจาก volunteer_training_profile และแสดง “ยังไม่มีประวัติ” เมื่อไม่มีข้อมูลจริง
+- เพิ่ม Phase 4 browser acceptance test ตรวจความสูงเมนู, overflow, 5 เมนู และ training shortcut ที่ 390px
+- ยืนยัน JHCIS ยังคง read-only, ไม่แก้ Auth/LINE Login และไม่เปลี่ยน volunteer_pid
 ## Cloud v2.0.75 — Phase 3 Population Reconciliation and Mobile Validation
 
 - ตรวจสอบข้อมูลบ้านไม่มี อสม. เทียบกับ JHCIS แบบอ่านอย่างเดียว โดยคงนิยามประชากรในงานบริการและไม่เปิดเผยข้อมูล Type 2/4 หรือผู้จำหน่ายเป็นประชากรปัจจุบัน

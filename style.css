@@ -349,12 +349,14 @@ tr.staff-assignment-row--direct>td:first-child{box-shadow:inset 4px 0 #5b9c72}
   #portal.nav-collapsed .portal-nav-toggle-icon{transform:rotate(180deg)}
 }
 @media(max-width:900px){
-  body:has(#portal:not([hidden])) .shell{padding-bottom:calc(104px + env(safe-area-inset-bottom,0px))}
-  #portal>.portal-nav{position:fixed;inset:auto 0 0;z-index:60;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin:0;padding:8px max(6px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px));background:#f6f8f7;border-top:1px solid #d7e3df}
-  #portal>.portal-nav button{display:flex;flex-direction:column;justify-content:center;gap:5px;width:100%;min-width:0;min-height:68px;padding:8px 2px;border:0;border-radius:15px;text-align:center;background:transparent;color:#65706c;box-shadow:none;transform:none}
+  body:has(#portal:not([hidden])) .shell{padding-bottom:calc(92px + env(safe-area-inset-bottom,0px))}
+  #portal>.portal-nav{position:fixed;inset:auto 0 0;z-index:60;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;margin:0;padding:5px max(5px,env(safe-area-inset-right,0px)) calc(5px + env(safe-area-inset-bottom,0px)) max(5px,env(safe-area-inset-left,0px));background:#f6f8f7;border-top:1px solid #d7e3df}
+  #portal>.portal-nav button{display:flex;flex-direction:column;justify-content:center;gap:3px;width:100%;min-width:0;min-height:60px;padding:5px 2px;border:0;border-radius:13px;text-align:center;background:transparent;color:#65706c;box-shadow:none;transform:none}
   #portal>.portal-nav button.active{background:#dcefe8;color:#126f61}
   #portal>.portal-nav .portal-nav-toggle,#portal>.portal-nav .portal-nav-copy{display:none}
-  .portal-nav-mobile-label{display:block;white-space:nowrap;font-size:clamp(.7rem,3vw,.88rem);font-weight:750;line-height:1.2}
+  #portal>.portal-nav .portal-nav-icon{width:24px;height:24px;flex-basis:24px}
+  #portal>.portal-nav .portal-nav-icon svg{width:22px;height:22px}
+  .portal-nav-mobile-label{display:block;white-space:nowrap;font-size:clamp(.68rem,2.8vw,.82rem);font-weight:750;line-height:1.15}
 }
 .community-view{scroll-margin-top:16px}
 .community-view[hidden]{display:none!important}
