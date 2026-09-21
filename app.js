@@ -20,6 +20,8 @@ let renderedPortalUserId = null;
 let healthFeedbackModel = null;
 let portalCommunityRows = [];
 let portalVolunteerRows = [];
+let staffCommunityHousesV2072 = [];
+let staffHouseScopeIssueV2072 = '';
 let communityRequestId = 0;
 let healthCommunityFocus = '';
 let careScopeMode = 'self';
@@ -924,15 +926,33 @@ async function monitoredCloudSignIn(email,password){
 
 function anchorLabel(status){ return ({confirmed:'ยืนยัน',community_review:'ตรวจชุมชน',outside_tambon:'นอกตำบล',missing:'ไม่มีพิกัด'})[status] || status || '—'; }
 
-function communityHouseRows(rows){
-  return rows.map(h=>{
-    const hasMap=h.latitude!==null&&h.latitude!==undefined&&h.longitude!==null&&h.longitude!==undefined;
-    const map=hasMap?`<a class="community-map-link" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${h.latitude},${h.longitude}`)}" target="_blank" rel="noopener noreferrer">แผนที่</a>`:'<span class="muted">ไม่มีพิกัด</span>';
-    return `<tr><td><strong>บ้าน ${esc(h.house_no||'ไม่ระบุ')}</strong><small>${esc(h.hcode||'—')}</small></td><td>${esc(h.moo||'—')}</td><td>${esc(h.record_status||'—')}</td><td class="${h.review_required?'warn':'good'}">${h.review_required?`ต้องตรวจ<small>${esc(h.review_reason||'')}</small>`:'ปกติ'}</td><td>${map}</td></tr>`;
-  }).join('')||'<tr><td colspan="5">ไม่พบข้อมูลตามสิทธิ์</td></tr>';
+function staffCommunityKeyV2072(name){return String(name||'').trim().toLowerCase().replace(/\s+/g,'');}
+function staffAssignmentBadgeV2072(h){
+ const status=String(h.assignment_state||(h.volunteer_pid==null?'unassigned_view':'volunteer_assigned'));
+ const label=String(h.assignment_label||(
+   status==='staff_fallback'?'ไม่มี อสม.ผูกบ้าน · Staff ดูแลชั่วคราว':
+   status==='staff_direct'?'บ้านที่ Staff รับผิดชอบโดยตรง':
+   h.volunteer_pid==null?'ไม่มี อสม.ผูกบ้าน':
+   'อสม.รับผิดชอบ: '+String(h.volunteer_name||('PID '+h.volunteer_pid))
+ ));
+ const tone=status==='staff_fallback'||status==='unassigned_view'?'fallback':status==='staff_direct'?'direct':status==='volunteer_assigned'?'assigned':'view';
+ return `<span class="staff-assignment-badge staff-assignment-badge--${tone}">${esc(label)}</span>`;
 }
-
+function communityHouseRows(rows){
+ return rows.map(h=>{
+   const hasMap=h.latitude!=null&&h.longitude!=null;
+   const map=hasMap?`<a class="community-map-link" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${h.latitude},${h.longitude}`)}" target="_blank" rel="noopener noreferrer">แผนที่</a>`:'<span class="muted">ไม่มีพิกัด</span>';
+   const status=String(h.assignment_state||(h.volunteer_pid==null?'unassigned_view':'volunteer_assigned'));
+   const tone=status==='staff_fallback'||status==='unassigned_view'?'fallback':status==='staff_direct'?'direct':'assigned';
+   return `<tr class="staff-assignment-row--${tone}"><td><strong>บ้าน ${esc(h.house_no||'ไม่ระบุ')}</strong><small>${esc(h.hcode||'—')}</small></td><td>${esc(h.moo||'—')}</td><td>${staffAssignmentBadgeV2072(h)}</td><td>${esc(h.record_status||'—')}</td><td class="${h.review_required?'warn':'good'}">${h.review_required?`ต้องตรวจ<small>${esc(h.review_reason||'')}</small>`:'ปกติ'}</td><td>${map}</td></tr>`;
+ }).join('')||'<tr><td colspan="6">ไม่พบข้อมูลตามสิทธิ์</td></tr>';
+}
 async function fetchCommunityHouses(community){
+  if(currentProfile?.role==='staff'){
+    const {data,error}=await supabase.rpc('staff_household_cards_v2072',{p_community:community});
+    if(error)throw error;
+    return Array.isArray(data)?data:[];
+  }
   const rows=[];for(let from=0;;from+=1000){
     const {data,error}=await supabase.from('houses').select('hcode,house_no,moo,community,latitude,longitude,coordinate_status,record_status,review_required,review_reason,volunteer_pid').eq('community',community).order('house_no').range(from,from+999);
     if(error)throw error;rows.push(...(data||[]));if(!data||data.length<1000)break;
