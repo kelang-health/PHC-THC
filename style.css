@@ -374,3 +374,14 @@ tr.staff-assignment-row--direct>td:first-child{box-shadow:inset 4px 0 #5b9c72}
 .community-volunteer-metrics dt{font-size:.8rem;line-height:1.4;color:#596f68}
 .community-volunteer-metrics dd{margin:5px 0 0;font-size:1rem;font-weight:750}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* v2.0.78 — scoped community card lists: render only one page at a time. */
+.community-paged-search{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:10px 0 14px}
+.community-paged-search label{display:grid;gap:5px;flex:1 1 200px;min-width:0;font-weight:700;color:#214d42}
+.community-paged-search input{width:100%;min-width:0;min-height:44px;border:1px solid #b9d4cb;border-radius:12px;background:#fff;color:#213c34;padding:8px 12px;font:inherit}
+.community-paged-search small{color:#59746a;line-height:1.5}
+.community-pager{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:16px 0;padding:8px 0;border-top:1px solid #d8e7e1}
+.community-pager button{min-height:44px;white-space:nowrap}
+.community-pager button:disabled{opacity:.46;cursor:not-allowed}
+.community-pager [data-page-status]{flex:1 1 auto;min-width:0;color:#506a60;text-align:center;font-size:.84rem;line-height:1.5}
+@media(max-width:390px){.community-pager{gap:4px}.community-pager button{padding:7px 8px;font-size:.8rem}.community-pager [data-page-status]{font-size:.74rem}}
