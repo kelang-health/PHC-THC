@@ -158,10 +158,11 @@ function setHealthIntentV2058(intent={}){
 }
 window.PHCSetHealthIntentV2058=setHealthIntentV2058;
 function configurePortalNav(role){
-  const labels={admin:{communities:'ชุมชนทั้งหมด',volunteers:'ทะเบียน อสม.'},staff:{communities:'ชุมชนที่ดูแล',houses:'บ้านของฉัน'},user:{communities:'ชุมชนของฉัน',houses:'บ้านของฉัน'}};
+  const labels={admin:{communities:'ชุมชนทั้งหมด',volunteers:'ทะเบียน อสม.'},staff:{communities:'ชุมชนที่ดูแล',houses:'บ้านและงานดูแลแทน'},user:{communities:'ชุมชนของฉัน',houses:'บ้านของฉัน'}};
   document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>{
     b.hidden=!(b.dataset.roles||'').split(/\s+/).includes(role);
     const label=b.querySelector('.portal-nav-label'),roleLabelText=labels[role]?.[b.dataset.portalView];if(label&&roleLabelText)label.textContent=roleLabelText;
+    if(role==='staff'&&b.dataset.portalView==='houses'){const sub=b.querySelector('small');if(sub)sub.textContent='บ้านโดยตรง / บ้านไม่มี อสม.';}
     b.onclick=async()=>{
       const wasActive=portalView===b.dataset.portalView;setPortalView(b.dataset.portalView,{historyMode:'push'});
       // Phase 2J: field-work-reporting owns the Work panel snapshot.
@@ -1042,10 +1043,38 @@ async function getProfile(userId){
   throw lastError||new Error('ไม่สามารถอ่านโปรไฟล์ได้');
 }
 
+function renderCommunityRowsV2072(rows,profile){
+ return rows.map((r,index)=>{
+   const fallbackCount=Math.max(0,Number(r.unassigned_houses??(Number(r.houses||0)-Number(r.assigned_houses||0))));
+   const isReadonly=profile.role==='staff'&&r.is_assigned!==true&&staffCommunityKeyV2072(r.community)!==staffCommunityKeyV2072(profile.community);
+   const marker=isReadonly?'<span class="staff-community-viewonly">ดูอย่างเดียว</span>':'';
+   return `<tr><td><strong>${esc(r.community||'ไม่ระบุ')}</strong>${marker}</td><td>${esc(r.moo||'—')}</td><td>${num(r.houses)}</td><td>${num(r.assigned_houses)}</td><td><span class="${fallbackCount?'staff-unassigned-count':'good'}">${num(fallbackCount)}</span></td><td class="${Number(r.review_houses)>0?'warn':'good'}">${num(r.review_houses)}</td><td class="${Number(r.outside_tambon)>0?'bad':'good'}">${num(r.outside_tambon)}</td><td><button type="button" class="community-open" data-community-open="${index}">${isReadonly?'ดูชุมชน':'เปิดชุมชน'}</button></td></tr>`;
+ }).join('')||'<tr><td colspan="8">ไม่พบข้อมูลตามสิทธิ์</td></tr>';
+}
+
+function renderMyHouseRowsV2072(direct, fallback, isStaff){
+ function card(h,kind){
+   const shade=kind==='fallback'?'fallback':'direct';
+   const label=kind==='fallback'
+     ?'ไม่มี อสม.ผูกบ้าน · Staff ดูแลชั่วคราว'
+     :isStaff?'บ้านที่ Staff รับผิดชอบโดยตรง':'บ้านที่ฉันรับผิดชอบ';
+   const owner=staffAssignmentBadgeV2072({...h,assignment_state:kind==='fallback'?'staff_fallback':'staff_direct',assignment_label:label});
+   return `<tr class="staff-assignment-row--${shade}"><td><strong>${esc(h.house_no||'ไม่ระบุ')}</strong></td><td>${esc(h.moo||'—')}</td><td>${esc(h.community||'—')}</td><td>${owner}</td><td>${esc(h.record_status||'—')}</td><td>${esc(h.coordinate_status||'—')}</td><td class="${h.review_required?'warn':'good'}">${h.review_required?'ต้องตรวจ':'ปกติ'}</td></tr>`;
+ }
+ if(!isStaff){
+   return direct.map(h=>card(h,'direct')).join('')||'<tr><td colspan="7">ยังไม่มีบ้านในความรับผิดชอบ</td></tr>';
+ }
+ const directRows=direct.map(h=>card(h,'direct')).join('')||'<tr><td colspan="7">ยังไม่มีบ้านที่ผูก PID ของ Staff โดยตรง</td></tr>';
+ const fallbackRows=fallback.map(h=>card(h,'fallback')).join('')||'<tr><td colspan="7">ไม่มีบ้านที่ต้องดูแลแทนในขณะนี้</td></tr>';
+ return `<tr class="staff-house-section"><th colspan="7">บ้านที่ Staff รับผิดชอบโดยตรง · ${num(direct.length)} หลัง</th></tr>${directRows}<tr class="staff-house-section staff-house-section--fallback"><th colspan="7">บ้านในชุมชนที่ยังไม่มี อสม.ผูกบ้าน · Staff ดูแลชั่วคราว · ${num(fallback.length)} หลัง</th></tr>${fallbackRows}`;
+}
+
 async function loadPortal(session, requestId){
   const profile = await getProfile(session.user.id);
   if(requestId !== authRequestId || passwordPanelOpen) return;
   currentProfile = profile;
+  staffCommunityHousesV2072=[];
+  staffHouseScopeIssueV2072='';
   setSharedSession(session);
   setSharedProfile(profile);
   if(!profile || !profile.active){
@@ -1143,7 +1172,9 @@ const workloadQuery=supabase.from('volunteer_workload').select('*').eq('communit
   const vols = workload || [];
   portalCommunityRows=rows;portalVolunteerRows=vols;communityRequestId+=1;healthCommunityFocus='';
   const workspace=$('#community-workspace');workspace.hidden=true;workspace.innerHTML='';
-  const totals = rows.reduce((a,r)=>({
+  const ownOverviewRowsV2072=profile.role==='staff'?rows.filter(r=>r.is_assigned===true||staffCommunityKeyV2072(r.community)===staffCommunityKeyV2072(profile.community)):rows;
+  const staffFallbackRowsV2072=profile.role==='staff'?staffCommunityHousesV2072.filter(h=>h.assignment_state==='staff_fallback'):[];
+  const totals = ownOverviewRowsV2072.reduce((a,r)=>({
     houses:a.houses+Number(r.houses||0),
     assigned:a.assigned+Number(r.assigned_houses||0),
     review:a.review+Number(r.review_houses||0),
@@ -1152,7 +1183,7 @@ const workloadQuery=supabase.from('volunteer_workload').select('*').eq('communit
   }),{houses:0,assigned:0,review:0,outside:0,missing:0});
 
   $('#welcome-name').textContent = profile.display_name || session.user.email || 'ภาพรวมพื้นที่';
-  $('#scope-label').textContent = profile.role==='admin' ? 'ทุก 16 ชุมชนในระบบ' : profile.role==='staff' ? `อสม.ในพื้นที่รับผิดชอบ · ประธานชุมชน ${profile.community||'ยังไม่ได้กำหนดชุมชน'}` : 'บ้านและประชาชนในความรับผิดชอบของคุณ';
+  $('#scope-label').textContent = profile.role==='admin' ? 'ทุก 16 ชุมชนในระบบ' : profile.role==='staff' ? `ภาพรวมชุมชน ${profile.community||'ยังไม่ได้กำหนดชุมชน'} · บ้านที่รับผิดชอบโดยตรงและบ้านที่ไม่มี อสม.` : 'บ้านและประชาชนในความรับผิดชอบของคุณ';
   $('#role-badge').textContent = roleLabel(profile.role);
   $('#community-count').textContent = `${num(rows.length)} ชุมชน`;
   $('#stats').innerHTML = [
@@ -1162,13 +1193,20 @@ const workloadQuery=supabase.from('volunteer_workload').select('*').eq('communit
     [totals.review,'ต้องตรวจ'],
     [totals.outside,'นอก ต.พระบาท'],
     [totals.missing,'ไม่มีพิกัด'],
-    [unknownHouses,'บ้านไม่ระบุ/นอก 16 ชุมชน']
+    [unknownHouses,'บ้านไม่ระบุ/นอก 16 ชุมชน'],
+    ...(profile.role==='staff'?[[myHouses.length,'บ้าน Staff รับผิดชอบโดยตรง'],[staffHouseScopeIssueV2072?'ยังโหลดไม่ได้':staffFallbackRowsV2072.length,'บ้านไม่มี อสม. · Staff ดูแลแทน']]:[])
   ].map(([v,l])=>`<article class="stat"><small>${esc(l)}</small><strong>${num(v)}</strong></article>`).join('');
-  $('#community-body').innerHTML = rows.map((r,index)=>`<tr><td><strong>${esc(r.community||'ไม่ระบุ')}</strong></td><td>${esc(r.moo||'—')}</td><td>${num(r.houses)}</td><td>${num(r.assigned_houses)}</td><td class="${Number(r.review_houses)>0?'warn':'good'}">${num(r.review_houses)}</td><td class="${Number(r.outside_tambon)>0?'bad':'good'}">${num(r.outside_tambon)}</td><td><button type="button" class="community-open" data-community-open="${index}">เปิดชุมชน</button></td></tr>`).join('') || '<tr><td colspan="7">ไม่พบข้อมูลตามสิทธิ์</td></tr>';
+  $('#community-body').innerHTML = renderCommunityRowsV2072(rows,profile);
   document.querySelectorAll('[data-community-open]').forEach(button=>button.onclick=()=>openCommunity(Number(button.dataset.communityOpen)));
   $('#volunteer-body').innerHTML = vols.map(v=>`<tr><td><strong>${esc(v.display_name||'ไม่ระบุ')}</strong></td><td>${esc(v.community||'—')}</td><td>${esc(anchorLabel(v.anchor_status))}</td><td>${num(v.house_count)}</td><td class="${Number(v.review_count)>0?'warn':'good'}">${num(v.review_count)}</td><td>${num(v.cross_community_count)}</td></tr>`).join('') || '<tr><td colspan="6">ไม่พบข้อมูล อสม. ตามสิทธิ์</td></tr>';
-  $('#my-house-count').textContent=`${num(myHouses.length)} หลัง`;
-  $('#my-house-body').innerHTML=myHouses.map(h=>`<tr><td><strong>${esc(h.house_no||'ไม่ระบุ')}</strong></td><td>${esc(h.moo||'—')}</td><td>${esc(h.community||'—')}</td><td>${esc(h.record_status||'—')}</td><td>${esc(h.coordinate_status||'—')}</td><td class="${h.review_required?'warn':'good'}">${h.review_required?'ต้องตรวจ':'ปกติ'}</td></tr>`).join('')||'<tr><td colspan="6">ยังไม่มีบ้านในความรับผิดชอบ</td></tr>';
+  const isStaffV2072=profile.role==='staff';
+  $('#my-house-count').textContent=isStaffV2072?`${num(myHouses.length+staffFallbackRowsV2072.length)} หลัง (โดยตรง ${num(myHouses.length)} + ดูแลแทน ${num(staffFallbackRowsV2072.length)})`:`${num(myHouses.length)} หลัง`;
+  const staffNoteV2072=$('#staff-house-note');
+  if(staffNoteV2072){
+    staffNoteV2072.hidden=!isStaffV2072;
+    if(isStaffV2072)staffNoteV2072.textContent=staffHouseScopeIssueV2072||'แถบสีเขียว = บ้านที่ผูก PID ของ Staff โดยตรง · แถบสีเหลือง = บ้านในชุมชนที่ไม่มี อสม.ผูกบ้าน Staff ดูแลชั่วคราว โดยไม่เปลี่ยนข้อมูลผู้รับผิดชอบใน JHCIS หรือ Cloud';
+  }
+  $('#my-house-body').innerHTML=renderMyHouseRowsV2072(myHouses,staffFallbackRowsV2072,isStaffV2072);
   healthLoaded=false; selectedHealthPerson=null; healthPeople=[];
   configurePortalNav(profile.role);
   configureHealthAdminUI(profile.role);
