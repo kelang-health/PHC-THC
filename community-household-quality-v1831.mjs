@@ -1,5 +1,5 @@
 import { getSharedSupabase, getSharedProfile, sharedCall, bindPortalActivation, isPortalViewActive } from './shared-runtime-v2035.mjs?v=2.0.35';
-const VERSION='2.0.74';
+const VERSION='2.0.75';
 const COMMUNITY_STABLE_CACHE_MS_V2039=120000;
 const USER_STAFF_STABLE_CACHE_MS_V2055=300000;
 let supabase=null,profile=null,communityRows=[],scopeMode='own',scopeCommunity='',activeCommunity='',panelObserver=null,houseRows=[],houseFilter='all',houseSearch='',houseLimit=80,detailMap=null,houseMapOverlayV2068=null,leafletPromise=null,residenceFeatureReady=true;

@@ -23,7 +23,7 @@ if (typeof window !== 'undefined') {
       await initCareDashboard1860(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initSystemAboutNote1829 } = await import('./system-about-note-v1829.mjs?v=2.0.57&p=2057');
       initSystemAboutNote1829();
-      const { initCommunityHouseholdQuality1831 } = await import('./community-household-quality-v1831.mjs?v=2.0.74&p=2074');
+      const { initCommunityHouseholdQuality1831 } = await import('./community-household-quality-v1831.mjs?v=2.0.75&p=2075');
       await initCommunityHouseholdQuality1831(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initPHCFiveFeatures190 } = await import('./phc-five-features-v190.mjs?v=2.0.62&p=2062');
       await initPHCFiveFeatures190(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);

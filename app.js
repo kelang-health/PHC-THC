@@ -2,7 +2,7 @@ import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.70&p=2
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 import { getSharedSupabase, setSharedSession, setSharedProfile, clearSharedAuth, sharedCall, invalidateShared, ensureSharedSession, refreshSharedSession, isSharedAuthError } from './shared-runtime-v2035.mjs?v=2.0.59';
 
-import { houseCards, volunteerCards, mergeHouseholdCards, selectCommunityView, POPULATION_NOTE } from './community-workspace-v2074.mjs';
+import { houseCards, volunteerCards, mergeHouseholdCards, selectCommunityView, POPULATION_NOTE } from './community-workspace-v2074.mjs?v=2.0.75&p=2075';
 
 const supabase = await getSharedSupabase(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 const $ = s => document.querySelector(s);
@@ -962,13 +962,11 @@ async function openCommunity(index){
  try{
    const staffOwned=currentProfile?.role==='staff'&&(row.is_assigned===true||staffCommunityKeyV2072(row.community)===staffCommunityKeyV2072(currentProfile.community));
    const viewOnly=currentProfile?.role==='staff'&&!staffOwned;
-   const [baseHouses,populationResult]=await Promise.all([
-     fetchCommunityHouses(row.community),
-     viewOnly?Promise.resolve({data:[]}):sharedCall(`community-population-v2074:${currentProfile.user_id}:${row.community}`,()=>supabase.rpc('community_household_cards_v1841',{p_community:row.community}),HOUSEHOLD_CACHE_MS_V2039)
-   ]);
+   // Phase 3: community overview must not wait for the population RPC.
+   const baseHouses=await fetchCommunityHouses(row.community);
    if(request!==communityRequestId)return;
-   const houses=mergeHouseholdCards(baseHouses,populationResult.data||[]);
-   const populationNotice=viewOnly?'รายละเอียดสมาชิกจำกัดเฉพาะชุมชนที่รับผิดชอบ':populationResult.error?'โหลดจำนวนสมาชิกไม่สำเร็จ กรุณาปิดและเปิดชุมชนอีกครั้ง':POPULATION_NOTE;
+   const houses=mergeHouseholdCards(baseHouses,[]);
+   const populationNotice=viewOnly?'รายละเอียดสมาชิกจำกัดเฉพาะชุมชนที่รับผิดชอบ':'จำนวนสมาชิกจะโหลดเมื่อเปิดเมนูบ้านหรือทะเบียน อสม.';
    const renderHouses=rows=>houseCards(rows,{assignmentBadge:staffAssignmentBadgeV2072});
    const unassigned=houses.filter(h=>h.volunteer_pid==null);
    const direct=houses.filter(h=>h.assignment_state==='staff_direct');
@@ -991,14 +989,56 @@ async function openCommunity(index){
     ${staffOwned?`<article><small>Staff รับผิดชอบโดยตรง</small><strong>${num(direct.length)}</strong></article><article><small>Staff ดูแลชั่วคราว (ไม่ผูก อสม.)</small><strong class="staff-unassigned-count">${num(unassigned.length)}</strong></article>`:''}
     <article><small>มีพิกัด</small><strong>${num(mapped.length)}</strong></article><article><small>ต้องตรวจข้อมูล</small><strong>${num(review.length)}</strong></article>
     </div><p class="community-scope-note staff-workspace-note">${esc(warning)}</p></section>
-    <section class="community-view" data-community-view="houses" hidden><h4>${esc(row.community)} · ทะเบียนครัวเรือน ${num(houses.length)} หลัง</h4><p class="community-scope-note">${esc(populationNotice)}</p>${renderHouses(houses)}</section>
-    <section class="community-view community-unassigned-view-v2073" data-community-view="unassigned" hidden><div class="community-unassigned-title-v2073"><div><h4>${esc(row.community)} · บ้านไม่มี อสม. ${num(unassigned.length)} หลัง</h4><small>แสดงรายชื่อบ้านที่ต้องติดตามทั้งหมดในชุมชนนี้</small></div><span class="staff-unassigned-count">${num(unassigned.length)} หลัง</span></div><p class="staff-workspace-note">${esc(viewOnly?'แสดงเพื่อดูข้อมูลชุมชนอื่นในหมู่เดียวกันเท่านั้น ไม่เพิ่มเป็นงานของ Staff บัญชีนี้':staffOwned?'Staff ประจำชุมชนดูแลชั่วคราวระหว่างรอผูก อสม. โดยไม่เปลี่ยนผู้รับผิดชอบในฐาน JHCIS หรือ Cloud':'ยังไม่มีผู้รับผิดชอบที่ผูกกับบ้านในทะเบียน')}</p><p class="community-scope-note">${esc(populationNotice)}</p>${renderHouses(unassigned)}</section>
-    <section class="community-view" data-community-view="volunteers" hidden><h4>${esc(row.community)} · ทะเบียน อสม. ${num(volunteers.length)} คน</h4><p class="community-scope-note">${esc(populationNotice)}</p>${volunteerCards(volunteers,houses)}</section>
+    <section class="community-view" data-community-view="houses" hidden><h4>${esc(row.community)} · ทะเบียนครัวเรือน ${num(houses.length)} หลัง</h4><p class="community-scope-note">${esc(populationNotice)}</p><div data-community-records>${renderHouses(houses)}</div></section>
+    <section class="community-view community-unassigned-view-v2073" data-community-view="unassigned" hidden><div class="community-unassigned-title-v2073"><div><h4>${esc(row.community)} · บ้านไม่มี อสม. ${num(unassigned.length)} หลัง</h4><small>แสดงรายชื่อบ้านที่ต้องติดตามทั้งหมดในชุมชนนี้</small></div><span class="staff-unassigned-count">${num(unassigned.length)} หลัง</span></div><p class="staff-workspace-note">${esc(viewOnly?'แสดงเพื่อดูข้อมูลชุมชนอื่นในหมู่เดียวกันเท่านั้น ไม่เพิ่มเป็นงานของ Staff บัญชีนี้':staffOwned?'Staff ประจำชุมชนดูแลชั่วคราวระหว่างรอผูก อสม. โดยไม่เปลี่ยนผู้รับผิดชอบในฐาน JHCIS หรือ Cloud':'ยังไม่มีผู้รับผิดชอบที่ผูกกับบ้านในทะเบียน')}</p><p class="community-scope-note">${esc(populationNotice)}</p><div data-community-records>${renderHouses(unassigned)}</div></section>
+    <section class="community-view" data-community-view="volunteers" hidden><h4>${esc(row.community)} · ทะเบียน อสม. ${num(volunteers.length)} คน</h4><p class="community-scope-note">${esc(populationNotice)}</p><div data-community-records>${volunteerCards(volunteers,houses)}</div></section>
     <section class="community-view" data-community-view="review" hidden><h4>${esc(row.community)} · รายการที่ต้องตรวจสอบ ${num(review.length)} บ้าน</h4><p class="community-scope-note">แสดงบ้านที่ทะเบียนระบุให้ตรวจสอบครบ ${num(review.length)} หลัง</p>${renderHouses(review)}</section>`;
    workspace.querySelector('[data-community-close]').onclick=()=>{communityRequestId+=1;workspace.hidden=true;};
-   workspace.querySelectorAll('[data-community-house-open]').forEach(button=>button.onclick=()=>{
-     document.dispatchEvent(new CustomEvent('phc:open-house-detail',{detail:{houseId:button.dataset.communityHouseOpen,handled:false}}));
+   const bindHouseOpen=()=>workspace.querySelectorAll('[data-community-house-open]').forEach(button=>button.onclick=()=>{
+     const detail={houseId:button.dataset.communityHouseOpen,handled:false};
+     document.dispatchEvent(new CustomEvent('phc:open-house-detail',{detail}));
+     if(!detail.handled){
+       const card=button.closest('.community-record-card');
+       if(card){
+         let note=card.querySelector('[data-community-detail-error]');
+         if(!note){note=document.createElement('p');note.className='error';note.dataset.communityDetailError='1';card.append(note);}
+         note.textContent='รายละเอียดบ้านยังไม่พร้อม กรุณาลองเปิดใหม่อีกครั้ง';
+       }
+     }
    });
+   bindHouseOpen();
+   const populationActions=new Set(['houses','unassigned','volunteers']);
+   let populationPromise=null,populationLoaded=false;
+   async function ensurePopulation(action){
+     if(viewOnly||!populationActions.has(action)||populationLoaded)return;
+     const section=workspace.querySelector('[data-community-view="'+action+'"]');
+     const status=section?.querySelector('.community-scope-note');
+     if(status)status.textContent='กำลังโหลดจำนวนสมาชิกตามสิทธิ์…';
+     if(!populationPromise)populationPromise=sharedCall(
+       `community-population-v2075:${currentProfile.user_id}:${row.community}`,
+       ()=>supabase.rpc('community_household_cards_v1841',{p_community:row.community}),
+       HOUSEHOLD_CACHE_MS_V2039);
+     let result;
+     try{result=await populationPromise;}catch(error){result={error};}
+     if(request!==communityRequestId||workspace.hidden||populationLoaded)return;
+     if(result?.error||!Array.isArray(result?.data)){
+       populationPromise=null;
+       if(status)status.textContent='โหลดจำนวนสมาชิกไม่สำเร็จ แตะเมนูนี้อีกครั้งเพื่อโหลดใหม่';
+       return;
+     }
+     const populated=mergeHouseholdCards(baseHouses,result.data);
+     for(const name of populationActions){
+       const panel=workspace.querySelector('[data-community-view="'+name+'"]');
+       const target=panel?.querySelector('[data-community-records]');
+       if(!target)continue;
+       const rows=name==='unassigned'?populated.filter(h=>h.volunteer_pid==null):populated;
+       target.innerHTML=name==='volunteers'?volunteerCards(volunteers,populated):renderHouses(rows);
+       const note=panel.querySelector('.community-scope-note');
+       if(note)note.textContent=POPULATION_NOTE;
+     }
+     populationLoaded=true;
+     bindHouseOpen();
+   }
    workspace.querySelectorAll('[data-community-action]').forEach(button=>button.onclick=async()=>{
      const action=button.dataset.communityAction;
      if(action==='health'){
@@ -1008,6 +1048,7 @@ async function openCommunity(index){
        return;
      }
      selectCommunityView(workspace,action);
+     await ensurePopulation(action);
    });
  }catch(error){
    if(request===communityRequestId){

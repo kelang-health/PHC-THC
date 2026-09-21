@@ -1,3 +1,11 @@
+## Cloud v2.0.75 — Phase 3 Population Reconciliation and Mobile Validation
+
+- ตรวจสอบข้อมูลบ้านไม่มี อสม. เทียบกับ JHCIS แบบอ่านอย่างเดียว โดยคงนิยามประชากรในงานบริการและไม่เปิดเผยข้อมูล Type 2/4 หรือผู้จำหน่ายเป็นประชากรปัจจุบัน
+- ลด critical path หน้า “สรุปชุมชน”: โหลดบ้านก่อน และดึงจำนวนสมาชิกเมื่อเปิดเมนูบ้าน/บ้านไม่มี อสม./อสม. เท่านั้น
+- ใช้ shared single-flight สำหรับจำนวนสมาชิก จำกัดการ render ซ้ำเมื่อกดเมนูเร็ว และแสดงสถานะกำลังโหลด/ข้อผิดพลาด
+- แสดงคำอธิบายชัดเจนเมื่อสมาชิกในงานบริการเป็น 0 คน และแสดงข้อผิดพลาดหากโมดูลรายละเอียดบ้านยังไม่พร้อม
+- เพิ่ม regression browser test สำหรับหน้าจอจำลอง 320–1024 px, เมนูครบตาม role, card list และ UI render benchmark
+- คง Auth, LINE Login, JHCIS read-only และไม่แก้ไขการมอบหมายบ้านใน Cloud
 ## Cloud v2.0.74 — Phase 2 Mobile Community Completion
 
 - ปรับ Bottom Navigation เป็นโครงสร้างเดียว ใช้ SVG icon จริง ชื่อสั้นบนมือถือ และรองรับ iPhone Safe Area

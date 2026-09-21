@@ -17,7 +17,7 @@ export function houseCards(rows, {assignmentBadge, emptyText = 'ไม่พบ�
   if (!rows.length) return `<p class="community-empty">${esc(emptyText)}</p>`;
   return `<div class="community-record-list">${rows.map((h, index) => {
     const hasMap = h.latitude != null && h.longitude != null && Number.isFinite(Number(h.latitude)) && Number.isFinite(Number(h.longitude));
-    const population = h.member_count == null ? 'จำนวนสมาชิก: ยังไม่มีข้อมูลในขอบเขตสิทธิ์' : `สมาชิกในงานบริการ ${num(h.member_count)} คน`;
+    const population = h.member_count == null ? 'จำนวนสมาชิก: ยังไม่มีข้อมูลในขอบเขตสิทธิ์' : h.member_count === 0 ? 'สมาชิกในงานบริการ 0 คน · ไม่ได้หมายความว่าบ้านไม่มีผู้อยู่อาศัย' : `สมาชิกในงานบริการ ${num(h.member_count)} คน`;
     const map = hasMap ? `<a class="community-map-link" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${h.latitude},${h.longitude}`)}" target="_blank" rel="noopener noreferrer">ดูพิกัด</a>` : '<span class="muted">ไม่มีพิกัด</span>';
     return `<article class="community-record-card" data-community-house="${esc(h.id)}">
       <header><span class="community-record-index">${index + 1}</span><div><h5>บ้าน ${esc(h.house_no || 'ไม่ระบุ')}</h5><p>หมู่ ${esc(h.moo || '—')} · ${esc(h.community || '—')} · HCODE ${esc(h.hcode || '—')}</p></div></header>
