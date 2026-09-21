@@ -960,23 +960,54 @@ async function fetchCommunityHouses(community){
 }
 
 async function openCommunity(index){
-  const row=portalCommunityRows[index],workspace=$('#community-workspace');if(!row||!workspace)return;
-  const request=++communityRequestId;workspace.hidden=false;workspace.innerHTML='<div class="community-loading">กำลังเปิดศูนย์งานชุมชน…</div>';
-  workspace.scrollIntoView({behavior:'smooth',block:'start'});
-  try{
-    const houses=await fetchCommunityHouses(row.community);if(request!==communityRequestId)return;
-    const volunteers=portalVolunteerRows.filter(v=>String(v.community||'').trim()===String(row.community||'').trim());
-    const review=houses.filter(h=>h.review_required),mapped=houses.filter(h=>h.latitude!==null&&h.longitude!==null);
-    const volunteerRows=volunteers.map(v=>`<tr><td><strong>${esc(v.display_name||'ไม่ระบุ')}</strong></td><td>${esc(anchorLabel(v.anchor_status))}</td><td>${num(v.house_count)}</td><td class="${Number(v.review_count)>0?'warn':'good'}">${num(v.review_count)}</td><td>${num(v.cross_community_count)}</td></tr>`).join('')||'<tr><td colspan="5">ไม่พบข้อมูล อสม. ตามสิทธิ์</td></tr>';
-    workspace.innerHTML=`<div class="community-workspace-head"><div><p class="eyebrow">OSM-PHC COMMUNITY WORKSPACE</p><h3>${esc(row.community||'ไม่ระบุชุมชน')}</h3><p>ข้อมูลครัวเรือน อสม. พิกัด และงานสุขภาพที่บัญชี ${esc(roleLabel(currentProfile?.role))} มีสิทธิ์เห็น</p></div><button type="button" class="secondary" data-community-close>ปิด</button></div><div class="community-actions"><button type="button" class="active" data-community-action="overview"><span>◫</span><strong>สรุปชุมชน</strong><small>${num(houses.length)} หลัง</small></button><button type="button" data-community-action="houses"><span>⌂</span><strong>ครัวเรือน</strong><small>เปิดทะเบียนบ้าน</small></button><button type="button" data-community-action="volunteers"><span>♧</span><strong>อสม.</strong><small>${num(volunteers.length)} คนในสิทธิ์</small></button><button type="button" data-community-action="review"><span>✓</span><strong>ตรวจข้อมูล</strong><small>${num(review.length)} รายการ</small></button><button type="button" data-community-action="health"><span>✚</span><strong>งานสุขภาพ</strong><small>NCD และ 2Q</small></button></div><section class="community-view" data-community-view="overview"><div class="community-metrics"><article><small>ครัวเรือนในสิทธิ์</small><strong>${num(houses.length)}</strong></article><article><small>มอบหมาย อสม.</small><strong>${num(houses.filter(h=>h.volunteer_pid!==null).length)}</strong></article><article><small>มีพิกัด</small><strong>${num(mapped.length)}</strong></article><article><small>ต้องตรวจข้อมูล</small><strong>${num(review.length)}</strong></article></div><p class="community-scope-note">ระบบใช้ RLS กรองข้อมูลอัตโนมัติ ไม่สามารถเปิดชุมชนหรือบ้านนอกขอบเขตของบัญชีนี้ได้</p></section><section class="community-view" data-community-view="houses" hidden><h4>ทะเบียนครัวเรือน</h4><div class="table-wrap"><table><thead><tr><th>บ้าน</th><th>หมู่</th><th>สถานะ</th><th>คุณภาพข้อมูล</th><th>พิกัด</th></tr></thead><tbody>${communityHouseRows(houses)}</tbody></table></div></section><section class="community-view" data-community-view="volunteers" hidden><h4>ทะเบียน อสม. และเขตรับผิดชอบ</h4><div class="table-wrap"><table><thead><tr><th>อสม.</th><th>Anchor</th><th>บ้าน</th><th>ต้องตรวจ</th><th>ข้ามชุมชน</th></tr></thead><tbody>${volunteerRows}</tbody></table></div></section><section class="community-view" data-community-view="review" hidden><h4>รายการที่ต้องตรวจสอบ</h4><div class="table-wrap"><table><thead><tr><th>บ้าน</th><th>หมู่</th><th>สถานะ</th><th>คุณภาพข้อมูล</th><th>พิกัด</th></tr></thead><tbody>${communityHouseRows(review)}</tbody></table></div></section>`;
-    workspace.querySelector('[data-community-close]').onclick=()=>{communityRequestId+=1;workspace.hidden=true;};
-    workspace.querySelectorAll('[data-community-action]').forEach(button=>button.onclick=async()=>{
-      const action=button.dataset.communityAction;if(action==='health'){healthCommunityFocus=row.community;setPortalView('health',{historyMode:'push'});try{if(!healthLoaded)await loadHealthModule();else{const focus=$('#health-community-focus');focus.hidden=false;focus.querySelector('strong').textContent=healthCommunityFocus;await loadHealthPeople({trigger:'community-focus'});}}catch(e){$('#health-list-note').textContent=e.message;}return;}
-      workspace.querySelectorAll('[data-community-action]').forEach(x=>x.classList.toggle('active',x===button));workspace.querySelectorAll('[data-community-view]').forEach(x=>x.hidden=x.dataset.communityView!==action);
-    });
-  }catch(error){if(request===communityRequestId)workspace.innerHTML=`<p class="error">${esc(error.message)}</p>`;}
+ const row=portalCommunityRows[index],workspace=$('#community-workspace');if(!row||!workspace)return;
+ const request=++communityRequestId;workspace.hidden=false;workspace.innerHTML='<div class="community-loading">กำลังเปิดศูนย์งานชุมชน…</div>';
+ workspace.scrollIntoView({behavior:'smooth',block:'start'});
+ try{
+   const houses=await fetchCommunityHouses(row.community);if(request!==communityRequestId)return;
+   const staffOwned=currentProfile?.role==='staff'&&(row.is_assigned===true||staffCommunityKeyV2072(row.community)===staffCommunityKeyV2072(currentProfile.community));
+   const viewOnly=currentProfile?.role==='staff'&&!staffOwned;
+   const unassigned=houses.filter(h=>h.volunteer_pid==null);
+   const direct=houses.filter(h=>h.assignment_state==='staff_direct');
+   const volunteers=portalVolunteerRows.filter(v=>staffCommunityKeyV2072(v.community)===staffCommunityKeyV2072(row.community));
+   const review=houses.filter(h=>h.review_required),mapped=houses.filter(h=>h.latitude!=null&&h.longitude!=null);
+   const volunteerRows=volunteers.map(v=>`<tr><td><strong>${esc(v.display_name||'ไม่ระบุ')}</strong></td><td>${esc(anchorLabel(v.anchor_status))}</td><td>${num(v.house_count)}</td><td class="${Number(v.review_count)>0?'warn':'good'}">${num(v.review_count)}</td><td>${num(v.cross_community_count)}</td></tr>`).join('')||'<tr><td colspan="5">ไม่พบข้อมูล อสม. ตามสิทธิ์</td></tr>';
+   const tableHeader='<tr><th>บ้าน</th><th>หมู่</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>คุณภาพข้อมูล</th><th>พิกัด</th></tr>';
+   const warning=viewOnly?'ชุมชนนี้อยู่ในหมู่เดียวกัน · ดูข้อมูลได้อย่างเดียว ไม่ใช่เขตรับผิดชอบของ Staff บัญชีนี้':staffOwned?'บ้านไม่มี อสม.จะอยู่ในความดูแลชั่วคราวของ Staff ประจำชุมชน โดยไม่เปลี่ยน PID ผู้รับผิดชอบใน JHCIS หรือ Cloud':'แสดงข้อมูลบ้านตามขอบเขตสิทธิ์ของบัญชี';
+   workspace.innerHTML=`<div class="community-workspace-head"><div><p class="eyebrow">OSM-PHC COMMUNITY WORKSPACE</p><h3>${esc(row.community||'ไม่ระบุชุมชน')}</h3><p>ทะเบียนบ้านและงานชุมชนตามสิทธิ์ของ ${esc(roleLabel(currentProfile?.role))}</p>${viewOnly?'<span class="staff-community-viewonly">ชุมชนอื่นในหมู่เดียวกัน · ดูอย่างเดียว</span>':''}</div><button type="button" class="secondary" data-community-close>ปิด</button></div>
+    <div class="community-actions">
+    <button type="button" class="active" data-community-action="overview"><span>◫</span><strong>สรุปชุมชน</strong><small>${num(houses.length)} หลัง</small></button>
+    <button type="button" data-community-action="houses"><span>⌂</span><strong>ครัวเรือนทั้งหมด</strong><small>${num(houses.length)} หลัง</small></button>
+    <button type="button" data-community-action="unassigned"><span>!</span><strong>บ้านไม่มี อสม.</strong><small>${num(unassigned.length)} หลัง</small></button>
+    <button type="button" data-community-action="volunteers" ${viewOnly?'hidden':''}><span>♧</span><strong>อสม.</strong><small>${num(volunteers.length)} คนในสิทธิ์</small></button>
+    <button type="button" data-community-action="review"><span>✓</span><strong>ตรวจข้อมูล</strong><small>${num(review.length)} รายการ</small></button>
+    <button type="button" data-community-action="health" ${viewOnly?'hidden':''}><span>✚</span><strong>งานสุขภาพ</strong><small>NCD และ 2Q</small></button>
+    </div>
+    <section class="community-view" data-community-view="overview"><div class="community-metrics">
+    <article><small>บ้านที่ยืนยันจาก JHCIS</small><strong>${num(houses.length)}</strong></article>
+    <article><small>มี อสม.ผูกบ้าน</small><strong>${num(houses.length-unassigned.length)}</strong></article>
+    <article><small>ไม่มี อสม.ผูกบ้าน</small><strong class="staff-unassigned-count">${num(unassigned.length)}</strong></article>
+    ${staffOwned?`<article><small>Staff รับผิดชอบโดยตรง</small><strong>${num(direct.length)}</strong></article><article><small>Staff ดูแลชั่วคราว (ไม่ผูก อสม.)</small><strong class="staff-unassigned-count">${num(unassigned.length)}</strong></article>`:''}
+    <article><small>มีพิกัด</small><strong>${num(mapped.length)}</strong></article><article><small>ต้องตรวจข้อมูล</small><strong>${num(review.length)}</strong></article>
+    </div><p class="community-scope-note staff-workspace-note">${esc(warning)}</p></section>
+    <section class="community-view" data-community-view="houses" hidden><h4>ทะเบียนครัวเรือน · ${num(houses.length)} หลัง</h4><div class="table-wrap"><table><thead>${tableHeader}</thead><tbody>${communityHouseRows(houses)}</tbody></table></div></section>
+    <section class="community-view" data-community-view="unassigned" hidden><h4>บ้านไม่มี อสม. · ${num(unassigned.length)} หลัง</h4><p class="staff-workspace-note">${esc(viewOnly?'แสดงเพื่อดูข้อมูลชุมชนอื่นในหมู่เดียวกันเท่านั้น ไม่เพิ่มเป็นงานของ Staff บัญชีนี้':staffOwned?'Staff ประจำชุมชนดูแลชั่วคราวระหว่างรอผูก อสม. โดยไม่เปลี่ยนผู้รับผิดชอบในฐาน JHCIS หรือ Cloud':'ยังไม่มีผู้รับผิดชอบที่ผูกกับบ้านในทะเบียน')}</p><div class="table-wrap"><table><thead>${tableHeader}</thead><tbody>${communityHouseRows(unassigned)}</tbody></table></div></section>
+    <section class="community-view" data-community-view="volunteers" hidden><h4>ทะเบียน อสม. และเขตรับผิดชอบ</h4><div class="table-wrap"><table><thead><tr><th>อสม.</th><th>Anchor</th><th>บ้าน</th><th>ต้องตรวจ</th><th>ข้ามชุมชน</th></tr></thead><tbody>${volunteerRows}</tbody></table></div></section>
+    <section class="community-view" data-community-view="review" hidden><h4>รายการที่ต้องตรวจสอบ</h4><div class="table-wrap"><table><thead>${tableHeader}</thead><tbody>${communityHouseRows(review)}</tbody></table></div></section>`;
+   workspace.querySelector('[data-community-close]').onclick=()=>{communityRequestId+=1;workspace.hidden=true;};
+   workspace.querySelectorAll('[data-community-action]').forEach(button=>button.onclick=async()=>{
+     const action=button.dataset.communityAction;
+     if(action==='health'){
+       if(viewOnly)return;
+       healthCommunityFocus=row.community;setPortalView('health',{historyMode:'push'});
+       try{if(!healthLoaded)await loadHealthModule();else{const focus=$('#health-community-focus');focus.hidden=false;focus.querySelector('strong').textContent=healthCommunityFocus;await loadHealthPeople({trigger:'community-focus'});}}catch(e){$('#health-list-note').textContent=e.message;}
+       return;
+     }
+     workspace.querySelectorAll('[data-community-action]').forEach(x=>x.classList.toggle('active',x===button));
+     workspace.querySelectorAll('[data-community-view]').forEach(x=>x.hidden=x.dataset.communityView!==action);
+   });
+ }catch(error){if(request===communityRequestId)workspace.innerHTML=`<p class="error">${esc(error.message)}</p>`;}
 }
-
 const PORTAL_QUERY_BUDGET_MS_V2029=2500;
 async function safePortalQueryV2029(label,promise,fallback=[]){
   let timer=null;
