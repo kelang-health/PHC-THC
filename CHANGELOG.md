@@ -1,3 +1,11 @@
+## Cloud v2.0.74 — Phase 2 Mobile Community Completion
+
+- ปรับ Bottom Navigation เป็นโครงสร้างเดียว ใช้ SVG icon จริง ชื่อสั้นบนมือถือ และรองรับ iPhone Safe Area
+- เปลี่ยน “ตรวจข้อมูล” และ “ทะเบียน อสม.” ใน Community Workspace จากตารางเลื่อนแนวนอนเป็น Mobile Card List
+- บ้านไม่มี อสม. ใช้ชุดข้อมูลบ้านเดียวกับบ้านปกติและผสานจำนวนสมาชิกจาก community_household_cards_v1841 ด้วย UUID ของบ้าน
+- เพิ่มปุ่มเปิดบ้าน/สมาชิกจากการ์ดชุมชน โดยคงสิทธิ์ Staff/User และไม่เปลี่ยน volunteer_pid
+- จำกัดชุมชนอื่นในหมู่เดียวกันเป็นดูอย่างเดียว และไม่เปิดรายละเอียดประชากรเกินสิทธิ์
+- เพิ่ม community-workspace-v2074.mjs เป็น presentation helper เพื่อลดการซ้ำของ DOM/render logic
 ## Cloud v2.0.59 — Phase 2I Navigation & Session Resilience
 
 - ผูกเมนู Portal กับ URL `?view=...`; การกดเมนูสร้าง browser history และ Back/Forward คืนหน้าที่ถูกต้องโดยไม่ reload ทั้งระบบ
