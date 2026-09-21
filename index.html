@@ -2,14 +2,14 @@
 <html lang="th">
 <head>
   <meta charset="utf-8">
-  <meta name="phc-release" content="2.0.63">
+  <meta name="phc-release" content="2.0.72">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#f4f7f5">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>อสม. พลัส | งานสุขภาพชุมชน</title>
-  <link rel="stylesheet" href="./style.css?v=2.0.67-compact-task-cards">
+  <link rel="stylesheet" href="./style.css?v=2.0.72-staff-fallback">
 </head>
 <body>
   <main class="shell">
@@ -105,7 +105,7 @@
         <section id="community-workspace" class="community-workspace" aria-live="polite" hidden></section>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>ชุมชน</th><th>หมู่</th><th>บ้าน</th><th>มอบหมาย อสม.</th><th>ต้องตรวจ</th><th>นอก ต.พระบาท</th><th>เปิด</th></tr></thead>
+            <thead><tr><th>ชุมชน / สิทธิ์</th><th>หมู่</th><th>บ้าน</th><th>ผูก อสม.</th><th>ไม่มี อสม.</th><th>ต้องตรวจ</th><th>นอก ต.พระบาท</th><th>เปิด</th></tr></thead>
             <tbody id="community-body"></tbody>
           </table>
         </div>
@@ -134,9 +134,10 @@
           </div>
           <span id="my-house-count" class="badge"></span>
         </div>
+        <p id="staff-house-note" class="staff-house-note" hidden></p>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>บ้านเลขที่</th><th>หมู่</th><th>ชุมชน</th><th>สถานะ</th><th>พิกัด</th><th>ตรวจซ้ำ</th></tr></thead>
+            <thead><tr><th>บ้านเลขที่</th><th>หมู่</th><th>ชุมชน</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>พิกัด</th><th>ตรวจซ้ำ</th></tr></thead>
             <tbody id="my-house-body"></tbody>
           </table>
         </div>
@@ -283,6 +284,6 @@
   <script type="module" src="./auth-security.mjs?v=2.0.59&p=2059"></script>
   <script type="module" src="./line-login-v201.mjs?v=2.0.45&p=2050"></script>
   <script type="module" src="./line-login-settings-v2013.mjs?v=2.0.45&p=2050"></script>
-  <script type="module" src="./app.js?v=2.0.70&p=2070"></script>
+  <script type="module" src="./app.js?v=2.0.72&p=2072"></script>
 </body>
 </html>
