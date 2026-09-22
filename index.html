@@ -2,14 +2,14 @@
 <html lang="th">
 <head>
   <meta charset="utf-8">
-  <meta name="phc-release" content="2.0.78">
+  <meta name="phc-release" content="2.0.79">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#f4f7f5">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>อสม. พลัส | งานสุขภาพชุมชน</title>
-  <link rel="stylesheet" href="./style.css?v=2.0.78-community-pages">
+  <link rel="stylesheet" href="./style.css?v=2.0.79-login-design">
 </head>
 <body>
   <main class="shell">
@@ -25,12 +25,21 @@
       </div>
     </header>
 
+    <header class="phc-login-brand" aria-label="OSM-PHC Cloud">
+      <img id="cloud-login-logo" class="cloud-login-logo" src="./logo.svg?v=2.0.59" alt="โลโก้ อสม. พลัส" width="74" height="74" decoding="async">
+      <div class="phc-login-brand-copy">
+        <p class="eyebrow">ศูนย์บริการสาธารณสุขบ้านโทกหัวช้าง</p>
+        <strong>OSM-PHC Cloud</strong>
+        <small>อสม. พลัส · เทศบาลเมืองเขลางค์นคร</small>
+      </div>
+      <span class="phc-login-brand-pill">อสม. พลัส</span>
+    </header>
+
     <section id="login-card" class="card auth-card login-card">
       <div class="login-intro">
-        <img id="cloud-login-logo" class="cloud-login-logo" src="./logo.svg?v=2.0.59" alt="โลโก้ อสม. พลัส">
-        <p class="eyebrow">SECURE ACCESS</p>
-        <h2>เข้าสู่ระบบ อสม. พลัส</h2>
-        <p class="login-agency"><span>ศูนย์บริการสาธารณสุขบ้านโทกหัวช้าง</span><span>เทศบาลเมืองเขลางค์นคร</span></p>
+        <p class="eyebrow">งานสุขภาพชุมชน</p>
+        <h2>ยินดีต้อนรับ</h2>
+        <p class="login-agency">เข้าสู่ระบบเพื่อดูแลบ้าน ประชาชน และงานสุขภาพตามสิทธิ์</p>
       </div>
       <form id="login-form">
         <div class="login-mode" role="group" aria-label="เลือกประเภทบัญชี">
@@ -43,8 +52,13 @@
         <button class="primary login-submit">เข้าสู่ระบบ</button>
         <p id="login-error" class="error"></p>
       </form>
-      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v2.0.78</footer>
+      <footer class="login-version" aria-label="เวอร์ชันระบบ">Cloud v2.0.79</footer>
     </section>
+
+    <div class="phc-login-landscape" aria-hidden="true">
+      <div class="phc-login-values"><span>ชุมชนเข้มแข็ง</span><span>ประชาชนสุขภาพดี</span><span>ข้อมูลถูกต้อง</span><span>ใช้ประโยชน์ร่วมกัน</span></div>
+    </div>
+    <p class="phc-login-footnote">OSM-PHC Cloud · เทศบาลเมืองเขลางค์นคร</p>
 
     <section id="blocked" class="card" hidden>
       <p class="eyebrow">ACCESS PENDING</p>
@@ -284,6 +298,6 @@
   <script type="module" src="./auth-security.mjs?v=2.0.59&p=2059"></script>
   <script type="module" src="./line-login-v201.mjs?v=2.0.45&p=2050"></script>
   <script type="module" src="./line-login-settings-v2013.mjs?v=2.0.45&p=2050"></script>
-  <script type="module" src="./app.js?v=2.0.78&p=2078"></script>
+  <script type="module" src="./app.js?v=2.0.79&p=2079"></script>
 </body>
 </html>
