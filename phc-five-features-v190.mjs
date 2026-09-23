@@ -89,6 +89,19 @@ function showPhcToast(message,tone='success',duration=1800){document.querySelect
 
 async function loadProfile(){return getSharedProfile(supabase);}
 
+// The request card is a worklist, not a population list. Once JHCIS has
+// verified and linked the existing PID, the person is shown in the normal
+// household roster and must not appear a second time as an open request.
+// The SQL RPC intentionally retains completed rows for Admin audit/history.
+function userVisibleMemberRequestsV2100(records){
+  return (Array.isArray(records)?records:[]).filter(r=>{
+    if(!r||typeof r!=='object')return false;
+    const verified=String(r.status||'').trim().toLowerCase()==='verified';
+    const linked=r.linked===true||r.linked_person_id!==null&&r.linked_person_id!==undefined&&String(r.linked_person_id)!=='';
+    return !(verified&&linked);
+  });
+}
+
 async function renderHouseMemberRequests(root,houseId,healthAccess=true){
   if(!root||!houseId||!healthAccess)return;root.querySelector('[data-phc190-requests]')?.remove();
   const sec=document.createElement('section');sec.className='phc190-request-wrap';sec.dataset.phc190Requests='1';sec.innerHTML='<div class="phc190-note">กำลังโหลดรายการเพิ่มสมาชิก…</div>';
@@ -96,7 +109,7 @@ async function renderHouseMemberRequests(root,houseId,healthAccess=true){
   let {data,error}=await supabase.rpc('household_member_requests_v2043',{p_house_id:houseId});
   if(error)({data,error}=await supabase.rpc('household_member_requests_v190',{p_house_id:houseId}));
   if(error){sec.innerHTML=`<div class="phc190-note">ยังไม่สามารถโหลดคำขอเพิ่มสมาชิกได้</div>`;return}
-  const rows=data||[];sec.innerHTML=`<div class="phc190-request-head"><div><h3>เพิ่ม/เชื่อมสมาชิก</h3><small>คำขอใหม่ยังไม่นับเป็นประชากรหรือ KPI จนกว่าเจ้าหน้าที่จะตรวจและเชื่อมทะเบียนสำเร็จ</small></div><button type="button" class="phc190-primary" data-phc190-add>+ แจ้งเพิ่มสมาชิก</button></div><div class="phc190-request-list">${rows.map(r=>`<article class="phc190-request"><strong>${esc(r.full_name)}</strong><small>${esc(r.display_identifier||r.masked_citizen_id)} · เกิด ${esc(fmt(r.birth_date))}</small><span class="phc190-status ${esc(r.status==='verified'&&!r.linked?'pending':r.status)}">${esc(r.status==='verified'&&!r.linked?'รอเชื่อม PID JHCIS':statusLabel(r.status))}</span>${r.review_note?`<small>${esc(r.review_note)}</small>`:''}</article>`).join('')||'<div class="phc190-note">ยังไม่มีคำขอเพิ่มสมาชิกบ้าน</div>'}</div>`;
+  const rows=userVisibleMemberRequestsV2100(data);sec.innerHTML=`<div class="phc190-request-head"><div><h3>เพิ่ม/เชื่อมสมาชิก</h3><small>คำขอใหม่ยังไม่นับเป็นประชากรหรือ KPI จนกว่าเจ้าหน้าที่จะตรวจและเชื่อมทะเบียนสำเร็จ</small></div><button type="button" class="phc190-primary" data-phc190-add>+ แจ้งเพิ่มสมาชิก</button></div><div class="phc190-request-list">${rows.map(r=>`<article class="phc190-request"><strong>${esc(r.full_name)}</strong><small>${esc(r.display_identifier||r.masked_citizen_id)} · เกิด ${esc(fmt(r.birth_date))}</small><span class="phc190-status ${esc(r.status==='verified'&&!r.linked?'pending':r.status)}">${esc(r.status==='verified'&&!r.linked?'รอเชื่อม PID JHCIS':statusLabel(r.status))}</span>${r.review_note?`<small>${esc(r.review_note)}</small>`:''}</article>`).join('')||'<div class="phc190-note">ยังไม่มีคำขอเพิ่มสมาชิกบ้าน</div>'}</div>`;
   sec.querySelector('[data-phc190-add]').onclick=()=>openMemberRequest(houseId,()=>renderHouseMemberRequests(root,houseId,healthAccess));
 }
 
