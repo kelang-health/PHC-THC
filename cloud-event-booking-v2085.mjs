@@ -58,7 +58,7 @@ export async function openEventBookingV2085({client,event,body,back}){
          if(!confirm('ยืนยันยกเลิกการจองนี้?'))return;cancel.disabled=true;
          const {data:out,error:err}=await client.rpc('cancel_health_event_booking_v2085',{p_booking:data.id});
          if(err||!['cancelled','already_cancelled'].includes(out?.status)){cancel.disabled=false;setStatus('ยกเลิกไม่สำเร็จ กรุณาลองอีกครั้ง');return;}
-         if(!alive())return;currentBooking=null;host.replaceChildren();setStatus('ยกเลิกการจองแล้ว');await loadRounds();
+         if(!alive())return;currentBooking=null;host.replaceChildren();await loadRounds();setStatus('ยกเลิกการจองแล้ว');
        };
        box.appendChild(cancel);host.appendChild(box);
      }else host.textContent='ยังไม่มีการจองกิจกรรมนี้สำหรับบุคคลที่เลือก';
@@ -92,8 +92,9 @@ export async function openEventBookingV2085({client,event,body,back}){
        {p_slot:select.value,p_pcucode:chosen.source_pcucode,p_pid:chosen.source_pid});
      if(error)throw error;if(!alive())return;
      if(!['booked','already_booked'].includes(data?.status)){setStatus('Cloud ยังไม่ยืนยันการจอง กรุณาตรวจสอบอีกครั้ง');return;}
-     setStatus(data.status==='booked'?'จองสำเร็จแล้ว':'บุคคลนี้จองกิจกรรมนี้ไว้แล้ว');
+     currentBooking={id:data.booking_id,slot_id:select.value};
      await loadRounds();await showPerson(chosen);
+     setStatus(data.status==='booked'?'จองสำเร็จแล้ว':'บุคคลนี้จองกิจกรรมนี้ไว้แล้ว');
    }catch(e){if(alive()){setStatus('จองไม่สำเร็จ: '+String(e?.message||'กรุณาลองใหม่').slice(0,180));await loadRounds();}}
  };
  await loadRounds();
