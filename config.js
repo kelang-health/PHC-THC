@@ -23,6 +23,8 @@ if (typeof window !== 'undefined') {
       await initInteractionFeedback1827();
       const { initCareDashboard1860 } = await import('./care-dashboard-v1860.mjs?v=2.0.59&p=2059');
       await initCareDashboard1860(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+      const { initCloudAnnouncements2083 } = await import('./cloud-announcements-v2083.mjs?v=2.0.83&p=2083');
+      initCloudAnnouncements2083(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initSystemAboutNote1829 } = await import('./system-about-note-v1829.mjs?v=2.0.57&p=2057');
       initSystemAboutNote1829();
       const { initCommunityHouseholdQuality1831 } = await import('./community-household-quality-v1831.mjs?v=2.0.77&p=2077');
