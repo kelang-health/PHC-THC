@@ -56,3 +56,7 @@
 .h88 .h88-actions button{flex:1;min-width:0;overflow-wrap:anywhere}
 .h88 button:not(.h88-light):not(.h88-back){background:#176b59;color:#fff;border-color:#176b59}
 .h88 button:disabled{opacity:.6;cursor:not-allowed}
+
+/* H6.5 visible to User and Staff: simulated only, with explicit no-production-booking badge. */
+.cn83-demo-label{border:2px solid #bb853a;border-radius:12px;padding:12px!important;background:#fff4db;color:#63400e!important;font-weight:800;line-height:1.6;overflow-wrap:anywhere}
+.h93-demo{display:grid;gap:13px;min-width:0}.h93-demo h3{margin:0}.h93-demo .h93-actions{display:flex;gap:8px;flex-wrap:wrap}.h93-demo .h93-actions button{flex:1;min-height:48px;min-width:130px}.h93-demo .h93-stage{background:#f1f6f3;border-radius:12px;padding:12px;display:grid;gap:12px}.h93-demo .h93-stage label{display:flex;gap:8px;align-items:center}.h93-demo .h93-stage input[type=checkbox]{height:22px;width:22px}.h93-demo .h93-stage select{min-width:0;width:100%;min-height:48px}.h93-demo .h93-caption{color:#63400e;font-weight:800}
