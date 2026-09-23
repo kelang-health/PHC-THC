@@ -92,6 +92,12 @@ function start(){
  document.addEventListener('phc:content-refresh',()=>{cacheAt=0;if(isPortalViewActive('overview'))loadHome().catch(()=>{});});
  document.addEventListener('phc:auth-ready',e=>{const id=String(e.detail?.userId||'');if(cacheFor&&cacheFor!==id)reset();});
  supabase.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT')reset();});
+ // Refresh only when the signed-in overview is visible. A hidden/expired notice
+ // disappears automatically within the five-minute cache interval, without
+ // additional background requests on other pages or the sign-in screen.
+ const refreshVisible=()=>{if(document.visibilityState==='visible'&&isPortalViewActive('overview')&&(!cacheAt||Date.now()-cacheAt>=TTL))loadHome().catch(()=>{});};
+ document.addEventListener('visibilitychange',refreshVisible);
+ window.setInterval(refreshVisible,60000);
 }
 export function initCloudAnnouncements2083(url,key){
  if(window.__PHC_CLOUD_ANNOUNCEMENTS_2083__)return;

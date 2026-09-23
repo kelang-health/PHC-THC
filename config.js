@@ -6,7 +6,7 @@ if (typeof window !== 'undefined') {
   let contentBootV2083=null;
   const maybeBootContentV2083=()=>{
     if(document.documentElement.dataset.authView!=='portal'||document.querySelector('[data-portal-panel="overview"]')?.hidden)return;
-    if(!contentBootV2083)contentBootV2083=import('./cloud-announcements-v2083.mjs?v=2.0.83&p=2083')
+    if(!contentBootV2083)contentBootV2083=import('./cloud-announcements-v2083.mjs?v=2.0.84&p=2084')
       .then(({initCloudAnnouncements2083})=>initCloudAnnouncements2083(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY))
       .catch(()=>{contentBootV2083=null;});
   };
