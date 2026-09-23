@@ -95,7 +95,7 @@ async function openDetail(id){
     }catch{if(d.open){demoButton.disabled=false;body.insertAdjacentHTML('beforeend','<p class="cn83-muted">โหลดหน้าทดสอบไม่สำเร็จ กรุณาลองใหม่</p>');}}
    };}
    if(data.kind==='event'&&data.booking_enabled&&!demo){const button=body.querySelector('[data-cn83-book]');if(button)button.onclick=async()=>{button.disabled=true;try{if(data.event_subtype==='hcv_hbsag'){
-     const {openHcvBookingV2088}=await import('./cloud-hcv-booking-v2088.mjs?v=2.0.88.1&p=2088');
+     const {openHcvBookingV2088}=await import('./cloud-hcv-booking-v2088.mjs?v=2.0.103&p=2103');
      if(d.open)await openHcvBookingV2088({client:supabase,event:data,body,back:()=>openDetail(id)});
     }else{
      const {openEventBookingV2085}=await import('./cloud-event-booking-v2085.mjs?v=2.0.85.1&p=2085');
