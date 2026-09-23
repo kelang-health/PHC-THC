@@ -47,7 +47,16 @@ test('only user request cards use filtered list; keep member roster/Admin queue'
   assert.doesNotMatch(source,/\.delete\(\)/);
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
   const config=fs.readFileSync(path.join(root,'config.js'),'utf8');
-  assert.match(html,/name="phc-release" content="2\.0\.100"/);
-  assert.match(html,/config\.js\?v=2\.0\.100&p=2100/);
-  assert.match(config,/phc-five-features-v190\.mjs\?v=2\.0\.100&p=2100/);
+  assert.match(html,/name="phc-release" content="2\.0\.101"/);
+  assert.match(html,/config\.js\?v=2\.0\.101&p=2101/);
+  assert.match(config,/phc-five-features-v190\.mjs\?v=2\.0\.101&p=2101/);
+});
+
+
+
+test('Admin linked-person safety count is not mislabeled as pending work',()=>{
+  assert.match(source,/คำขอ\/สมาชิกที่ผูกกับบ้าน \(รวมตรวจแล้ว\)/);
+  assert.doesNotMatch(source,/คำขอสมาชิกที่ยังต้องจัดการ/);
+  assert.match(source,/ยกเลิกบ้านไม่ได้: มีคำขอหรือสมาชิกที่เชื่อมทะเบียนอยู่/);
+  assert.match(source,/ดูคำขอที่ยังจัดการได้/);
 });

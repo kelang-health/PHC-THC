@@ -177,11 +177,11 @@ async function renderAdminPendingHouseQueueV2070(){
     '<strong>บ้านเลขที่ '+esc(h.house_no||'ไม่ระบุ')+'</strong>'+
     '<small>หมู่ '+esc(h.moo||'—')+' · '+esc(h.community||'—')+
     ' · รหัสบ้าน '+esc(h.house_id_11||'—')+'</small>'+
-    '<small>สถานะ '+esc(h.verification_status)+' · คำขอสมาชิกที่ยังต้องจัดการ '+Number(h.open_member_requests||0)+'</small>'+
+    '<small>สถานะ '+esc(h.verification_status)+' · คำขอ/สมาชิกที่ผูกกับบ้าน (รวมตรวจแล้ว) '+Number(h.open_member_requests||0)+'</small>'+
     (h.verification_status!=='pending_jhcis_create'
       ?'<div class="phc190-note">ต้องตรวจทะเบียน JHCIS ก่อน บ้านนี้มีสถานะพบข้อมูลเดิมหรือต้องตรวจเพิ่มเติม จึงยังยกเลิกบน Cloud ไม่ได้</div>'
       :Number(h.open_member_requests||0)>0
-      ?'<div class="phc190-note">ยกเลิกบ้านไม่ได้จนกว่าจะจัดการคำขอสมาชิกที่ค้างก่อน</div><button type="button" class="phc190-secondary" data-manage-members>จัดการคำขอสมาชิก</button>'
+      ?'<div class="phc190-note">ยกเลิกบ้านไม่ได้: มีคำขอหรือสมาชิกที่เชื่อมทะเบียนอยู่ โปรดตรวจรายการก่อน</div><button type="button" class="phc190-secondary" data-manage-members>ดูคำขอที่ยังจัดการได้</button>'
       :'<button type="button" class="phc190-secondary phc190-danger" data-cancel-house>ยกเลิกคำขอเพิ่มบ้าน</button>')+
     '</article>').join('')+
     (rows.length?'':'<div class="phc190-note">ไม่มีบ้านจาก อสม. ที่รอยืนยัน JHCIS</div>')+'</div>';
