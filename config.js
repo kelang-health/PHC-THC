@@ -2,17 +2,7 @@ export const SUPABASE_URL = 'https://tgeezbwbrovfyjbeykrj.supabase.co';
 export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_' + 'bw0sKPthqc6S' + 'l9xU8fdVpA_p2sZ4-N2';
 
 if (typeof window !== 'undefined') {
-  // News is optional. Download its module only after the authenticated overview is visible.
-  let contentBootV2083=null;
-  const maybeBootContentV2083=()=>{
-    if(document.documentElement.dataset.authView!=='portal'||document.querySelector('[data-portal-panel="overview"]')?.hidden)return;
-    if(!contentBootV2083)contentBootV2083=import('./cloud-announcements-v2083.mjs?v=2.0.103&p=2103')
-      .then(({initCloudAnnouncements2083})=>initCloudAnnouncements2083(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY))
-      .catch(()=>{contentBootV2083=null;});
-  };
-  document.addEventListener('phc:auth-ready',maybeBootContentV2083);
-  document.addEventListener('phc:portal-view-changed',maybeBootContentV2083);
-  queueMicrotask(maybeBootContentV2083);
+  // All Cloud announcements and booking activities are paused by the operator.
   import('./community-gis-v1822.mjs?v=1.8.63&p=2035')
     .then(async ({ initCommunityGIS1822 }) => {
       await initCommunityGIS1822(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
