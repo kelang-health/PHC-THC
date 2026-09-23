@@ -95,7 +95,7 @@ export async function openEventBookingV2085({client,event,body,back}){
      currentBooking={id:data.booking_id,slot_id:select.value};
      await loadRounds();await showPerson(chosen);
      setStatus(data.status==='booked'?'จองสำเร็จแล้ว':'บุคคลนี้จองกิจกรรมนี้ไว้แล้ว');
-   }catch(e){if(alive()){setStatus('จองไม่สำเร็จ: '+String(e?.message||'กรุณาลองใหม่').slice(0,180));await loadRounds();}}
+   }catch(e){if(alive()){await loadRounds();setStatus('จองไม่สำเร็จ: '+String(e?.message||'กรุณาลองใหม่').slice(0,180));}}
  };
  await loadRounds();
 }
