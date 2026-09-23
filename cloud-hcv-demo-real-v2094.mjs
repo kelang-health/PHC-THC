@@ -3,10 +3,10 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 export async function openHcvDemoRealV2094({client,event,body,back}){
  if(!client||!body?.isConnected||event?.is_demo!==true||event.demo_real_data_enabled!==true||
     event.booking_enabled!==false||event.event_subtype!=='hcv_hbsag')return;
- let step=1,person=null,hcv=!!event.hcv_enabled,hb=!!event.hbsag_enabled,slot='',slots=[],saving=false,searchSeq=0,timer=null,receipt=null;
+ let step=1,person=null,hcv=!!event.hcv_enabled,hb=!!event.hbsag_enabled,slot='',contactPhone='',slots=[],saving=false,searchSeq=0,timer=null,receipt=null;
  const get=q=>body.querySelector(q),alive=()=>body.isConnected;
  const label='🧪 ทดสอบด้วยข้อมูลบ้านจริง · ไม่มีนัดตรวจจริง';
- const warning='ใช้รายชื่อจริงเฉพาะบ้านในความรับผิดชอบ แต่รายการจองและสถานะเป็นข้อมูลทดสอบแยกจากงานบริการจริง ไม่ส่งข้อมูลไป JHCIS ไม่มีการเก็บเบอร์โทร และ Admin รีเซ็ตข้อมูลทดสอบทั้งหมดได้';
+ const warning='ใช้รายชื่อจริงเฉพาะบ้านในความรับผิดชอบ แต่รายการจองและสถานะเป็นข้อมูลทดสอบแยกจากงานบริการจริง ไม่ส่งข้อมูลไป JHCIS เบอร์ติดต่อถูกเก็บเฉพาะในฐานทดสอบส่วนตัวเพื่อให้ Admin ตรวจรายงาน และถูกลบเมื่อกดรีเซ็ต ไม่ใช่นัดตรวจจริง';
  const rpc=async(name,args)=>{const {data,error}=await client.rpc(name,args);if(error)throw error;return data;};
  const status=t=>{const el=get('[data-h94-status]');if(el)el.textContent=t||'';};
  const begin=()=>'<section class="h94"><h3>'+label+'</h3><p class="cn83-demo-label">'+warning+'</p><p>ขั้นตอน '+step+'/3</p><p role="status" data-h94-status></p><div data-h94-content></div><button type="button" class="h94-exit" data-h94-exit>กลับรายละเอียดกิจกรรม</button></section>';
@@ -48,13 +48,15 @@ export async function openHcvDemoRealV2094({client,event,body,back}){
    host.innerHTML='<div class="h94-panel"><h4>2. เลือกรายการตรวจสำหรับทดสอบ</h4><p>'+esc(person?.display_name||'')+'</p>'+
     (event.hcv_enabled?'<label><input type="checkbox" data-h94-hcv '+(hcv?'checked':'')+'> Anti-HCV</label>':'')+
     (event.hbsag_enabled?'<label><input type="checkbox" data-h94-hb '+(hb?'checked':'')+'> HBsAg</label>':'')+
-    '<p>ไม่มีการเก็บเบอร์โทรหรือผลตรวจจริง</p><button type="button" data-h94-prev>ย้อนกลับ</button><button type="button" data-h94-next>ถัดไป: เลือกรอบทดสอบ</button></div>';
+    '<label>เบอร์โทรศัพท์สำหรับติดต่อ (ทดสอบ)<input type="tel" inputmode="tel" maxlength="10" pattern="0[0-9]{8,9}" autocomplete="off" placeholder="0xxxxxxxxx" data-h94-phone required value="'+esc(contactPhone)+'"></label><p>เบอร์โทรจะเก็บเฉพาะตารางทดสอบที่ Admin เห็นได้ และถูกลบเมื่อรีเซ็ต ไม่ใช่ผลตรวจจริง</p><button type="button" data-h94-prev>ย้อนกลับ</button><button type="button" data-h94-next>ถัดไป: เลือกรอบทดสอบ</button></div>';
    get('[data-h94-prev]').onclick=()=>{step=1;person=null;draw();};
-   const changed=()=>{hcv=!!get('[data-h94-hcv]')?.checked;hb=!!get('[data-h94-hb]')?.checked;get('[data-h94-next]').disabled=!(hcv||hb);};
-   host.querySelectorAll('input').forEach(x=>x.onchange=changed);changed();
+   const changed=()=>{hcv=!!get('[data-h94-hcv]')?.checked;hb=!!get('[data-h94-hb]')?.checked;
+    contactPhone=get('[data-h94-phone]')?.value.trim()||'';
+    get('[data-h94-next]').disabled=!(hcv||hb)||!/^0[0-9]{8,9}$/.test(contactPhone);};
+   host.querySelectorAll('input').forEach(x=>{x.onchange=changed;x.oninput=changed;});changed();
    get('[data-h94-next]').onclick=async()=>{changed();if(get('[data-h94-next]').disabled)return;step=3;draw();await loadSlots();};return;
   }
-  host.innerHTML='<div class="h94-panel"><h4>3. เลือกรอบและยืนยันรายการทดสอบ</h4><p>'+esc(person?.display_name||'')+' · '+(hcv?'Anti-HCV ':'')+(hb?'HBsAg':'')+'</p><label>รอบทดสอบ<select data-h94-slot><option value="">กำลังโหลดรอบทดสอบ…</option></select></label><p>รอบ A รับ 1 รายการทดสอบ รอบ B รับ 5 รายการทดสอบ ใช้ตรวจเงื่อนไขจำนวนรับ</p><button type="button" data-h94-prev>ย้อนกลับ</button><button type="button" data-h94-submit disabled>ยืนยันรายการทดสอบ (ไม่ใช่นัดจริง)</button></div>';
+  host.innerHTML='<div class="h94-panel"><h4>3. เลือกรอบและยืนยันรายการทดสอบ</h4><p>'+esc(person?.display_name||'')+' · '+(hcv?'Anti-HCV ':'')+(hb?'HBsAg':'')+'</p><label>รอบทดสอบ<select data-h94-slot><option value="">กำลังโหลดรอบทดสอบ…</option></select></label><p>เบอร์ติดต่อจะปรากฏเฉพาะรายงานของ Admin และถูกลบเมื่อรีเซ็ต · รอบ A รับ 1 รายการ รอบ B รับ 5 รายการ</p><button type="button" data-h94-prev>ย้อนกลับ</button><button type="button" data-h94-submit disabled>ยืนยันรายการทดสอบ (ไม่ใช่นัดจริง)</button></div>';
   get('[data-h94-prev]').onclick=()=>{if(!saving){step=2;draw();}};
   get('[data-h94-slot]').onchange=()=>{slot=get('[data-h94-slot]').value;const s=slots.find(x=>x.slot_key===slot);get('[data-h94-submit]').disabled=saving||!s||Number(s.remaining)<1;};
   get('[data-h94-submit]').onclick=submit;if(slots.length)renderSlots();
@@ -86,10 +88,10 @@ export async function openHcvDemoRealV2094({client,event,body,back}){
   if(!alive()||step!==3)return;slots=Array.isArray(data)?data:[];renderSlots();status('เลือกรอบทดสอบที่ว่าง แล้วกดยืนยันเฉพาะรายการทดสอบ');}
   catch{if(alive()&&step===3)status('โหลดรอบทดสอบไม่สำเร็จ กรุณาลองใหม่');}}
  async function submit(){
-  if(saving||!person||!(hcv||hb)||!['A','B'].includes(slot))return;
+  if(saving||!person||!(hcv||hb)||!/^0[0-9]{8,9}$/.test(contactPhone)||!['A','B'].includes(slot))return;
   if(!confirm('ยืนยันบันทึกรายการทดสอบสำหรับบุคคลที่เลือก? ไม่ใช่นัดตรวจจริง'))return;
   saving=true;get('[data-h94-submit]').disabled=true;status('กำลังตรวจจำนวนรับและบันทึกเฉพาะรายการทดสอบ…');
-  try{const x=await rpc('book_hcv_demo_real_v2094',{p_event:event.id,p_pcucode:person.source_pcucode,p_pid:person.source_pid,p_slot:slot,p_hcv:hcv,p_hbsag:hb});
+  try{const x=await rpc('book_hcv_demo_real_v2094',{p_event:event.id,p_pcucode:person.source_pcucode,p_pid:person.source_pid,p_slot:slot,p_hcv:hcv,p_hbsag:hb,p_contact_phone:contactPhone});
    if(!alive()||step!==3)return;
    if(x?.status==='already_booked'){status('บุคคลนี้มีรายการทดสอบแล้ว กรุณาดูรายการของฉัน');await loadSlots();return;}
    if(x?.status!=='booked'||x?.is_demo!==true)throw Error('ไม่ได้รับการยืนยันรายการทดสอบ');
