@@ -37,3 +37,22 @@
 .cb85 .cb85-confirmed{display:grid;gap:8px}
 .cb85 .cb85-cancel{justify-self:start}
 .cb85 button:disabled{opacity:.65;cursor:not-allowed}
+
+.cn83-hcv-info{background:#f0f6fc;border-radius:10px;padding:10px;display:grid;gap:8px}
+.h88{display:grid;gap:12px;min-width:0}.h88 h3,.h88 h4{margin:0;color:#145244;overflow-wrap:anywhere}
+.h88 .h88-muted{margin:0;color:#587469;line-height:1.5;font-size:.93rem}
+.h88 .h88-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.h88-steps span{text-align:center;padding:8px 4px;background:#eaf1ed;border-radius:9px;font-size:.87rem}
+.h88-steps span.current{background:#166a56;color:#fff;font-weight:800}
+.h88 [data-h88-status]{min-height:24px;background:#eaf3fb;padding:9px;border-radius:9px;overflow-wrap:anywhere}
+.h88 .h88-field{display:grid;gap:6px;font-weight:750;min-width:0}
+.h88 input:not([type="checkbox"]),.h88 select{width:100%;min-width:0;max-width:100%;min-height:48px;padding:8px;border:1px solid #bdd9cb;border-radius:9px;font:inherit;background:#fff;color:#22473b}
+.h88 .h88-people{display:grid;max-height:230px;overflow:auto;gap:6px}
+.h88 .h88-person{display:block;text-align:left;white-space:normal;overflow-wrap:anywhere}
+.h88 .h88-selected,.h88 .h88-success,.h88 .h88-existing{background:#e7f4eb;padding:12px;border-radius:10px;line-height:1.6;overflow-wrap:anywhere}
+.h88 .h88-check{display:flex;align-items:center;gap:9px;min-height:48px}
+.h88 .h88-check input{flex-shrink:0;width:22px;height:22px}
+.h88 .h88-actions{display:flex;gap:8px;min-width:0}
+.h88 .h88-actions button{flex:1;min-width:0;overflow-wrap:anywhere}
+.h88 button:not(.h88-light):not(.h88-back){background:#176b59;color:#fff;border-color:#176b59}
+.h88 button:disabled{opacity:.6;cursor:not-allowed}
