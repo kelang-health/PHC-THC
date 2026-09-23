@@ -30,8 +30,10 @@ export async function openHcvBookingV2088({client,event,body,back}){
     host.innerHTML=`<h4>ขั้นตอน 1 · เลือกผู้รับบริการ</h4><p class="h88-muted">ค้นหาเฉพาะบุคคลในบ้านที่รับผิดชอบ ไม่ต้องกรอกชื่อ วันเกิด หรือบ้านซ้ำ</p>
      <label class="h88-field">ค้นหาชื่อ<input data-h88-search type="search" maxlength="70" autocomplete="off" placeholder="พิมพ์ชื่ออย่างน้อย 2 ตัวอักษร"></label>
      <div data-h88-list class="h88-people" aria-live="polite"></div><div data-h88-person></div>
+     <button type="button" data-h88-mine class="h88-light">ดูรายการที่ฉันจอง</button>
      <button type="button" data-h88-next disabled>ถัดไป: เลือกรายการตรวจ</button>`;
     $('[data-h88-next]').onclick=()=>{if(person&&checked&&!prior&&open()){step=2;announce('');render();}};
+    $('[data-h88-mine]').onclick=showMine;
     $('[data-h88-search]').oninput=e=>{
       const q=e.target.value.trim(),seq=++searchSeq;++personSeq;clearTimeout(searchTimer);
       person=null;prior=null;checked=false;slotId='';$('[data-h88-person]').replaceChildren();$('[data-h88-next]').disabled=true;
@@ -69,6 +71,36 @@ export async function openHcvBookingV2088({client,event,body,back}){
   $('[data-h88-prev]').onclick=()=>{if(!saving){step=2;render();announce('');}};
   $('[data-h88-slot]').onchange=()=>{slotId=$('[data-h88-slot]').value;bookingButton();};
   $('[data-h88-book]').onclick=submit;if(slots.length)renderSlots();
+ }
+ async function showMine(){
+   const seq=++searchSeq;++personSeq;clearTimeout(searchTimer);
+   person=null;prior=null;checked=false;slotId='';
+   $('[data-h88-next]').disabled=true;$('[data-h88-person]').replaceChildren();
+   const field=$('[data-h88-search]');if(field)field.value='';
+   const list=$('[data-h88-list]');list.textContent='กำลังโหลดรายการที่ฉันจอง…';
+   try{
+     const rows=await rpc('list_my_hcv_bookings_v2088',{p_event:event.id});
+     if(!alive()||step!==1||seq!==searchSeq)return;
+     list.replaceChildren();
+     if(!Array.isArray(rows)||!rows.length){list.textContent='ยังไม่มีรายการจองที่ใช้งานอยู่';return;}
+     announce('แสดงรายการจองของท่านล่าสุดไม่เกิน 20 รายการ ไม่แสดงเบอร์โทรในรายชื่อ');
+     rows.forEach(row=>{
+       const wrap=document.createElement('div');wrap.className='h88-existing';
+       const tests=[row.hcv_selected?'Anti-HCV':'',row.hbsag_selected?'HBsAg':''].filter(Boolean).join(' + ');
+       const label=document.createElement('p');label.textContent=`${row.display_name} · ${tests} · ${fmt(row.slot_starts_at)} · ${row.slot_location}`;
+       wrap.appendChild(label);
+       const button=document.createElement('button');button.className='h88-light';button.type='button';button.textContent='ยกเลิกการจอง';
+       button.onclick=async()=>{
+         if(!uuid(row.booking_id)||!confirm('ยืนยันยกเลิกการจองนี้?'))return;
+         button.disabled=true;announce('กำลังยกเลิกการจอง…');
+         try{const result=await rpc('cancel_hcv_hbsag_booking_v2087',{p_booking:row.booking_id});
+           if(!['cancelled','already_cancelled'].includes(result?.status))throw Error('not confirmed');
+           if(alive()&&step===1){await showMine();announce('ยกเลิกการจองแล้ว');}
+         }catch{if(alive()){button.disabled=false;announce('ยกเลิกไม่สำเร็จ กรุณาลองอีกครั้ง');}}
+       };
+       wrap.appendChild(button);list.appendChild(wrap);
+     });
+   }catch{if(alive()&&seq===searchSeq)list.textContent='โหลดรายการที่ฉันจองไม่สำเร็จ กรุณาลองใหม่';}
  }
  async function choose(p){
    const seq=++personSeq;person=p;prior=null;checked=false;slotId='';
