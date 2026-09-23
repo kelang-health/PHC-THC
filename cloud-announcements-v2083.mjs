@@ -1,6 +1,6 @@
 import { getSharedSupabase, getSharedProfile, bindPortalActivation, isPortalViewActive } from './shared-runtime-v2035.mjs?v=2.0.35';
 /* Cloud phase 4: authenticated read-only notices. A separate Local phase 3 will publish. */
-const TABLE='cloud_announcements_v2083',SUMMARY='id,kind,title,summary,home_featured,image_path,priority,published_at,ends_at,is_demo';
+const TABLE='cloud_announcements_v2083',SUMMARY='id,kind,title,summary,home_featured,image_path,priority,published_at,ends_at,is_demo,pilot_mode';
 const TTL=5*60*1000, PAGE_SIZE=20;
 let supabase=null,profile=null,cache=[],cacheAt=0,cacheFor='',loading=null,viewer=null,allRows=[],allExhausted=false,requestSerial=0;
 const $=(s,r=document)=>r.querySelector(s);
@@ -20,7 +20,7 @@ function queryPage(start){
  .range(start,start+PAGE_SIZE-1);
 }
 function homeCard(row){
- return `<article class="cn83-entry" data-kind="${esc(row.kind)}"><small>${row.is_demo?"🧪 ทดสอบ · ไม่มีการจองจริง · ":""}${label(row.kind)}${row.ends_at?' · ถึง '+esc(shortDate(row.ends_at)):''}</small><strong>${esc(row.title)}</strong><p>${esc(row.summary||'อ่านรายละเอียดประกาศ')}</p><button type="button" data-cn83-detail="${esc(row.id)}">อ่านรายละเอียด</button></article>`;
+ return `<article class="cn83-entry" data-kind="${esc(row.kind)}"><small>${row.is_demo?"🧪 ทดสอบ · ไม่มีการจองจริง · ":row.pilot_mode?"นำร่อง · จำกัดบัญชีและจำนวนรับ · ":""}${label(row.kind)}${row.ends_at?' · ถึง '+esc(shortDate(row.ends_at)):''}</small><strong>${esc(row.title)}</strong><p>${esc(row.summary||'อ่านรายละเอียดประกาศ')}</p><button type="button" data-cn83-detail="${esc(row.id)}">อ่านรายละเอียด</button></article>`;
 }
 function renderHome(){
  const host=home();
@@ -57,7 +57,7 @@ function dialog(title){
  d.showModal();return d;
 }
 function itemRows(items){
- return items.map(r=>`<article class="cn83-row"><small>${r.is_demo?"🧪 ทดสอบ · ไม่มีการจองจริง · ":""}${esc(label(r.kind))} · ${esc(shortDate(r.published_at))}</small><strong>${esc(r.title)}</strong><p>${esc(r.summary||'อ่านรายละเอียดประกาศ')}</p><button type="button" data-cn83-detail="${esc(r.id)}">อ่านรายละเอียด</button></article>`).join('');
+ return items.map(r=>`<article class="cn83-row"><small>${r.is_demo?"🧪 ทดสอบ · ไม่มีการจองจริง · ":r.pilot_mode?"นำร่อง · จำกัดบัญชีและจำนวนรับ · ":""}${esc(label(r.kind))} · ${esc(shortDate(r.published_at))}</small><strong>${esc(r.title)}</strong><p>${esc(r.summary||'อ่านรายละเอียดประกาศ')}</p><button type="button" data-cn83-detail="${esc(r.id)}">อ่านรายละเอียด</button></article>`).join('');
 }
 async function openAll(){
  const d=dialog('ข่าวสารและกิจกรรมทั้งหมด'),body=$('[data-cn83-body]',d);
@@ -80,12 +80,12 @@ async function openDetail(id){
  const d=dialog('รายละเอียดประกาศ'),body=$('[data-cn83-body]',d);
  body.textContent='กำลังโหลดรายละเอียด…';
  try{
-   const {data,error}=await supabase.from(TABLE).select('id,kind,title,summary,body,image_path,published_at,ends_at,is_demo,demo_real_data_enabled,booking_enabled,booking_opens_at,booking_closes_at,event_subtype,hcv_enabled,hbsag_enabled,event_contact_phone,eligibility_notice,preparation_notice').eq('id',id).maybeSingle();
+   const {data,error}=await supabase.from(TABLE).select('id,kind,title,summary,body,image_path,published_at,ends_at,is_demo,demo_real_data_enabled,pilot_mode,booking_enabled,booking_opens_at,booking_closes_at,event_subtype,hcv_enabled,hbsag_enabled,event_contact_phone,eligibility_notice,preparation_notice').eq('id',id).maybeSingle();
    if(error)throw error;if(!d.open)return;
    if(!data){body.textContent='ไม่พบประกาศนี้ หรือสิ้นสุดช่วงเวลาแสดงแล้ว';return;}
    const demo=data.is_demo===true&&data.event_subtype==='hcv_hbsag'&&data.booking_enabled===false;
    const realDemo=demo&&data.demo_real_data_enabled===true;
-   body.innerHTML=`<article class="cn83-detail">${demo?(realDemo?'<p class="cn83-demo-label">🧪 โหมดทดสอบด้วยรายชื่อจริงเฉพาะบ้านที่รับผิดชอบ · บันทึกรายการทดสอบแยก ไม่ใช่นัดตรวจจริง · Admin รีเซ็ตได้</p>':'<p class="cn83-demo-label">🧪 โหมดทดสอบเท่านั้น · ข้อมูลจำลอง ไม่มีการบันทึกการจองหรือส่งข้อมูลผู้ป่วย</p>'):''}<small>${esc(label(data.kind))} · ${esc(shortDate(data.published_at))}</small><h3>${esc(data.title)}</h3><p class="cn83-muted">${esc(data.summary||'')}</p>${imgMarkup(data.image_path)}${String(data.body||'').trim()?`<p>${esc(data.body)}</p>`:''}${data.event_subtype==='hcv_hbsag'?`<div class="cn83-hcv-info"><p>รายการตรวจที่เปิดรับ: ${[data.hcv_enabled?'Anti-HCV':'',data.hbsag_enabled?'HBsAg':''].filter(Boolean).join(' + ')}</p>${data.eligibility_notice?`<p><strong>กลุ่มเป้าหมาย:</strong> ${esc(data.eligibility_notice)}</p>`:''}${data.preparation_notice?`<p><strong>ข้อควรทราบ:</strong> ${esc(data.preparation_notice)}</p>`:''}${data.event_contact_phone?`<p>สอบถามหน่วยบริการ: ${esc(data.event_contact_phone)}</p>`:''}</div>`:''}${data.kind==='event'?(demo?(realDemo?'<button type="button" data-cn83-demo class="cn83-book">🧪 ทดลองจองด้วยรายชื่อจริงในบ้านของฉัน</button><small class="cn83-muted">ข้อมูลจริงใช้เฉพาะการค้นหาและยืนยันขอบเขตบ้าน · รายการจองทดลองถูกแยกจากงานบริการจริงและรีเซ็ตได้</small>':'<button type="button" data-cn83-demo class="cn83-book">🧪 ทดลองขั้นตอนจองด้วยข้อมูลจำลอง</button><small class="cn83-muted">การทดลองนี้ไม่มีนัดหมายจริง ไม่ใช้ข้อมูลผู้ป่วยและไม่ส่งข้อมูลไปฐาน Cloud</small>'):data.booking_enabled?'<button type="button" data-cn83-book class="cn83-book">ตรวจสอบสิทธิ์ / จองกิจกรรม</button><small class="cn83-muted">การจองไม่ใช่การได้รับบริการจริง</small>':'<small class="cn83-muted">กิจกรรมนี้ยังไม่เปิดรับจองหรือปิดรับจองแล้ว</small>'):''}</article>`;
+   body.innerHTML=`<article class="cn83-detail">${data.pilot_mode&&!demo?'<p class="cn83-pilot-label">กิจกรรมรับจองจริงแบบนำร่อง · เฉพาะ อสม. ที่ได้รับสิทธิ์ · เจ้าหน้าที่ต้องตรวจสอบเกณฑ์ก่อนให้บริการ</p>':''}${demo?(realDemo?'<p class="cn83-demo-label">🧪 โหมดทดสอบด้วยรายชื่อจริงเฉพาะบ้านที่รับผิดชอบ · บันทึกรายการทดสอบแยก ไม่ใช่นัดตรวจจริง · Admin รีเซ็ตได้</p>':'<p class="cn83-demo-label">🧪 โหมดทดสอบเท่านั้น · ข้อมูลจำลอง ไม่มีการบันทึกการจองหรือส่งข้อมูลผู้ป่วย</p>'):''}<small>${esc(label(data.kind))} · ${esc(shortDate(data.published_at))}</small><h3>${esc(data.title)}</h3><p class="cn83-muted">${esc(data.summary||'')}</p>${imgMarkup(data.image_path)}${String(data.body||'').trim()?`<p>${esc(data.body)}</p>`:''}${data.event_subtype==='hcv_hbsag'?`<div class="cn83-hcv-info"><p>รายการตรวจที่เปิดรับ: ${[data.hcv_enabled?'Anti-HCV':'',data.hbsag_enabled?'HBsAg':''].filter(Boolean).join(' + ')}</p>${data.eligibility_notice?`<p><strong>กลุ่มเป้าหมาย:</strong> ${esc(data.eligibility_notice)}</p>`:''}${data.preparation_notice?`<p><strong>ข้อควรทราบ:</strong> ${esc(data.preparation_notice)}</p>`:''}${data.event_contact_phone?`<p>สอบถามหน่วยบริการ: ${esc(data.event_contact_phone)}</p>`:''}</div>`:''}${data.kind==='event'?(demo?(realDemo?'<button type="button" data-cn83-demo class="cn83-book">🧪 ทดลองจองด้วยรายชื่อจริงในบ้านของฉัน</button><small class="cn83-muted">ข้อมูลจริงใช้เฉพาะการค้นหาและยืนยันขอบเขตบ้าน · รายการจองทดลองถูกแยกจากงานบริการจริงและรีเซ็ตได้</small>':'<button type="button" data-cn83-demo class="cn83-book">🧪 ทดลองขั้นตอนจองด้วยข้อมูลจำลอง</button><small class="cn83-muted">การทดลองนี้ไม่มีนัดหมายจริง ไม่ใช้ข้อมูลผู้ป่วยและไม่ส่งข้อมูลไปฐาน Cloud</small>'):data.booking_enabled?'<button type="button" data-cn83-book class="cn83-book">'+(data.pilot_mode?'ตรวจสอบสิทธิ์ / จองนำร่อง (นัดจริง)':'ตรวจสอบสิทธิ์ / จองกิจกรรม')+'</button><small class="cn83-muted">การจองไม่ใช่การได้รับบริการจริง</small>':'<small class="cn83-muted">กิจกรรมนี้ยังไม่เปิดรับจองหรือปิดรับจองแล้ว</small>'):''}</article>`;
    if(demo){const demoButton=body.querySelector('[data-cn83-demo]');if(demoButton)demoButton.onclick=async()=>{
     demoButton.disabled=true;
     try{if(realDemo){const {openHcvDemoRealV2094}=await import('./cloud-hcv-demo-real-v2094.mjs?v=2.0.94');
