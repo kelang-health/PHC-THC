@@ -80,10 +80,11 @@ async function openDetail(id){
  const d=dialog('รายละเอียดประกาศ'),body=$('[data-cn83-body]',d);
  body.textContent='กำลังโหลดรายละเอียด…';
  try{
-   const {data,error}=await supabase.from(TABLE).select('id,kind,title,summary,body,image_path,published_at,ends_at').eq('id',id).maybeSingle();
+   const {data,error}=await supabase.from(TABLE).select('id,kind,title,summary,body,image_path,published_at,ends_at,booking_enabled,booking_opens_at,booking_closes_at').eq('id',id).maybeSingle();
    if(error)throw error;if(!d.open)return;
    if(!data){body.textContent='ไม่พบประกาศนี้ หรือสิ้นสุดช่วงเวลาแสดงแล้ว';return;}
-   body.innerHTML=`<article class="cn83-detail"><small>${esc(label(data.kind))} · ${esc(shortDate(data.published_at))}</small><h3>${esc(data.title)}</h3><p class="cn83-muted">${esc(data.summary||'')}</p>${imgMarkup(data.image_path)}<p>${esc(data.body||'ไม่มีรายละเอียดเพิ่มเติม')}</p>${data.kind==='event'?'<small class="cn83-muted">ระบบจองกิจกรรมยังไม่เปิดใช้งานในระยะนี้ โปรดติดตามประกาศจากหน่วยบริการ</small>':''}</article>`;
+   body.innerHTML=`<article class="cn83-detail"><small>${esc(label(data.kind))} · ${esc(shortDate(data.published_at))}</small><h3>${esc(data.title)}</h3><p class="cn83-muted">${esc(data.summary||'')}</p>${imgMarkup(data.image_path)}<p>${esc(data.body||'ไม่มีรายละเอียดเพิ่มเติม')}</p>${data.kind==='event'?(data.booking_enabled?'<button type="button" data-cn83-book class="cn83-book">ตรวจสอบสิทธิ์ / จองกิจกรรม</button><small class="cn83-muted">การจองไม่ใช่การได้รับบริการจริง</small>':'<small class="cn83-muted">กิจกรรมนี้ยังไม่เปิดรับจองหรือปิดรับจองแล้ว</small>'):''}</article>`;
+   if(data.kind==='event'&&data.booking_enabled){const button=body.querySelector('[data-cn83-book]');if(button)button.onclick=async()=>{button.disabled=true;try{const {openEventBookingV2085}=await import('./cloud-event-booking-v2085.mjs?v=2.0.85&p=2085');if(d.open)await openEventBookingV2085({client:supabase,event:data,body,back:()=>openDetail(id)});}catch{if(d.open){button.disabled=false;body.insertAdjacentHTML('beforeend','<p class="cn83-muted">โหลดระบบจองไม่สำเร็จ กรุณาลองใหม่</p>');}}};}
  }catch{if(d.open)body.textContent='โหลดรายละเอียดไม่สำเร็จ กรุณาลองใหม่';}
 }
 function start(){
