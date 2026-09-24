@@ -1,4 +1,4 @@
-import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall, invalidateShared } from './shared-runtime-v2035.mjs?v=2.0.35';
+import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall, invalidateShared } from './shared-runtime-v2035.mjs?v=2.0.59';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.105&p=2105';
 const VERSION='2.0.114';
 const DEFAULT_CENTER=[18.2696,99.5071];
