@@ -5,16 +5,14 @@
 --   3) isolated db reset / branch tests pass, and the current app is regression-tested.
 -- Does not REVOKE access to any existing table and does not touch Auth or LINE Login.
 -- PostgreSQL default ACLs are scoped per *creating role* and per schema.
---
--- Run each role-specific clause as a database administrator with the required
--- role membership. Avoid broadening grants if your deployment creator differs.
+-- Connected SQL role is postgres, which has NO membership in supabase_admin.
+-- Therefore this candidate ONLY changes postgres-created future public tables.
+-- Verify separately how supabase_admin-created tables receive default rights;
+-- do not attempt ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin using postgres.
+-- Avoid broadening grants if the deployment's creating role differs.
 BEGIN;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
-  REVOKE SELECT, INSERT, UPDATE, DELETE ON TABLES
-  FROM anon, authenticated, service_role;
-
-ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public
   REVOKE SELECT, INSERT, UPDATE, DELETE ON TABLES
   FROM anon, authenticated, service_role;
 
