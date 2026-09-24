@@ -18,7 +18,7 @@ assert.doesNotMatch(c, /ALTER\s+DEFAULT\s+PRIVILEGES\s+FOR\s+ROLE\s+supabase_adm
 const candidateStatements = c.split(';').map(s => s.trim()).filter(Boolean);
 assert.equal(candidateStatements.length, 3, 'Candidate may only contain BEGIN, ALTER DEFAULT PRIVILEGES, COMMIT');
 assert.match(candidateStatements[0], /^BEGIN$/i);
-assert.match(candidateStatements[1], /^ALTER\s+DEFAULT\s+PRIVILEGES\s+FOR\s+ROLE\s+postgres\s+IN\s+SCHEMA\s+public\s+REVOKE\s+SELECT,\s*INSERT,\s*UPDATE,\s*DELETE\s+ON\s+TABLES\s+FROM\s+anon,\s*authenticated,\s*service_role$/i);
+assert.match(candidateStatements[1], /^ALTER\s+DEFAULT\s+PRIVILEGES\s+FOR\s+ROLE\s+postgres\s+IN\s+SCHEMA\s+public\s+REVOKE\s+ALL\s+PRIVILEGES\s+ON\s+TABLES\s+FROM\s+anon,\s*authenticated,\s*service_role$/i);
 assert.match(candidateStatements[2], /^COMMIT$/i);
 assert.match(candidate, /DO NOT RUN ON PRODUCTION/i);
 const sqlStatements = a.split(';').map(s => s.trim()).filter(Boolean);
