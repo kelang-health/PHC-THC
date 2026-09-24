@@ -6,15 +6,16 @@ const fmt=v=>{try{return new Date(v).toLocaleString('th-TH',{timeZone:'Asia/Bang
 const born=v=>{try{return v?new Date(v+'T00:00:00Z').toLocaleDateString('th-TH',{timeZone:'UTC',dateStyle:'medium'}):'ไม่ระบุวันเกิด';}catch{return 'ไม่ระบุวันเกิด';}};
 export async function openHcvBookingV2088({client,event,body,back}){
  if(!client||!body||!uuid(event?.id)||event?.kind!=='event'||event?.event_subtype!=='hcv_hbsag')return;
- let step=1,person=null,prior=null,checked=false,slots=[],slotId='',hcv=!!event.hcv_enabled,hb=!!event.hbsag_enabled,contact='',saving=false,receipt=null,searchTimer=null,searchSeq=0,personSeq=0;
+ let step=1,person=null,prior=null,checked=false,eligibility=null,slots=[],slotId='',hcv=false,hb=false,contact='',saving=false,receipt=null,searchTimer=null,searchSeq=0,personSeq=0;
  const $=q=>body.querySelector(q),alive=()=>body.isConnected;
  const open=()=>!!event.booking_enabled&&(!event.booking_opens_at||Date.parse(event.booking_opens_at)<=Date.now())&&(!event.booking_closes_at||Date.parse(event.booking_closes_at)>Date.now());
  const tests=()=>[hcv?'Anti-HCV':'',hb?'HBsAg':''].filter(Boolean).join(' + ');
  const announce=s=>{if(alive()&&$('[data-h88-status]'))$('[data-h88-status]').textContent=s;};
  const rpc=async(name,args)=>{const {data,error}=await client.rpc(name,args);if(error)throw error;return data;};
  const activeSlot=()=>slots.find(s=>s.id===slotId);
+ const serviceReady=key=>eligibility?.[key]?.eligible_to_request===true;
  const slotAvailable=()=>{const s=activeSlot();return !!s&&s.status==='open'&&Number(s.remaining)>0&&Date.parse(s.starts_at)>Date.now();};
- const bookingButton=()=>{const b=$('[data-h88-book]');if(b)b.disabled=saving||!slotAvailable()||!!prior||!open();};
+ const bookingButton=()=>{const b=$('[data-h88-book]');if(b)b.disabled=saving||!slotAvailable()||!!prior||!open()||!(hcv||hb)||(hcv&&!serviceReady('anti_hcv'))||(hb&&!serviceReady('hbsag'));};
  body.innerHTML=`<section class="h88"><button type="button" data-h88-back class="h88-back">← กลับรายละเอียดกิจกรรม</button>
  <h3>${esc(event.title)} · จองตรวจไวรัสตับอักเสบ</h3>
  <div class="h88-steps"><span data-h88-step="1">1 เลือกคน</span><span data-h88-step="2">2 รายการตรวจ</span><span data-h88-step="3">3 ยืนยันนัด</span></div>
@@ -36,7 +37,7 @@ export async function openHcvBookingV2088({client,event,body,back}){
     $('[data-h88-mine]').onclick=showMine;
     $('[data-h88-search]').oninput=e=>{
       const q=e.target.value.trim(),seq=++searchSeq;++personSeq;clearTimeout(searchTimer);
-      person=null;prior=null;checked=false;slotId='';$('[data-h88-person]').replaceChildren();$('[data-h88-next]').disabled=true;
+      person=null;prior=null;checked=false;eligibility=null;slotId='';$('[data-h88-person]').replaceChildren();$('[data-h88-next]').disabled=true;
       const list=$('[data-h88-list]');list.textContent=q.length<2?'พิมพ์ชื่ออย่างน้อย 2 ตัวอักษร':'กำลังค้นหา…';
       if(q.length<2)return;
       searchTimer=setTimeout(async()=>{try{
@@ -56,14 +57,14 @@ export async function openHcvBookingV2088({client,event,body,back}){
   if(step===2){
     host.innerHTML=`<h4>ขั้นตอน 2 · รายการตรวจและเบอร์ติดต่อ</h4>
     <div class="h88-selected">${esc(person.display_name)} · ${esc(born(person.birth_date))} · บ้าน ${esc(person.house_no||'—')}</div>
-    <label class="h88-check"><input data-h88-hcv type="checkbox" ${hcv?'checked':''} ${event.hcv_enabled?'':'disabled'}> Anti-HCV — คัดกรองไวรัสตับอักเสบซี</label>
-    <label class="h88-check"><input data-h88-hb type="checkbox" ${hb?'checked':''} ${event.hbsag_enabled?'':'disabled'}> HBsAg — คัดกรองไวรัสตับอักเสบบี</label>
+    <label class="h88-check"><input data-h88-hcv type="checkbox" ${hcv?'checked':''} ${event.hcv_enabled&&serviceReady('anti_hcv')?'':'disabled'}> Anti-HCV — คัดกรองไวรัสตับอักเสบซี · ${serviceReady('anti_hcv')?'ผลประเมินล่าสุดพร้อม':'รอตรวจสอบ'}</label>
+    <label class="h88-check"><input data-h88-hb type="checkbox" ${hb?'checked':''} ${event.hbsag_enabled&&serviceReady('hbsag')?'':'disabled'}> HBsAg — คัดกรองไวรัสตับอักเสบบี · ${serviceReady('hbsag')?'ผลประเมินล่าสุดพร้อม':'รอตรวจสอบ'}</label>
     <p class="h88-muted">เลือกทั้งสองรายการได้ในการจองเดียว ใช้จำนวนที่ว่าง 1 ที่</p>
     <label class="h88-field">เบอร์โทรสำหรับติดต่อเรื่องนัดหมาย<input data-h88-phone type="tel" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="0XXXXXXXXX" value="${esc(contact)}"></label>
     <p class="h88-muted">ใช้เบอร์ผู้รับบริการหรือผู้ประสานงานได้ ไม่ใช้ OTP และไม่แก้ทะเบียนประชากร</p>
     <div class="h88-actions"><button type="button" class="h88-light" data-h88-prev>ย้อนกลับ</button><button type="button" data-h88-next>ถัดไป: เลือกรอบนัด</button></div>`;
     $('[data-h88-prev]').onclick=()=>{step=1;render();announce('กรุณาเลือกบุคคลอีกครั้งเพื่อตรวจการจองเดิม');};
-    const update=()=>{hcv=$('[data-h88-hcv]').checked;hb=$('[data-h88-hb]').checked;contact=$('[data-h88-phone]').value.trim();$('[data-h88-next]').disabled=!(hcv||hb)||!phone(contact)||!open();};
+    const update=()=>{hcv=$('[data-h88-hcv]').checked;hb=$('[data-h88-hb]').checked;contact=$('[data-h88-phone]').value.trim();$('[data-h88-next]').disabled=!(hcv||hb)||!phone(contact)||!open()||(hcv&&!serviceReady('anti_hcv'))||(hb&&!serviceReady('hbsag'));};
     ['[data-h88-hcv]','[data-h88-hb]','[data-h88-phone]'].forEach(s=>$(s).addEventListener('input',update));
     $('[data-h88-next]').onclick=async()=>{update();if($('[data-h88-next]').disabled)return;step=3;render();announce('กำลังโหลดรอบบริการ…');await loadSlots();};update();return;
   }
@@ -79,7 +80,7 @@ export async function openHcvBookingV2088({client,event,body,back}){
  }
  async function showMine(){
    const seq=++searchSeq;++personSeq;clearTimeout(searchTimer);
-   person=null;prior=null;checked=false;slotId='';
+   person=null;prior=null;checked=false;eligibility=null;slotId='';
    $('[data-h88-next]').disabled=true;$('[data-h88-person]').replaceChildren();
    const field=$('[data-h88-search]');if(field)field.value='';
    const list=$('[data-h88-list]');list.textContent='กำลังโหลดรายการที่ฉันจอง…';
@@ -109,17 +110,23 @@ export async function openHcvBookingV2088({client,event,body,back}){
  }
  async function choose(p){
    if(p.can_request!==true){announce('ต้องมีผลประเมินที่ยังไม่หมดอายุและผ่านเกณฑ์เบื้องต้นก่อนขอจอง');return;}
-   const seq=++personSeq;person=p;prior=null;checked=false;slotId='';
+   const seq=++personSeq;person=p;prior=null;checked=false;eligibility=null;slotId='';
    $('[data-h88-list]').replaceChildren();const info=$('[data-h88-person]');
    info.textContent=`เลือก: ${p.display_name} · ${born(p.birth_date)} · บ้าน ${p.house_no||'—'}`;
-   announce('กำลังตรวจรายการจองเดิม…');
-   try{const x=await rpc('get_hcv_hbsag_booking_v2087',{p_event:event.id,p_pcucode:p.source_pcucode,p_pid:p.source_pid});
+   announce('กำลังตรวจรายการจองเดิมและผลประเมินรายบริการ…');
+   try{const [x,assessment]=await Promise.all([
+      rpc('get_hcv_hbsag_booking_v2087',{p_event:event.id,p_pcucode:p.source_pcucode,p_pid:p.source_pid}),
+      rpc('h7_my_services_v2107',{p_event:event.id,p_pcucode:p.source_pcucode,p_pid:p.source_pid})]);
      if(!alive()||step!==1||seq!==personSeq||person!==p)return;checked=true;
+     eligibility=assessment||null;
+     hcv=!!event.hcv_enabled&&serviceReady('anti_hcv');
+     hb=!!event.hbsag_enabled&&serviceReady('hbsag');
      prior=['booked','already_booked'].includes(x?.status)?x:null;
      if(prior){announce(x.status==='already_booked'?'บุคคลนี้มีการจองแล้วโดยผู้ทำรายการอื่น':'บุคคลนี้จองกิจกรรมนี้แล้ว');
        if(x.status==='booked'&&uuid(x.booking_id))showExisting(info,x);
-     }else{announce('ยังไม่มีการจองที่ใช้งานอยู่');$('[data-h88-next]').disabled=!open();}
-   }catch{if(alive()&&seq===personSeq)announce('ตรวจรายการจองไม่สำเร็จ กรุณาเลือกบุคคลอีกครั้ง');}
+     }else if(hcv||hb){announce('ยังไม่มีการจอง · เลือกได้เฉพาะรายการตรวจที่ผลประเมินล่าสุดพร้อม');$('[data-h88-next]').disabled=!open();}
+     else{announce('ผลประเมินทั้งสองรายการยังไม่พร้อมหรือหมดอายุ · รอเจ้าหน้าที่ตรวจสอบ');}
+   }catch{if(alive()&&seq===personSeq)announce('ตรวจสิทธิ์หรือรายการจองไม่สำเร็จ · รอเจ้าหน้าที่ตรวจสอบและเลือกบุคคลอีกครั้ง');}
  }
  function showExisting(info,x){
    const el=document.createElement('div');el.className='h88-existing';
@@ -128,7 +135,7 @@ export async function openHcvBookingV2088({client,event,body,back}){
    button.onclick=async()=>{if(!confirm('ยืนยันยกเลิกการจองนี้?'))return;button.disabled=true;announce('กำลังยกเลิก…');
      try{const result=await rpc('cancel_hcv_hbsag_booking_v2087',{p_booking:x.booking_id});
        if(!['cancelled','already_cancelled'].includes(result?.status))throw Error('not confirmed');
-       if(!alive())return;step=1;person=null;prior=null;checked=false;slotId='';render();announce('ยกเลิกการจองแล้ว');
+       if(!alive())return;step=1;person=null;prior=null;checked=false;eligibility=null;slotId='';render();announce('ยกเลิกการจองแล้ว');
      }catch{if(alive()){button.disabled=false;announce('ยกเลิกไม่สำเร็จ กรุณาลองใหม่');}}
    };el.appendChild(button);info.appendChild(el);
  }
@@ -147,7 +154,7 @@ export async function openHcvBookingV2088({client,event,body,back}){
   }catch{if(alive()&&step===3){announce('โหลดรอบบริการไม่สำเร็จ กรุณาย้อนกลับและลองใหม่');$('[data-h88-slot]').innerHTML='<option value="">ไม่พบรอบบริการ</option>';bookingButton();}}
  }
  async function submit(){
-   if(saving||!person||person.can_request!==true||!checked||prior||!slotId||!(hcv||hb)||!phone(contact)||!open())return;
+   if(saving||!person||person.can_request!==true||!checked||prior||!slotId||!(hcv||hb)||!phone(contact)||!open()||(hcv&&!serviceReady('anti_hcv'))||(hb&&!serviceReady('hbsag')))return;
    const s=slots.find(s=>s.id===slotId);if(!s||s.status!=='open'||Number(s.remaining)<1||Date.parse(s.starts_at)<=Date.now())return;
    if(!confirm(`ยืนยันจอง ${person.display_name} · ${tests()} · ${fmt(s.starts_at)}? การจองยังไม่ใช่การได้รับบริการ`))return;
    saving=true;bookingButton();announce('กำลังตรวจสิทธิ์ การจองซ้ำ และจำนวนที่ว่าง…');
@@ -157,7 +164,7 @@ export async function openHcvBookingV2088({client,event,body,back}){
      if(x?.status!=='booked'||!uuid(x.booking_id))throw Error('not confirmed');
      receipt={id:x.booking_id,name:person.display_name,tests:tests(),time:s.starts_at,location:s.location};
      contact='';showReceipt();announce('Cloud ยืนยันการจองแล้ว · รอเจ้าหน้าที่ตรวจสอบสิทธิ์');
-   }catch(e){if(alive()&&step===3){const msg=String(e?.message||'');await loadSlots();announce(/เต็ม|ซ้ำ|สิทธิ์|ปิดรับจอง|รอบนี้/.test(msg)?msg.slice(0,120):'จองไม่สำเร็จ กรุณาลองใหม่');}}
+   }catch(e){if(alive()&&step===3){const msg=String(e?.message||'');await loadSlots();announce(/หมดอายุ|ผลประเมิน|ตรวจสอบ/.test(msg)?'ผลประเมินเปลี่ยนหรือหมดอายุ · รอเจ้าหน้าที่ตรวจสอบก่อนจอง':/เต็ม|ซ้ำ|สิทธิ์|ปิดรับจอง|รอบนี้/.test(msg)?msg.slice(0,120):'จองไม่สำเร็จ กรุณาลองใหม่');}}
    finally{saving=false;bookingButton();}
  }
  function showReceipt(){
