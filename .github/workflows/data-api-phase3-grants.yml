@@ -7,6 +7,8 @@ on:
       - 'tests/phase4-migration-inventory.cjs'
       - 'tests/phase4-postgres-grant-rls.sql'
       - 'tests/phase4-postgrest-http.cjs'
+      - 'tests/phase4-booking-grant-rls.sql'
+      - 'tests/phase4-booking-http.cjs'
       - '.github/workflows/data-api-phase3-grants.yml'
       - 'supabase/migrations/**'
   workflow_dispatch:
@@ -50,6 +52,8 @@ jobs:
         run: command -v psql >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client)
       - name: Exercise real PostgreSQL GRANT and RLS with only synthetic rows
         run: psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -f tests/phase4-postgres-grant-rls.sql
+      - name: Create isolated synthetic booking table and test role grants
+        run: psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -f tests/phase4-booking-grant-rls.sql
   isolated-postgrest-http:
     runs-on: ubuntu-latest
     permissions:
@@ -81,6 +85,7 @@ jobs:
       - name: Create synthetic fixture in disposable database
         run: |
           psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -f tests/phase4-postgres-grant-rls.sql
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -f tests/phase4-booking-grant-rls.sql
           psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -c "CREATE ROLE authenticator WITH LOGIN NOINHERIT PASSWORD 'phase4-disposable-fixture-only'; GRANT anon, authenticated TO authenticator;"
       - name: Start disposable PostgREST Data API
         run: |
@@ -99,6 +104,8 @@ jobs:
           exit 1
       - name: Verify HTTP access control with synthetic users
         run: node tests/phase4-postgrest-http.cjs
+      - name: Verify synthetic booking access and paused direct writes
+        run: node tests/phase4-booking-http.cjs
   historical-migration-gate:
     runs-on: ubuntu-latest
     permissions:
