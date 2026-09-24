@@ -47,9 +47,9 @@ test('only user request cards use filtered list; keep member roster/Admin queue'
   assert.doesNotMatch(source,/\.delete\(\)/);
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
   const config=fs.readFileSync(path.join(root,'config.js'),'utf8');
-  assert.match(html,/name="phc-release" content="2\.0\.101"/);
-  assert.match(html,/config\.js\?v=2\.0\.101&p=2101/);
-  assert.match(config,/phc-five-features-v190\.mjs\?v=2\.0\.101&p=2101/);
+  assert.match(html,/name="phc-release" content="2\.0\.105"/);
+  assert.match(html,/config\.js\?v=2\.0\.105&p=2105/);
+  assert.match(config,/phc-five-features-v190\.mjs\?v=2\.0\.105&p=2105/);
 });
 
 
