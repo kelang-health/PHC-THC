@@ -33,5 +33,16 @@ const get=async (table,bearer)=>{
  assert([401,403].includes(privAnon.status),'Anon server-only table request must be rejected');
  const privAuth=await get('phase4_server_only',token('test-user-a'));
  assert([401,403].includes(privAuth.status),'Authenticated server-only table request must be rejected');
+ const samples=[];
+ for(let i=0;i<40;i++){
+  const current=i%2?'test-user-b':'test-user-a';
+  const before=process.hrtime.bigint();
+  const response=await get('phase4_health_fixture',token(current));
+  samples.push(Number(process.hrtime.bigint()-before)/1e6);
+  assert.equal(response.status,200,'Repeated synthetic authenticated read failed at '+i);
+  assert.deepEqual(response.rows.map(x=>x.id),[current==='test-user-a'?'fixture-1':'fixture-2'],'Repeated read crossed synthetic user scope');
+ }
+ samples.sort((a,b)=>a-b);
+ console.log('PASS: 40 repeated synthetic Data API reads without HTTP errors or cross-user row exposure; p95_ms='+samples[Math.ceil(samples.length*0.95)-1].toFixed(1)+' (CI fixture only; not production latency)');
  console.log('PASS: synthetic PostgREST HTTP anon denial, two scoped authenticated reads, and server-only denial');
 })().catch(e=>{console.error('FAIL: '+e.message);process.exitCode=1});
