@@ -4,6 +4,7 @@ on:
     paths:
       - 'database/phase2/**'
       - 'tests/data-api-readiness-phase3.cjs'
+      - 'tests/data-api-frontend-unchanged.cjs'
       - 'tests/phase4-migration-inventory.cjs'
       - 'tests/phase4-postgres-grant-rls.sql'
       - 'tests/phase4-postgrest-http.cjs'
@@ -20,9 +21,19 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Verify path firewall unit fixtures
+        run: node tests/data-api-frontend-unchanged.cjs --self-test
+      - name: Confirm PR modifies no released frontend, runtime, real migrations or deployment
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node tests/data-api-frontend-unchanged.cjs "$BASE_SHA" "$HEAD_SHA"
       - name: Validate safe SQL candidate and audit queries
         run: node tests/data-api-readiness-phase3.cjs
       - name: Validate recorded migration inventory format and local comparison logic
