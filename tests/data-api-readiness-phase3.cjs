@@ -49,6 +49,7 @@ assert.equal(evaluateMigration('CREATE TABLE public.no_rls (id integer); GRANT S
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'database/phase2/migration-history-required-20260924.json'), 'utf8'));
 assert(Array.isArray(manifest.required) && manifest.required.length > 0, 'Missing recorded migration inventory');
 assert.equal(new Set(manifest.required.map(item => item.version)).size, manifest.required.length, 'Duplicate baseline migration versions');
+assert.equal('20260924110811_houses_removed_from_jhcis_soft_archive_v2123.sql'.match(/^([0-9]{14})_.+[.]sql$/i)?.[1], '20260924110811', 'Migration filename parser regression');
 console.log('PASS: offline SQL candidate scope, read-only catalog audit, explicit-grant unit fixtures');
 if (process.argv.includes('--deployment-gate')) {
   const migrationDir = path.join(root, 'supabase/migrations');
@@ -57,13 +58,16 @@ if (process.argv.includes('--deployment-gate')) {
   assert(files.length, 'BLOCKED: empty migration baseline');
   const versions = new Map();
   for (const filename of files) {
-    const version = filename.match(/^(\\d{14})(?:_[^/\\\\]+)?\\.sql$/)?.[1];
+    const version = filename.match(/^([0-9]{14})_.+[.]sql$/i)?.[1];
     assert(version, 'BLOCKED: invalid migration filename: ' + filename);
     assert(!versions.has(version), 'BLOCKED: duplicate migration version: ' + version);
     versions.set(version, filename);
   }
   const missingVersions = manifest.required.filter(item => !versions.has(item.version));
   assert.equal(missingVersions.length, 0, 'BLOCKED: missing recorded baseline versions: ' + missingVersions.map(item => item.version + '_' + item.name).join(', '));
+  const recordedVersions = new Set(manifest.required.map(item => String(item.version)));
+  const unexpectedVersions = [...versions.keys()].filter(version => !recordedVersions.has(version));
+  assert.equal(unexpectedVersions.length, 0, 'BLOCKED: migration versions not in recorded baseline: ' + unexpectedVersions.join(', '));
   console.log('PASS: all ' + manifest.required.length + ' recorded migration versions are present in source.');
   let violations = [], checked = 0;
   for (const filename of files) {
