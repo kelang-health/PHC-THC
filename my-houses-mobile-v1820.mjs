@@ -31,7 +31,17 @@ function pendingCacheKeyV2055(){return 'my-pending-houses-v2055:'+(profile?.user
 function quotaCacheKeyV2055(){return 'house-add-quota-v2055:'+(profile?.user_id||'')+':'+(profile?.volunteer_pid||'');}
 async function loadPendingHouses({force=false}={}){const key=pendingCacheKeyV2055();if(force)invalidateShared(key);const {data,error}=await sharedCall(key,()=>supabase.rpc('my_pending_house_requests_v2050'),HOUSE_SECONDARY_CACHE_MS_V2055);if(error)throw error;pendingHouses=(data||[]).sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')));pendingLoaded=true;}
 function pendingLabel(h){const s=String(h.verification_status||'review_required');if(s==='pending_jhcis_create')return'รอเพิ่ม/ยืนยันใน JHCIS';if(s==='pending_jhcis_update')return'พบ JHCIS · รอแก้/Sync';if(s==='review_required')return'ต้องตรวจสอบ';return s;}
-function renderPending(){if(!panel)return;let box=$('[data-myh-pending]',panel);if(!box){box=document.createElement('section');box.dataset.myhPending='1';box.className='myh-card';const top=$('.myh-top',panel);top?.insertAdjacentElement('afterend',box);}box.hidden=!pendingHouses.length;box.innerHTML=pendingHouses.length?`<div class="myh-card-head"><div><strong>รอตรวจ JHCIS ${pendingHouses.length.toLocaleString('th-TH')} หลัง</strong><div class="myh-meta">บ้านส่วนนี้ยังไม่ถูกนับเป็นบ้านรับผิดชอบ จนกว่าเจ้าหน้าที่จะยืนยันใน JHCIS และ Sync สำเร็จ</div></div></div><div class="myh-house-list">${pendingHouses.map(h=>`<div class="myh-house-pick" style="cursor:default"><span><strong>บ้านเลขที่ ${esc(h.house_no||'ไม่ระบุ')}</strong><small>หมู่ ${esc(h.moo||'—')} · ${esc(h.community||'—')} · ${esc(pendingLabel(h))}</small></span><span>รอตรวจ</span></div>`).join('')}</div>`:'';}
+function renderPending(){if(!panel)return;let box=$('[data-myh-pending]',panel);if(!box){box=document.createElement('section');box.dataset.myhPending='1';box.className='myh-card';const top=$('.myh-top',panel);top?.insertAdjacentElement('afterend',box);}box.hidden=!pendingHouses.length;box.innerHTML=pendingHouses.length?`<div class="myh-card-head"><div><strong>รอตรวจ JHCIS ${pendingHouses.length.toLocaleString('th-TH')} หลัง</strong><div class="myh-meta">บ้านส่วนนี้ยังไม่ถูกนับเป็นบ้านรับผิดชอบ จนกว่าเจ้าหน้าที่จะยืนยันใน JHCIS และ Sync สำเร็จ</div></div></div><div class="myh-house-list">${pendingHouses.map(h=>`<div class="myh-house-pick" style="cursor:default"><span><strong>บ้านเลขที่ ${esc(h.house_no||'ไม่ระบุ')}</strong><small>หมู่ ${esc(h.moo||'—')} · ${esc(h.community||'—')} · ${esc(pendingLabel(h))}</small></span><button type="button" class="myh-btn edit" data-myh-edit-pending="${esc(h.id)}">แก้ไขข้อมูลที่แจ้ง</button></div>`).join('')}</div>`:'';
+  box.querySelectorAll('[data-myh-edit-pending]').forEach(b=>b.onclick=async()=>{
+    b.disabled=true;
+    try{
+      const open=window.PHCFieldRequestEdits2122?.openHouse;
+      if(!open)throw Error('กรุณาโหลดหน้าระบบใหม่');
+      await open(b.dataset.myhEditPending,async()=>{invalidateHouseAndSpatialCachesV2039();await reload();});
+    }catch(e){setMsg(String(e?.message||'แก้ไขรายการไม่ได้ กรุณาตรวจสิทธิ์และสถานะ'),'bad');}
+    finally{b.disabled=false;}
+  });
+}
 async function loadCompletionNoticesV2069(){
   if(!panel||panel.hidden||!profile?.user_id)return;
   const target=$('[data-myh-completed]',panel);if(!target)return;
