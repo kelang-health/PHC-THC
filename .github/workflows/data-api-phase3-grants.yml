@@ -87,7 +87,7 @@ jobs:
         run: |
           psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -f tests/phase4-postgres-grant-rls.sql
           psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -f tests/phase4-booking-grant-rls.sql
-          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -c "CREATE ROLE authenticator WITH LOGIN NOINHERIT PASSWORD 'phase4-disposable-fixture-only'; GRANT anon, authenticated TO authenticator;"
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -c "CREATE ROLE authenticator WITH LOGIN NOINHERIT PASSWORD 'phase4-disposable-fixture-only'; GRANT anon, authenticated, service_role TO authenticator;"
       - name: Start disposable PostgREST Data API
         run: |
           docker run --rm -d --network host --name phase4-grant-postgrest \
