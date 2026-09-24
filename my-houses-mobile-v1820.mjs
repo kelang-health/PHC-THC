@@ -50,6 +50,8 @@ const COMPLETE_EVENTS_V2114=['house.jhcis_verified','member_request.jhcis_verifi
 const CANCEL_EVENTS_V2114=['house.admin_cancelled','member_request.admin_cancelled'];
 const NOTICE_EVENTS_V2114=[...COMPLETE_EVENTS_V2114,...CANCEL_EVENTS_V2114];
 const COMPLETION_ARCHIVE_DAYS_V2115=30;
+const COMPLETION_VIEW_REFRESH_MS_V2115=60000;
+let completionLastLoadedAtV2115=0;
 const COMPLETION_ARCHIVE_MS_V2115=COMPLETION_ARCHIVE_DAYS_V2115*24*60*60*1000;
 async function loadCompletionNoticesV2069(){
   if(!panel||panel.hidden||!profile?.user_id)return;
@@ -65,6 +67,7 @@ async function loadCompletionNoticesV2069(){
       .order('created_at',{ascending:false}).limit(1)
   ]);
   if(!target.isConnected||profile?.user_id!==recipient)return;
+  completionLastLoadedAtV2115=Date.now();
   if(complete.error||cancelled.error){
     target.hidden=false;
     target.innerHTML='<div class="myh-completion-summary"><strong>สถานะคำขอ</strong><small>โหลดจำนวนไม่สำเร็จ กรุณากด ↻ เพื่อลองใหม่</small></div>';
@@ -176,7 +179,21 @@ async function enhance(){
   })();
   try{return await enhancePromise;}finally{enhancePromise=null;}
 }
-async function activateHouses(){const hp=document.querySelector('[data-portal-panel="houses"]');if(!hp)return;const roots=myHouseRoots(hp);if(hp.dataset.myHousesMobile!==VERSION||roots.length!==1)await enhance();panel=hp;if(!pendingLoaded)schedulePendingV2055();}
+async function activateHouses(){
+  const hp=document.querySelector('[data-portal-panel="houses"]');if(!hp)return;
+  const roots=myHouseRoots(hp);
+  if(hp.dataset.myHousesMobile!==VERSION||roots.length!==1)await enhance();
+  panel=hp;
+  if(!pendingLoaded){schedulePendingV2055();return;}
+  // Refresh only when returning to the houses view, not by polling while idle.
+  if(Date.now()-completionLastLoadedAtV2115<COMPLETION_VIEW_REFRESH_MS_V2115)return;
+  try{
+    await loadPendingHouses();
+    if(panel!==hp||hp.hidden)return;
+    renderPending();
+    await loadCompletionNoticesV2069();
+  }catch{if(panel===hp&&!hp.hidden)loadCompletionNoticesV2069().catch(()=>{});}
+}
 function start(){setVersion();bindPortalActivation('houses',activateHouses);}
 export async function initMyHousesMobile(url,key){if(window.__PHC_MY_HOUSES_1820__)return;window.__PHC_MY_HOUSES_1820__=true;injectStyle();createModal();supabase=await getSharedSupabase(url,key);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();}
 
