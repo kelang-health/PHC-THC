@@ -26,7 +26,7 @@ CREATE TABLE public.phase4_health_fixture(
 ALTER TABLE public.phase4_health_fixture ENABLE ROW LEVEL SECURITY;
 CREATE POLICY fixture_own_select ON public.phase4_health_fixture
  FOR SELECT TO authenticated
- USING (owner_id = current_setting('request.jwt.claim.sub', true));
+ USING (owner_id = COALESCE(NULLIF(current_setting('request.jwt.claims', true),'')::jsonb->>'sub', NULLIF(current_setting('request.jwt.claim.sub', true),'')));
 GRANT SELECT ON TABLE public.phase4_health_fixture TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.phase4_health_fixture TO service_role;
 INSERT INTO public.phase4_health_fixture VALUES
