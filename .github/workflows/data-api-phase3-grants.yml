@@ -5,6 +5,7 @@ on:
       - 'database/phase2/**'
       - 'tests/data-api-readiness-phase3.cjs'
       - 'tests/phase4-migration-inventory.cjs'
+      - 'tests/phase4-postgres-grant-rls.sql'
       - '.github/workflows/data-api-phase3-grants.yml'
       - 'supabase/migrations/**'
   workflow_dispatch:
@@ -22,6 +23,32 @@ jobs:
         run: node tests/data-api-readiness-phase3.cjs
       - name: Validate recorded migration inventory format and local comparison logic
         run: node tests/phase4-migration-inventory.cjs --self-test
+  isolated-postgres-grant-rls:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: phase4_fixture
+          POSTGRES_PASSWORD: phase4-disposable-fixture-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d phase4_fixture"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGPASSWORD: phase4-disposable-fixture-only
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client if required
+        run: command -v psql >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client)
+      - name: Exercise real PostgreSQL GRANT and RLS with only synthetic rows
+        run: psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -f tests/phase4-postgres-grant-rls.sql
   historical-migration-gate:
     runs-on: ubuntu-latest
     permissions:
