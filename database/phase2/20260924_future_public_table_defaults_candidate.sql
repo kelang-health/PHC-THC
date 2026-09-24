@@ -1,9 +1,11 @@
--- Phase 2 candidate: opt-in Data API grants for FUTURE public tables only.
+-- Phase 2 candidate: review-only minimal defaults for FUTURE postgres-created public tables.
 -- STAGED FOR REVIEW. DO NOT RUN ON PRODUCTION UNTIL:
 --   1) the complete historical migration baseline is checked into source control,
 --   2) every new public table in migrations has explicit role-specific GRANTs and RLS,
 --   3) isolated db reset / branch tests pass, and the current app is regression-tested.
 -- Does not REVOKE access to any existing table and does not touch Auth or LINE Login.
+-- Revoke ALL future default table privileges (not only CRUD): TRUNCATE and other
+-- inherited table rights must not remain granted to browser roles by default.
 -- PostgreSQL default ACLs are scoped per *creating role* and per schema.
 -- Connected SQL role is postgres, which has NO membership in supabase_admin.
 -- Therefore this candidate ONLY changes postgres-created future public tables.
@@ -13,7 +15,7 @@
 BEGIN;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
-  REVOKE SELECT, INSERT, UPDATE, DELETE ON TABLES
+  REVOKE ALL PRIVILEGES ON TABLES
   FROM anon, authenticated, service_role;
 
 COMMIT;
