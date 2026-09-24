@@ -34,7 +34,7 @@ function paintAdminTestResetV2057(root,x){
 }
 async function renderAdminWorkProgressiveV2057(root){
   const seq=++adminWorkLoadSeqV2057;renderAdminWorkShellV2057(root);
-  const member=sharedCall('admin-work-member-v2070',()=>supabase.rpc('admin_cancellable_member_requests_v2070'),ADMIN_WORK_CACHE_MS_V2057);
+  const member=sharedCall('admin-work-member-v2109',()=>supabase.rpc('admin_pending_member_requests_v2109'),ADMIN_WORK_CACHE_MS_V2057);
   const line=sharedCall('admin-work-line-v2057',()=>supabase.rpc('admin_line_overview_v190'),ADMIN_WORK_CACHE_MS_V2057);
   const notices=sharedCall('admin-work-notices-v2057',()=>supabase.rpc('admin_notification_center_v190',{p_limit:5}),ADMIN_WORK_CACHE_MS_V2057);
   const myLine=loadMyLineStatusV2038();
@@ -49,6 +49,7 @@ async function renderAdminWorkProgressiveV2057(root){
 function injectStyle(){if($('#phc190-style'))return;const s=document.createElement('style');s.id='phc190-style';s.textContent=`
 .phc190-screen-button,.phc190-primary,.phc190-secondary,.phc190-state{min-height:56px;border-radius:14px;border:2px solid #bcd5cc;background:#fff;color:#174f45;font:inherit;font-weight:900;padding:10px 14px;cursor:pointer}.phc190-primary{background:#0d7766;border-color:#0d7766;color:#fff}.phc190-danger{background:#fff0ed!important;border-color:#dda79d!important;color:#8f392f!important}.phc190-screen-button{width:100%;margin-top:9px;background:#e9f6f2;border-color:#9bcdbd}.phc190-request-wrap{display:grid;gap:9px;margin:12px 0;padding:12px;border:2px solid #d4e4de;border-radius:16px;background:#f8fbfa}.phc190-request-head{display:flex;gap:9px;justify-content:space-between;align-items:center}.phc190-request-head h3{margin:0;font-size:1.08rem}.phc190-request-list{display:grid;gap:7px}.phc190-request{padding:10px;border:1px solid #d9e6e1;border-radius:12px;background:#fff}.phc190-request strong{display:block}.phc190-request small{display:block;margin-top:3px;color:#647871}.phc190-status{display:inline-flex;margin-top:7px;padding:5px 8px;border-radius:999px;font-weight:900;font-size:.78rem}.phc190-status.pending{background:#fff3c8;color:#71570e}.phc190-status.verified{background:#e5f6eb;color:#17623f}.phc190-status.needs_correction{background:#fff0df;color:#92520e}.phc190-status.rejected{background:#fde5e3;color:#8f2f29}
 .phc190-overlay{position:fixed;inset:0;z-index:7600;background:#0f2822a8;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:12px}.phc190-modal{width:min(780px,100%);margin:auto;background:#fff;border-radius:22px;padding:16px;display:grid;gap:13px;box-shadow:0 30px 90px #0006}.phc190-head{display:flex;justify-content:space-between;gap:12px;align-items:start}.phc190-head h2{margin:2px 0 0;font-size:1.35rem}.phc190-close{min-width:58px;min-height:58px;border:0;border-radius:14px;background:#e8f0ed;font-size:1.55rem;font-weight:900}.phc190-note{padding:10px 12px;border-radius:13px;background:#f2f7f5;color:#536c65;line-height:1.5}.phc190-warning{background:#fff6d8;color:#6e5711}.phc190-alert{background:#fff0e6;color:#874710}.phc190-form{display:grid;gap:12px}.phc190-form label{display:grid;gap:6px;font-weight:850}.phc190-form input,.phc190-form textarea{width:100%;min-height:58px;border:2px solid #bed4cc;border-radius:13px;padding:10px 12px;font:inherit;font-size:1rem;background:#fff}
+.phc190-line-contact{width:100%;margin:10px 0 4px;background:#e8f7eb;border-color:#9ed1aa;color:#14592e}.phc190-line-unavailable{color:#647871}.phc190-line-compose{margin:8px 0 12px;padding:12px;border:1px solid #c9e0d3;border-radius:12px;background:#f7fcf8}.phc190-line-compose small{color:#536c65}.phc190-line-compose button{width:100%}
  .phc190-birth-grid{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr) minmax(0,1.3fr);gap:8px}
  .phc190-birth-grid label{min-width:0;font-size:.93rem}
  .phc190-form .phc190-birth-grid select,.phc190-form .phc190-birth-grid input{width:100%;min-width:0;min-height:58px;border:2px solid #bed4cc;border-radius:13px;padding:8px;font:inherit;font-size:1rem;background:#fff;color:#23483f}
@@ -133,7 +134,7 @@ function openMemberRequest(houseId,onDone){
 }
 
 function invalidateCancelledFieldCachesV2070(){
-  for(const prefix of ['admin-work-member-v2070','admin-work-notices-v2057',
+  for(const prefix of ['admin-work-member-v2070','admin-work-member-v2109','admin-work-notices-v2057',
     'my-household-cards-v2039:','my-pending-houses-v2055:',
     'house-add-quota-v2055:','staff-community-bundle-v2055:',
     'spatial-community-cards-v1854','spatial-role-dashboard-v1854',
@@ -206,19 +207,31 @@ async function renderAdminPendingHouseQueueV2070(){
 }
 
 async function renderAdminMemberQueue(){
-  const body=openModal('คำขอเพิ่มสมาชิก','Admin ต้องตรวจข้อมูลเดิมก่อนยืนยัน คำขอที่ยังไม่เชื่อมบุคคลจาก JHCIS จะยังไม่ถูกนับเป็นประชากรจริง');
+  const body=openModal('คำขอเพิ่มสมาชิกที่รอตรวจ','แสดงเฉพาะคำขอที่ยังต้องตัดสินใจ เมื่อยืนยัน ส่งกลับแก้ไข หรือยกเลิกแล้ว รายการจะออกจากคิว แต่ยังเก็บประวัติไว้');
   body.innerHTML='<div class="phc190-note">กำลังโหลด…</div>';
-  const {data,error}=await supabase.rpc('admin_member_requests_with_submitter_v2090');
+  const {data,error}=await supabase.rpc('admin_pending_member_requests_v2109');
   if(error){body.innerHTML=`<div class="phc190-error">${esc(friendlyError(error))}</div>`;return}
   const rows=data||[];
-  body.innerHTML=`<div class="phc190-request-list">${rows.map(r=>`<article class="phc190-request" data-admin-request="${esc(r.id)}"><strong>${esc(r.full_name)}</strong><small>บ้าน ${esc(r.house_no)} · ${esc(r.community)} · ${esc(r.masked_citizen_id)} · เกิด ${esc(fmt(r.birth_date))}</small><small class="phc190-requester">ผู้แจ้ง: <strong>${esc(r.requester_name||'ไม่ระบุ')}</strong> · ชุมชนผู้แจ้ง: <strong>${esc(r.requester_community||'ไม่ระบุ')}</strong></small><div class="phc190-actions"><button class="phc190-secondary" data-sensitive>ดูเลขเพื่อเทียบ</button><button class="phc190-secondary" data-match>ค้นหาบุคคลเดิม</button></div><div class="phc190-actions"><button class="phc190-primary" data-verify>ยืนยันข้อมูล / รอ Sync</button><button class="phc190-secondary" data-correct>ขอแก้ไข</button></div><button class="phc190-secondary phc190-danger" data-cancel>ยกเลิกคำขอ</button><div data-detail></div></article>`).join('')||'<div class="phc190-note">ไม่มีคำขอรอตรวจ</div>'}</div>`;
+  body.innerHTML=`<div class="phc190-request-list">${rows.map(r=>`<article class="phc190-request" data-admin-request="${esc(r.id)}"><strong>${esc(r.full_name)}</strong><small>บ้าน ${esc(r.house_no)} · ${esc(r.community)} · ${esc(r.masked_citizen_id)} · เกิด ${esc(fmt(r.birth_date))}</small><small class="phc190-requester">ผู้แจ้ง: <strong>${esc(r.requester_name||'ไม่ระบุ')}</strong> · ชุมชนผู้แจ้ง: <strong>${esc(r.requester_community||'ไม่ระบุ')}</strong></small>${r.requester_line_connected&&r.requester_user_id?'<button type="button" class="phc190-secondary phc190-line-contact" data-line-contact>ติดต่อผู้แจ้งทาง LINE</button>':'<small class="phc190-line-unavailable">ผู้แจ้งยังไม่เชื่อม LINE</small>'}<div data-line-compose></div><div class="phc190-actions"><button class="phc190-secondary" data-sensitive>ดูเลขเพื่อเทียบ</button><button class="phc190-secondary" data-match>ค้นหาบุคคลเดิม</button></div><div class="phc190-actions"><button class="phc190-primary" data-verify>ยืนยันข้อมูล / รอ Sync</button><button class="phc190-secondary" data-correct>ขอแก้ไข</button></div><button class="phc190-secondary phc190-danger" data-cancel>ยกเลิกคำขอ</button><div data-detail></div></article>`).join('')||'<div class="phc190-note">ไม่มีคำขอรอตรวจ</div>'}</div>`;
   body.querySelectorAll('[data-admin-request]').forEach(card=>{
     const id=card.dataset.adminRequest,box=card.querySelector('[data-detail]');
      const item=rows.find(r=>String(r.id)===id);
-     if(item?.status==='verified'){
-       card.querySelector('[data-verify]')?.remove();card.querySelector('[data-correct]')?.remove();
-       const matchButton=card.querySelector('[data-match]');if(matchButton)matchButton.disabled=true;
-     }
+    card.querySelector('[data-line-contact]')?.addEventListener('click',()=>{
+      const host=card.querySelector('[data-line-compose]');
+      if(host.childElementCount){host.replaceChildren();return}
+      host.innerHTML='<form class="phc190-form phc190-line-compose" data-line-form><label>ข้อความถึงผู้แจ้ง<textarea name="body" maxlength="500" required>มีข้อมูลคำขอเพิ่มสมาชิกที่ต้องตรวจเพิ่มเติม กรุณาเปิดระบบ อสม. พลัส หรือติดต่อหน่วยบริการ</textarea></label><small>ส่งผ่าน LINE ที่เชื่อมกับบัญชีผู้แจ้ง ไม่ใส่เลขบัตรประชาชนหรือข้อมูลสุขภาพ</small><div class="phc190-error" data-err></div><button type="submit" class="phc190-primary">เข้าคิวส่ง LINE</button></form>';
+      const form=host.querySelector('[data-line-form]');
+      form.onsubmit=async e=>{
+        e.preventDefault();const message=form.elements.body.value.trim(),err=form.querySelector('[data-err]');err.textContent='';
+        if(!message||/\d{13}/.test(message)||/(password|api[ _-]?key|service[ _-]?role|bot[ _-]?token|secret)\s*[:=]/i.test(message)){err.textContent='กรุณาใช้ข้อความทั่วไป โดยไม่ใส่เลขบัตรหรือข้อมูลอ่อนไหว';return}
+        const button=form.querySelector('button');button.disabled=true;
+        try{
+          const {error}=await supabase.rpc('admin_queue_line_message_v190',{p_recipient_user_id:item.requester_user_id,p_body:message,p_action_path:'?panel=overview',p_message_type:'notice'});
+          if(error)throw error;
+          host.replaceChildren();showPhcToast('เข้าคิวส่ง LINE ถึงผู้แจ้งแล้ว','success',3200);
+        }catch(ex){err.textContent=friendlyError(ex);button.disabled=false}
+      };
+    });
     card.querySelector('[data-sensitive]').onclick=async()=>{const {data,error}=await supabase.rpc('admin_member_request_sensitive_v190',{p_request_id:id});box.innerHTML=error?`<div class="phc190-error">${esc(friendlyError(error))}</div>`:`<div class="phc190-note">เลขสำหรับตรวจสอบ: <strong>${esc(data.citizen_id)}</strong><br>การเปิดดูครั้งนี้ถูกบันทึก Audit แล้ว</div>`};
     card.querySelector('[data-match]').onclick=async()=>{
       box.innerHTML='<div class="phc190-note">กำลังตรวจทะเบียนเดิม…</div>';
@@ -239,6 +252,7 @@ async function reviewRequest(id,decision,note='',linkPcucode=null,linkPid=null){
     const {data,error}=await supabase.rpc('review_household_member_request_v190',{p_request_id:id,p_decision:decision,p_note:note,p_link_pcucode:linkPcucode,p_link_pid:linkPid});
     if(error)throw error;
     if(data?.message)alert(data.message);else if(linkPid)alert('ยืนยันและเชื่อมกับบุคคลเดิมสำเร็จ');
+    invalidateShared('admin-work-member-v2109');
     await renderAdminMemberQueue();
   }catch(e){alert(friendlyError(e))}
 }
