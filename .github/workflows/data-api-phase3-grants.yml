@@ -1,4 +1,4 @@
-name: Phase 3 Data API grant safety (offline)
+name: Data API offline security checks (synthetic, no deployment)
 on:
   pull_request:
     paths:
@@ -10,6 +10,7 @@ on:
       - 'tests/phase4-booking-grant-rls.sql'
       - 'tests/phase4-booking-http.cjs'
       - '.github/workflows/data-api-phase3-grants.yml'
+      - '.github/workflows/data-api-deployment-readiness.yml'
       - 'supabase/migrations/**'
   workflow_dispatch:
 jobs:
@@ -106,15 +107,4 @@ jobs:
         run: node tests/phase4-postgrest-http.cjs
       - name: Verify synthetic booking access and paused direct writes
         run: node tests/phase4-booking-http.cjs
-  historical-migration-gate:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Require complete replayable migration history and explicit new-table grants
-        run: node tests/data-api-readiness-phase3.cjs --deployment-gate
-# Deliberately no Supabase token, database migration, db reset, or production deploy.
+# These synthetic/offline jobs never validate migration replay or authorize deployment.
