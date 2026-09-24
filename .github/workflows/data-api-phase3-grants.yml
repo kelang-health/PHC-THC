@@ -6,6 +6,7 @@ on:
       - 'tests/data-api-readiness-phase3.cjs'
       - 'tests/phase4-migration-inventory.cjs'
       - 'tests/phase4-postgres-grant-rls.sql'
+      - 'tests/phase4-postgrest-http.cjs'
       - '.github/workflows/data-api-phase3-grants.yml'
       - 'supabase/migrations/**'
   workflow_dispatch:
@@ -49,6 +50,55 @@ jobs:
         run: command -v psql >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client)
       - name: Exercise real PostgreSQL GRANT and RLS with only synthetic rows
         run: psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -f tests/phase4-postgres-grant-rls.sql
+  isolated-postgrest-http:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: phase4_fixture
+          POSTGRES_PASSWORD: phase4-disposable-fixture-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d phase4_fixture"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGPASSWORD: phase4-disposable-fixture-only
+      PHASE4_JWT_SECRET: phase4-isolated-jwt-secret-not-production-123456789
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install PostgreSQL client if required
+        run: command -v psql >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client)
+      - name: Create synthetic fixture in disposable database
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -f tests/phase4-postgres-grant-rls.sql
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -c "CREATE ROLE authenticator WITH LOGIN NOINHERIT PASSWORD 'phase4-disposable-fixture-only'; GRANT anon, authenticated TO authenticator;"
+      - name: Start disposable PostgREST Data API
+        run: |
+          docker run --rm -d --network host --name phase4-grant-postgrest \
+            -e PGRST_DB_URI='postgres://authenticator:phase4-disposable-fixture-only@127.0.0.1:5432/phase4_fixture' \
+            -e PGRST_DB_SCHEMAS=public \
+            -e PGRST_DB_ANON_ROLE=anon \
+            -e PGRST_JWT_SECRET="$PHASE4_JWT_SECRET" \
+            -e PGRST_SERVER_PORT=3000 \
+            postgrest/postgrest:latest
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/ >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          docker logs phase4-grant-postgrest
+          exit 1
+      - name: Verify HTTP access control with synthetic users
+        run: node tests/phase4-postgrest-http.cjs
   historical-migration-gate:
     runs-on: ubuntu-latest
     permissions:
