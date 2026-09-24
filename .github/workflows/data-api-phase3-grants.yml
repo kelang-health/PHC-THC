@@ -4,6 +4,7 @@ on:
     paths:
       - 'database/phase2/**'
       - 'tests/data-api-readiness-phase3.cjs'
+      - 'tests/phase4-migration-inventory.cjs'
       - '.github/workflows/data-api-phase3-grants.yml'
       - 'supabase/migrations/**'
   workflow_dispatch:
@@ -19,6 +20,8 @@ jobs:
           node-version: '22'
       - name: Validate safe SQL candidate and audit queries
         run: node tests/data-api-readiness-phase3.cjs
+      - name: Validate recorded migration inventory format and local comparison logic
+        run: node tests/phase4-migration-inventory.cjs --self-test
   historical-migration-gate:
     runs-on: ubuntu-latest
     permissions:
