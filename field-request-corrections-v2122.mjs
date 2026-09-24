@@ -65,8 +65,8 @@ async function openHouse(id,onSaved){
   const setPoint=(lat,lng,kind='map')=>{
     form.elements.lat.value=Number(lat).toFixed(6);form.elements.lng.value=Number(lng).toFixed(6);source=kind;
     if(map&&Number.isFinite(Number(lat))&&Number.isFinite(Number(lng))){
-      if(marker)marker.setLatLng([lat,lng]);else marker=window.L.marker([lat,lng],{draggable:true}).addTo(map);
-      marker.on('dragend',()=>{const pt=marker.getLatLng();setPoint(pt.lat,pt.lng,'map');});
+      if(marker)marker.setLatLng([lat,lng]);else {marker=window.L.marker([lat,lng],{draggable:true}).addTo(map);
+        marker.on('dragend',()=>{const pt=marker.getLatLng();setPoint(pt.lat,pt.lng,'map');});}
       map.setView([lat,lng],17);
     }
   };
@@ -97,8 +97,9 @@ async function openHouse(id,onSaved){
   form.onsubmit=async event=>{
     event.preventDefault();msg.textContent='';
     const changed=form.elements.changeLocation.checked;
-    const lat=Number(form.elements.lat.value),lng=Number(form.elements.lng.value);
-    if(changed&&(!Number.isFinite(lat)||!Number.isFinite(lng))){msg.textContent='กรุณาเลือกพิกัดใหม่';return;}
+    const latRaw=form.elements.lat.value.trim(),lngRaw=form.elements.lng.value.trim();
+    const lat=Number(latRaw),lng=Number(lngRaw);
+    if(changed&&(!latRaw||!lngRaw||!Number.isFinite(lat)||!Number.isFinite(lng))){msg.textContent='กรุณาเลือกพิกัดใหม่';return;}
     const save=$('[data-fc22-save]',dialog);save.disabled=true;
     try{
       if(changed){
