@@ -14,7 +14,7 @@
 
 ## Implementation now
 
-`database/phase2/20260924_future_public_table_defaults_candidate.sql` is **review-only**. It changes default ACLs for **future** tables created in public by `postgres` or `supabase_admin`; it changes no existing table. Keep it OUT of auto-deployed `supabase/migrations` until historical baseline, creator-role privileges, deployment sequencing, and isolated tests are verified. Applying it prematurely can make subsequent new tables inaccessible until their per-table GRANTs are added.
+`database/phase2/20260924_future_public_table_defaults_candidate.sql` is **review-only**. It changes default ACLs for **future** tables created in public by `postgres` only; it changes no existing table. Keep it OUT of auto-deployed `supabase/migrations` until historical baseline, creator-role privileges, deployment sequencing, and isolated tests are verified. Applying it prematurely can make subsequent new tables inaccessible until their per-table GRANTs are added.
 
 For every NEW public table migration include, in the **same transaction/migration**:
 1. Explicit RLS and scoped policy appropriate to user/admin/staff/volunteer, with service-only tables keeping API grants absent for anon/authenticated.
@@ -29,3 +29,7 @@ For every NEW public table migration include, in the **same transaction/migratio
 - Verify Dashboard → Data API → Exposed schemas; catalog `has_schema_privilege` is not the Data API configuration.
 - Audit sensitive views and the Security Advisor's SECURITY DEFINER list; do not infer full endpoint security merely from RLS-enabled=true.
 - Test in an existing authorized isolated environment; production changes and rollout are a separate gated operation.
+
+## Creator-role permission check (24 Sep 2026)
+
+Read-only SQL confirmed that the connected SQL role is `postgres`, with role membership to manage its own defaults, **but without membership in `supabase_admin`**. The candidate SQL deliberately omits `ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin` to avoid a privilege error that would roll back the entire transaction. Track supabase_admin-created public tables separately using an authorized owner/platform-managed mechanism; do not elevate postgres or grant broad roles as a workaround. No SQL was executed against production in this phase.
