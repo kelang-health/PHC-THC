@@ -1,6 +1,6 @@
 import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall, invalidateShared } from './shared-runtime-v2035.mjs?v=2.0.59';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.105&p=2105';
-const VERSION='2.0.114';
+const VERSION='2.0.115';
 const DEFAULT_CENTER=[18.2696,99.5071];
 const HOUSEHOLD_CACHE_MS_V2039=300000;
 const HOUSE_SECONDARY_CACHE_MS_V2055=60000;
@@ -19,6 +19,7 @@ function injectStyle(){if($('#my-houses-mobile-style'))return;const s=document.c
 @media(max-width:640px){[data-portal-panel="houses"]{padding:13px 10px}.myh{gap:11px}.myh-title h2{font-size:1.2rem}.myh-kpis{grid-template-columns:1fr 1fr}.myh-add{min-height:72px;font-size:1.2rem}.myh-search{padding:12px}.myh-search input,.myh-search select{min-height:66px;font-size:1.18rem}.myh-map{height:48vh;min-height:360px;border-radius:15px}.myh-actions{grid-template-columns:1fr}.myh-btn,.myh-link{min-height:70px;font-size:1.14rem}.myh-help{font-size:1rem}.myh-modal{padding:0}.myh-modal-card{min-height:100vh;border-radius:0;padding:15px 11px max(22px,env(safe-area-inset-bottom))}.myh-form input{min-height:66px;font-size:1.2rem}.myh-modal-map{height:42vh;min-height:330px}.myh-modal-actions,.myh-confirm-actions{grid-template-columns:1fr}.myh-modal-actions button,.myh-confirm-actions button{min-height:72px;font-size:1.16rem}}
 `;
 s.textContent+=`.myh-refresh-compact{min-height:44px;min-width:44px;padding:6px 10px;border:1px solid #b9d1c7;border-radius:12px;background:#fff;color:#194f46;font:inherit;font-size:1.22rem;font-weight:800;cursor:pointer}.myh-refresh-compact:disabled{opacity:.5}.myh-pending-details>summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-weight:800;list-style:none}.myh-pending-details>summary::-webkit-details-marker{display:none}.myh-pending-details>summary small{font-size:.8rem;color:#586e67;font-weight:500}.myh-pending-details[open] .myh-house-list{margin-top:10px}.myh-completion-summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.myh-completion-summary>strong{font-size:1.02rem;margin-right:auto}.myh-completion-pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;background:#e8f6ee;color:#165d47;padding:7px 10px;font-size:.93rem;font-weight:850}.myh-completion-pill.cancel{background:#fff2e8;color:#93471a}.myh-completion-toggle{border:1px solid #b9d1c7;border-radius:11px;background:#fff;color:#194f46;min-height:40px;padding:6px 12px;font:inherit;font-size:.92rem;font-weight:800;cursor:pointer}.myh-completion-history{display:grid;gap:7px;margin-top:4px}.myh-completion-history[hidden]{display:none!important}.myh-completion-item{min-width:0;border:1px solid #deebe6;border-radius:11px;padding:9px 10px}.myh-completion-item strong{display:block;font-size:.94rem}.myh-completion-item small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:#586e67;font-size:.85rem;line-height:1.4;overflow-wrap:anywhere}@media(max-width:640px){.myh-completion-summary>strong{flex-basis:100%}.myh-completion-pill{font-size:.87rem}.myh-refresh-compact{align-self:flex-start}}`;
+s.textContent+=`.myh-completion-archived{padding:5px 9px;border-color:transparent;background:transparent;gap:0}.myh-archive-trigger{width:100%;min-height:44px;border:1px solid #d5e4de;border-radius:12px;background:#f7faf8;color:#315e53;text-align:left;font:inherit;font-size:.91rem;font-weight:750;padding:8px 11px;display:flex;justify-content:space-between;align-items:center;gap:6px;cursor:pointer}.myh-completion-archived [data-myh-completion-content]:not([hidden]){display:grid;gap:9px;margin-top:8px}.myh-completion-archived [data-myh-completion-content][hidden]{display:none!important}`;
 document.head.appendChild(s);}
 
 async function ensureLeaflet(){if(window.L)return window.L;if(leafletPromise)return leafletPromise;leafletPromise=new Promise((resolve,reject)=>{if(!document.querySelector('link[data-phc-leaflet]')){const l=document.createElement('link');l.rel='stylesheet';l.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';l.dataset.phcLeaflet='1';document.head.appendChild(l);}let sc=document.querySelector('script[data-phc-leaflet]');if(sc){if(window.L)return resolve(window.L);sc.addEventListener('load',()=>resolve(window.L),{once:true});sc.addEventListener('error',reject,{once:true});return;}sc=document.createElement('script');sc.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';sc.async=true;sc.dataset.phcLeaflet='1';sc.onload=()=>resolve(window.L);sc.onerror=()=>reject(new Error('ไม่สามารถโหลดแผนที่ได้'));document.head.appendChild(sc);});return leafletPromise;}
@@ -48,16 +49,20 @@ function renderPending(){if(!panel)return;let box=$('[data-myh-pending]',panel);
 const COMPLETE_EVENTS_V2114=['house.jhcis_verified','member_request.jhcis_verified'];
 const CANCEL_EVENTS_V2114=['house.admin_cancelled','member_request.admin_cancelled'];
 const NOTICE_EVENTS_V2114=[...COMPLETE_EVENTS_V2114,...CANCEL_EVENTS_V2114];
+const COMPLETION_ARCHIVE_DAYS_V2115=30;
+const COMPLETION_ARCHIVE_MS_V2115=COMPLETION_ARCHIVE_DAYS_V2115*24*60*60*1000;
 async function loadCompletionNoticesV2069(){
   if(!panel||panel.hidden||!profile?.user_id)return;
   const target=$('[data-myh-completed]',panel);if(!target)return;
   const recipient=profile.user_id;
-  // Count without downloading the full notification history on initial page load.
+  // Two count queries return one timestamp each; full history is only fetched on demand.
   const [complete,cancelled]=await Promise.all([
-    supabase.from('notifications').select('id',{count:'exact',head:true})
-      .eq('recipient_user_id',recipient).in('event_type',COMPLETE_EVENTS_V2114),
-    supabase.from('notifications').select('id',{count:'exact',head:true})
+    supabase.from('notifications').select('created_at',{count:'exact'})
+      .eq('recipient_user_id',recipient).in('event_type',COMPLETE_EVENTS_V2114)
+      .order('created_at',{ascending:false}).limit(1),
+    supabase.from('notifications').select('created_at',{count:'exact'})
       .eq('recipient_user_id',recipient).in('event_type',CANCEL_EVENTS_V2114)
+      .order('created_at',{ascending:false}).limit(1)
   ]);
   if(!target.isConnected||profile?.user_id!==recipient)return;
   if(complete.error||cancelled.error){
@@ -68,7 +73,26 @@ async function loadCompletionNoticesV2069(){
   const done=Number(complete.count||0),cancel=Number(cancelled.count||0);
   target.hidden=done+cancel===0;
   if(target.hidden){target.replaceChildren();return;}
-  target.innerHTML=`<div class="myh-completion-summary"><strong>ผลคำขอของฉัน</strong><span class="myh-completion-pill">✓ สำเร็จ ${done.toLocaleString('th-TH')}</span>${cancel?`<span class="myh-completion-pill cancel">ยกเลิก ${cancel.toLocaleString('th-TH')}</span>`:''}<button type="button" class="myh-completion-toggle" data-myh-history aria-expanded="false">ดูย้อนหลัง ▾</button></div><div class="myh-completion-history" data-myh-history-list hidden></div>`;
+  const lastAt=Math.max(
+    Date.parse(complete.data?.[0]?.created_at||'')||0,
+    Date.parse(cancelled.data?.[0]?.created_at||'')||0
+  );
+  // Archive the COMPLETED/REJECTED notice card only; pending house and member workflows stay visible.
+  // Unknown or missing timestamps fail open (do not hide a card).
+  const oldEnough=lastAt>0&&Date.now()-lastAt>=COMPLETION_ARCHIVE_MS_V2115;
+  const archived=profile.role==='user'&&oldEnough&&pendingHouses.length===0;
+  const compactLabel=`ประวัติคำขอ · สำเร็จ ${done.toLocaleString('th-TH')}${cancel?` · ยกเลิก ${cancel.toLocaleString('th-TH')}`:''}`;
+  target.classList.toggle('myh-completion-archived',archived);
+  target.innerHTML=`${archived?`<button type="button" class="myh-archive-trigger" data-myh-archive aria-expanded="false">${esc(compactLabel)} <span aria-hidden="true">▾</span></button>`:''}<div data-myh-completion-content ${archived?'hidden':''}><div class="myh-completion-summary"><strong>ผลคำขอของฉัน</strong><span class="myh-completion-pill">✓ สำเร็จ ${done.toLocaleString('th-TH')}</span>${cancel?`<span class="myh-completion-pill cancel">ยกเลิก ${cancel.toLocaleString('th-TH')}</span>`:''}<button type="button" class="myh-completion-toggle" data-myh-history aria-expanded="false">ดูย้อนหลัง ▾</button></div><div class="myh-completion-history" data-myh-history-list hidden></div></div>`;
+  const archiveTrigger=$('[data-myh-archive]',target);
+  if(archiveTrigger){
+    const content=$('[data-myh-completion-content]',target);
+    archiveTrigger.onclick=()=>{
+      content.hidden=!content.hidden;
+      archiveTrigger.setAttribute('aria-expanded',String(!content.hidden));
+      archiveTrigger.querySelector('span').textContent=content.hidden?'▾':'▴';
+    };
+  }
   const toggle=$('[data-myh-history]',target),history=$('[data-myh-history-list]',target);
   toggle.onclick=async()=>{
     if(!history.hidden){
