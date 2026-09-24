@@ -7,7 +7,7 @@ GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 
 -- Reproduce OLD default on an isolated database.
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
-  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO anon, authenticated, service_role;
+  GRANT ALL PRIVILEGES ON TABLES TO anon, authenticated, service_role;
 CREATE TABLE public.phase4_before (id int);
 DO $test$ BEGIN
  IF NOT has_table_privilege('anon','public.phase4_before','SELECT') THEN
@@ -36,6 +36,19 @@ INSERT INTO public.phase4_health_fixture VALUES
 CREATE TABLE public.phase4_server_only(id int PRIMARY KEY);
 ALTER TABLE public.phase4_server_only ENABLE ROW LEVEL SECURITY;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.phase4_server_only TO service_role;
+
+DO $test$ DECLARE privilege_name text; BEGIN
+ -- Full least-privilege check: a CRUD-only REVOKE leaves dangerous non-CRUD rights.
+ FOREACH privilege_name IN ARRAY ARRAY['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER','MAINTAIN']
+ LOOP
+  IF has_table_privilege('anon','public.phase4_health_fixture',privilege_name)
+     OR has_table_privilege('anon','public.phase4_server_only',privilege_name)
+     OR has_table_privilege('authenticated','public.phase4_server_only',privilege_name)
+  THEN
+    RAISE EXCEPTION 'New table inherited unexpected direct client privilege: %',privilege_name;
+  END IF;
+ END LOOP;
+END $test$;
 
 DO $test$ BEGIN
  IF has_table_privilege('anon','public.phase4_health_fixture','SELECT')
