@@ -1,0 +1,29 @@
+name: Data API DEPLOY READINESS - blocked until migration history complete
+on:
+  pull_request:
+    paths:
+      - 'database/phase2/**'
+      - 'supabase/migrations/**'
+      - 'tests/data-api-readiness-phase3.cjs'
+      - '.github/workflows/data-api-phase3-grants.yml'
+      - '.github/workflows/data-api-deployment-readiness.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  complete-history-required:
+    name: DEPLOY BLOCKED until complete vetted migration history is replayed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Summarize reason for deployment block
+        run: |
+          echo '### Deployment readiness: blocked until full historical migration source is available' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Offline GRANT/RLS and synthetic HTTP tests run in the separate Data API offline security checks workflow.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'This gate must remain failing until all recorded migrations are restored and verified, the complete replay succeeds on an isolated Supabase-compatible target, and role-scoped application API tests pass.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify historical migration inventory and per-table security
+        run: node tests/data-api-readiness-phase3.cjs --deployment-gate
+# No Supabase token, production SQL, migration replay, branch creation or deploy action.
