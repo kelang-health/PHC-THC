@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "source": "Supabase migration history metadata only; no SQL or data",
-  "snapshot_date": "2026-09-24",
+  "snapshot_date": "2026-09-25",
   "project_ref": "tgeezbwbrovfyjbeykrj",
   "required": [
     {
@@ -731,6 +731,42 @@
     {
       "version": "20260923235422",
       "name": "pause_all_cloud_announcements_booking_and_public_reader_v2104"
+    },
+    {
+      "version": "20260924030527",
+      "name": "h7_service_eligibility_booking_guard_v2107"
+    },
+    {
+      "version": "20260924030631",
+      "name": "h7_scoped_rpc_private_v2107"
+    },
+    {
+      "version": "20260924034113",
+      "name": "h7_preliminary_request_v2108"
+    },
+    {
+      "version": "20260924054430",
+      "name": "h7_preliminary_staleness_v2108"
+    },
+    {
+      "version": "20260924054640",
+      "name": "h7_preliminary_service_results_v2108"
+    },
+    {
+      "version": "20260924081354",
+      "name": "admin_pending_member_line_contact_v2109"
+    },
+    {
+      "version": "20260924092024",
+      "name": "field_request_corrections_v2122"
+    },
+    {
+      "version": "20260924092145",
+      "name": "field_house_pending_scope_guard_v2122"
+    },
+    {
+      "version": "20260924110811",
+      "name": "houses_removed_from_jhcis_soft_archive_v2123"
     }
   ]
 }
