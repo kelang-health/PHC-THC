@@ -7,9 +7,9 @@ const base=process.env.PHASE4_API_URL||'http://127.0.0.1:3000';
 const secret=process.env.PHASE4_JWT_SECRET;
 assert(secret&&secret.length>=32,'Isolated PostgREST fixture secret is missing');
 const b64=data=>Buffer.from(JSON.stringify(data)).toString('base64url');
-const token=sub=>{
+const token=(sub,role='authenticated')=>{
  const h=b64({alg:'HS256',typ:'JWT'});
- const p=b64({role:'authenticated',sub,exp:Math.floor(Date.now()/1000)+600});
+ const p=b64({role,sub,exp:Math.floor(Date.now()/1000)+600});
  const sig=crypto.createHmac('sha256',secret).update(h+'.'+p).digest('base64url');
  return h+'.'+p+'.'+sig;
 };
@@ -33,6 +33,13 @@ const get=async (table,bearer)=>{
  assert([401,403].includes(privAnon.status),'Anon server-only table request must be rejected');
  const privAuth=await get('phase4_server_only',token('test-user-a'));
  assert([401,403].includes(privAuth.status),'Authenticated server-only table request must be rejected');
+ const backendJwt=token('synthetic-server-only','service_role');
+ const backendRows=await get('phase4_health_fixture',backendJwt);
+ assert.equal(backendRows.status,200,'Synthetic backend should read explicit-grant table');
+ assert.deepEqual(backendRows.rows.map(x=>x.id),['fixture-1','fixture-2'],'Synthetic backend expected fixture rows missing');
+ const backendPrivate=await get('phase4_server_only',backendJwt);
+ assert.equal(backendPrivate.status,200,'Synthetic backend should access server-only table');
+
  const samples=[];
  for(let i=0;i<40;i++){
   const current=i%2?'test-user-b':'test-user-a';
