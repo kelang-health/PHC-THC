@@ -1,0 +1,33 @@
+name: Phase 3 Data API grant safety (offline)
+on:
+  pull_request:
+    paths:
+      - 'database/phase2/**'
+      - 'tests/data-api-readiness-phase3.cjs'
+      - '.github/workflows/data-api-phase3-grants.yml'
+      - 'supabase/migrations/**'
+  workflow_dispatch:
+jobs:
+  static-sql-check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate safe SQL candidate and audit queries
+        run: node tests/data-api-readiness-phase3.cjs
+  historical-migration-gate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Require complete replayable migration history and explicit new-table grants
+        run: node tests/data-api-readiness-phase3.cjs --deployment-gate
+# Deliberately no Supabase token, database migration, db reset, or production deploy.
