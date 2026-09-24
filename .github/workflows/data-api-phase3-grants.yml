@@ -5,6 +5,7 @@ on:
       - 'database/phase2/**'
       - 'tests/data-api-readiness-phase3.cjs'
       - 'tests/data-api-frontend-unchanged.cjs'
+      - 'tests/data-api-cloud-local-retention-safety.cjs'
       - 'tests/phase4-migration-inventory.cjs'
       - 'tests/phase4-postgres-grant-rls.sql'
       - 'tests/phase4-postgrest-http.cjs'
@@ -28,6 +29,8 @@ jobs:
           node-version: '22'
       - name: Verify path firewall unit fixtures
         run: node tests/data-api-frontend-unchanged.cjs --self-test
+      - name: Verify Cloud-to-Local planning never grants automatic Cloud deletion
+        run: node tests/data-api-cloud-local-retention-safety.cjs
       - name: Confirm PR modifies no released frontend, runtime, real migrations or deployment
         if: github.event_name == 'pull_request'
         env:
