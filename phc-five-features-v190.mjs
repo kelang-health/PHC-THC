@@ -110,8 +110,8 @@ async function renderHouseMemberRequests(root,houseId,healthAccess=true){
   let {data,error}=await supabase.rpc('household_member_requests_v2043',{p_house_id:houseId});
   if(error)({data,error}=await supabase.rpc('household_member_requests_v190',{p_house_id:houseId}));
   if(error){sec.innerHTML=`<div class="phc190-note">ยังไม่สามารถโหลดคำขอเพิ่มสมาชิกได้</div>`;return}
-  const rows=userVisibleMemberRequestsV2100(data);sec.innerHTML=`<div class="phc190-request-head"><div><h3>เพิ่ม/เชื่อมสมาชิก</h3><small>คำขอใหม่ยังไม่นับเป็นประชากรหรือ KPI จนกว่าเจ้าหน้าที่จะตรวจและเชื่อมทะเบียนสำเร็จ</small></div><button type="button" class="phc190-primary" data-phc190-add>+ แจ้งเพิ่มสมาชิก</button></div><div class="phc190-request-list">${rows.map(r=>`<article class="phc190-request"><strong>${esc(r.full_name)}</strong><small>${esc(r.display_identifier||r.masked_citizen_id)} · เกิด ${esc(fmt(r.birth_date))}</small><span class="phc190-status ${esc(r.status==='verified'&&!r.linked?'pending':r.status)}">${esc(r.status==='verified'&&!r.linked?'รอเชื่อม PID JHCIS':statusLabel(r.status))}</span>${r.review_note?`<small>${esc(r.review_note)}</small>`:''}</article>`).join('')||'<div class="phc190-note">ยังไม่มีคำขอเพิ่มสมาชิกบ้าน</div>'}</div>`;
-  sec.querySelector('[data-phc190-add]').onclick=()=>openMemberRequest(houseId,()=>renderHouseMemberRequests(root,houseId,healthAccess));
+  const rows=userVisibleMemberRequestsV2100(data);const {data:editable}=await supabase.rpc('field_editable_member_requests_v2122',{p_house_id:houseId});const editableMap=new Map((editable||[]).map(x=>[String(x.id),x]));sec.innerHTML=`<div class="phc190-request-head"><div><h3>เพิ่ม/เชื่อมสมาชิก</h3><small>คำขอใหม่ยังไม่นับเป็นประชากรหรือ KPI จนกว่าเจ้าหน้าที่จะตรวจและเชื่อมทะเบียนสำเร็จ</small></div><button type="button" class="phc190-primary" data-phc190-add>+ แจ้งเพิ่มสมาชิก</button></div><div class="phc190-request-list">${rows.map(r=>`<article class="phc190-request"><strong>${esc(r.full_name)}</strong><small>${esc(r.display_identifier||r.masked_citizen_id)} · เกิด ${esc(fmt(r.birth_date))}</small><span class="phc190-status ${esc(r.status==='verified'&&!r.linked?'pending':r.status)}">${esc(r.status==='verified'&&!r.linked?'รอเชื่อม PID JHCIS':statusLabel(r.status))}</span>${r.review_note?`<small>${esc(r.review_note)}</small>`:''}${editableMap.has(String(r.id))?`<button type="button" class="phc190-secondary" data-phc190-edit="${esc(r.id)}">แก้ไขข้อมูลที่แจ้ง</button>`:''}</article>`).join('')||'<div class="phc190-note">ยังไม่มีคำขอเพิ่มสมาชิกบ้าน</div>'}</div>`;
+  sec.querySelector('[data-phc190-add]').onclick=()=>openMemberRequest(houseId,()=>renderHouseMemberRequests(root,houseId,healthAccess));sec.querySelectorAll('[data-phc190-edit]').forEach(b=>b.onclick=()=>{const record=editableMap.get(b.dataset.phc190Edit);if(record)openMemberCorrectionV2122(record,()=>renderHouseMemberRequests(root,houseId,healthAccess));});
 }
 
 function memberBirthISOFromBEV2082(day,month,year){
@@ -125,6 +125,49 @@ function memberBirthISOFromBEV2082(day,month,year){
   if(date.getUTCFullYear()!==ad||date.getUTCMonth()+1!==mm||date.getUTCDate()!==dd)return '';
   const iso=String(ad).padStart(4,'0')+'-'+String(mm).padStart(2,'0')+'-'+String(dd).padStart(2,'0');
   return iso<=todayTH?iso:'';
+}
+
+
+function openMemberCorrectionV2122(record,onDone){
+  const parts=String(record.full_name||'').trim().split(/\s+/),first=parts.shift()||'',last=parts.join(' ');
+  const birth=String(record.birth_date||'').slice(0,10).split('-');
+  const body=openModal('แก้ไขคำขอเพิ่มสมาชิก','แก้ข้อมูลที่แจ้งผิดก่อนยืนยัน JHCIS · ใช้คำขอเดิม ไม่เพิ่มคนซ้ำ');
+  body.innerHTML=[
+    '<form class="phc190-form" data-edit-member>',
+    '<label>ชื่อ<input name="first" maxlength="80" value="'+esc(first)+'" required autocomplete="off"></label>',
+    '<label>นามสกุล<input name="last" maxlength="100" value="'+esc(last)+'" required autocomplete="off"></label>',
+    '<fieldset class="phc190-birth"><legend>วันเดือนปีเกิด</legend><div class="phc190-birth-grid">',
+    '<label>วัน<select name="day" required>'+Array.from({length:31},(_,i)=>'<option value="'+(i+1)+'" '+(Number(birth[2])===i+1?'selected':'')+'>'+(i+1)+'</option>').join('')+'</select></label>',
+    '<label>เดือน<select name="month" required>'+Array.from({length:12},(_,i)=>'<option value="'+(i+1)+'" '+(Number(birth[1])===i+1?'selected':'')+'>'+(i+1)+'</option>').join('')+'</select></label>',
+    '<label>ปี พ.ศ.<input name="year" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" value="'+(birth[0]?Number(birth[0])+543:'')+'" required></label></div></fieldset>',
+    '<label><input type="checkbox" data-change-cid> เปลี่ยนเลขประจำตัวประชาชนที่แจ้งผิด</label>',
+    '<label data-new-cid hidden>เลขประจำตัวประชาชนใหม่ 13 หลัก<input name="cid" maxlength="13" inputmode="numeric" autocomplete="off"></label>',
+    '<p class="phc190-note">ไม่แสดงเลขเดิมเต็ม 13 หลัก · การแก้ไขจะส่งตรวจ JHCIS ใหม่</p>',
+    '<p class="phc190-error" data-correction-error role="alert"></p>',
+    '<div class="phc190-actions"><button class="phc190-primary" type="submit">บันทึกและส่งตรวจใหม่</button></div></form>'
+  ].join('');
+  const f=$('[data-edit-member]',body),toggle=$('[data-change-cid]',f),newCid=$('[data-new-cid]',f);
+  toggle.onchange=()=>{newCid.hidden=!toggle.checked;f.elements.cid.required=toggle.checked;if(!toggle.checked)f.elements.cid.value='';};
+  f.onsubmit=async e=>{
+    e.preventDefault();const err=$('[data-correction-error]',f),d=new FormData(f);
+    const dob=memberBirthISOFromBEV2082(d.get('day'),d.get('month'),d.get('year'));
+    const cid=String(d.get('cid')||'').trim();
+    if(!dob){err.textContent='วันเกิดไม่ถูกต้อง';return;}
+    if(toggle.checked&&!cidValid(cid)){err.textContent='กรุณาตรวจเลข 13 หลัก';return;}
+    const b=f.querySelector('button[type="submit"]');b.disabled=true;err.textContent='กำลังบันทึก…';
+    try{
+      const {error}=await supabase.rpc('edit_pending_member_request_v2122',{
+        p_request_id:record.id,p_expected_updated_at:record.updated_at,
+        p_first_name:String(d.get('first')||'').trim(),p_last_name:String(d.get('last')||'').trim(),
+        p_birth_date:dob,p_new_citizen_id:toggle.checked?cid:null
+      });
+      if(error)throw error;
+      closeModal();invalidateShared('admin-work-member-v2109');
+      showPhcToast('บันทึกคำขอเดิมแล้ว · รอตรวจ JHCIS ใหม่');
+      await onDone?.();
+    }catch(x){err.textContent=friendlyError(x)+' · หากสถานะเปลี่ยน ให้โหลดคำขอใหม่';}
+    finally{b.disabled=false;}
+  };
 }
 
 function openMemberRequest(houseId,onDone){
