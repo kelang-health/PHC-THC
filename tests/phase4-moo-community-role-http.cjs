@@ -44,7 +44,10 @@ const users=[
     const result=await request(table,actor.claims,{fields:table===tables[0]?'id,moo,community,volunteer_pid,house_no':'id,house_id'});
     assert.equal(result.status,200,actor.name+' '+table+' HTTP failure '+result.error);
     assert.equal(result.rows.length,expected,actor.name+' '+table+' scope/count mismatch');
-    if(actor.name==='staff_same_moo')assert(result.rows.every(x=>x.moo===1),'Staff saw another moo');
+    if(actor.name==='staff_same_moo'){
+     if(table===tables[0])assert(result.rows.every(x=>x.moo===1),'Staff saw another moo');
+     else assert(result.rows.every(x=>x.house_id.startsWith('h-1-')),'Staff saw member of another moo');
+    }
     if(actor.name==='user_one_assigned_house'&&table===tables[0])
      assert(result.rows.every(x=>x.volunteer_pid==='vol-1-1'));
     timings.push(result.ms);
