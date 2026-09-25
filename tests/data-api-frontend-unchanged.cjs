@@ -5,14 +5,14 @@ const assert=require('node:assert/strict');
 const {spawnSync}=require('node:child_process');
 const allowed=(path)=>
  /^\.github\/workflows\/data-api-[a-z0-9-]+\.ya?ml$/i.test(path) ||
- /^database\/phase2\/[a-zA-Z0-9_.\/-]+$/.test(path) ||
+ /^database\/(?:phase2|phase5)\/[a-zA-Z0-9_.\/-]+$/.test(path) ||
  /^docs\/data-api-[a-zA-Z0-9_.\/-]+$/.test(path) ||
- /^tests\/(?:data-api-[a-zA-Z0-9_.-]+|phase4-[a-zA-Z0-9_.-]+)$/.test(path);
+ /^tests\/(?:data-api-[a-zA-Z0-9_.-]+|phase4-[a-zA-Z0-9_.-]+|phase5-[a-zA-Z0-9_.-]+)$/.test(path);
 const fixtures=[
  ['M','index.html',false],['M','app.js',false],['M','script.js',false],
  ['M','supabase/migrations/20260924000000_change.sql',false],
- ['M','.github/workflows/deploy.yml',false],['M','database/phase2/sql_candidate.sql',true],
- ['A','tests/phase4-postgrest-http.cjs',true],['A','.github/workflows/data-api-deployment-readiness.yml',true],
+ ['M','.github/workflows/deploy.yml',false],['M','database/phase2/sql_candidate.sql',true],['A','database/phase5/release-contract-summary-20260925.json',true],
+ ['A','tests/phase4-postgrest-http.cjs',true],['A','tests/phase5-release-contract.cjs',true],['A','.github/workflows/data-api-deployment-readiness.yml',true],
  ['D','tests/phase4-postgrest-http.cjs',false]
 ];
 for(const [status,path,expected] of fixtures)
