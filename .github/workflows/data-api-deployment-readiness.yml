@@ -4,8 +4,10 @@ on:
   pull_request:
     paths:
       - 'database/phase2/**'
+      - 'database/phase5/**'
       - 'supabase/migrations/**'
       - 'tests/data-api-readiness-phase3.cjs'
+      - 'tests/phase5-release-contract.cjs'
       - '.github/workflows/data-api-phase3-grants.yml'
       - '.github/workflows/data-api-deployment-readiness.yml'
   workflow_dispatch:
@@ -22,6 +24,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Validate Phase 5 Production metadata release contract
+        run: node tests/phase5-release-contract.cjs
       - name: Detect deployable migration changes
         id: scope
         shell: bash
