@@ -53,7 +53,14 @@ assert.equal('20260924110811_houses_removed_from_jhcis_soft_archive_v2123.sql'.m
 console.log('PASS: offline SQL candidate scope, read-only catalog audit, explicit-grant unit fixtures');
 if (process.argv.includes('--deployment-gate')) {
   const migrationDir = path.join(root, 'supabase/migrations');
-  assert(fs.existsSync(migrationDir) && fs.statSync(migrationDir).isDirectory(), 'BLOCKED: complete historical supabase/migrations baseline is not present; do not deploy or claim db reset passed');
+  if (!fs.existsSync(migrationDir) || !fs.statSync(migrationDir).isDirectory()) {
+    // Deliberate fail-closed deployment gate. An offline fixture success never
+    // establishes that production migration history can be replayed safely.
+    console.error('DEPLOY BLOCKED (expected): complete, vetted supabase/migrations history is absent from this PR checkout.');
+    console.error('No production website/DB failure is implied. The synthetic offline checks run separately.');
+    console.error('Restore and source-vet all recorded SQL privately, sanitize data/keys, then verify full isolated replay and real-role application tests before any deploy approval.');
+    process.exit(2);
+  }
   const files = fs.readdirSync(migrationDir).filter(n => n.endsWith('.sql')).sort();
   assert(files.length, 'BLOCKED: empty migration baseline');
   const versions = new Map();
