@@ -1,3 +1,4 @@
+# Scope-aware audit-loop closure verified 2026-09-25; real migration changes remain fail-closed.
 name: Data API DEPLOY READINESS (scope-aware, fail-closed on migration changes)
 on:
   pull_request:
