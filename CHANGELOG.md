@@ -1,3 +1,11 @@
+## Cloud v2.0.116 — Admin portal performance fast path
+
+- เปลี่ยนหน้า Admin ให้ใช้ `admin_community_fast_bundle_v2057` เป็นเส้นทางหลัก แทนการอ่าน `community_report_summary` โดยตรงตอนเปิดระบบ
+- ย้ายการโหลด `volunteer_workload` ออกจาก critical path ของหน้าแรก: หน้าแรกอ่านเฉพาะจำนวน อสม. และโหลดรายละเอียด 275 แถวเมื่อเปิดเมนู “ทะเบียน อสม.” เท่านั้น
+- คง fallback เดิมไว้เมื่อ Fast Bundle ใช้งานไม่ได้ เพื่อไม่ให้หน้า Admin ล้มเหลว
+- ปรับ Report Refresh Queue ให้ไม่สร้าง snapshot ซ้ำ หากมี snapshot ใหม่ที่เริ่มหลังคำขอเปลี่ยนแปลงนั้นแล้ว โดยยังคงรอบตรวจทุก 5 นาที
+- ไม่เปลี่ยน Auth, LINE, JHCIS, สิทธิ์ User/Staff หรือข้อมูลประชากร
+
 ## Cloud v2.0.81 — Clean municipal login redesign
 
 - เปลี่ยนหน้า Login บน Cloud ตามภาพอ้างอิง: ส่วนหัวโลโก้เทศบาลและชื่อระบบ เวอร์ชันมุมขวา การ์ดต้อนรับสีขาว และแถบแนวคิดงานสุขภาพด้านล่าง
