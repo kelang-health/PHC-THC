@@ -1,3 +1,4 @@
+# Phase 5C.1 sanitized baseline metadata validation added 2026-09-25.
 name: Data API offline security checks (synthetic, no deployment)
 on:
   pull_request:
