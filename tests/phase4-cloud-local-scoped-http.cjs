@@ -28,6 +28,16 @@ const cases=[
   const anon=await read(table);
   assert([401,403].includes(anon.status),'Anonymous access to '+table+' unexpectedly allowed: '+anon.status);
  }
+ // The member linked to house-1 has forged staff/user metadata but its actual
+ // house belongs to neither scope: member RLS must follow the FK house.
+ for(const actor of [
+   {app_role:'staff',community:'community-2'},
+   {app_role:'user',volunteer_pid:'vol-3'}
+ ]){
+   const forged=await read('phase4_card_people',actor,'&id=eq.member-house-1-1');
+   assert.equal(forged.status,200,'Forged membership negative-case request failed');
+   assert.equal(forged.rows.length,0,'CRITICAL: inconsistent member scope leaked through stale metadata');
+ }
  const timings=[];
  for(let round=0;round<12;round++){
   for(const test of cases){
