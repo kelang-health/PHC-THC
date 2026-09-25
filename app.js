@@ -23,6 +23,9 @@ let renderedPortalUserId = null;
 let healthFeedbackModel = null;
 let portalCommunityRows = [];
 let portalVolunteerRows = [];
+let adminVolunteerRowsLoadedV2116 = false;
+let adminVolunteerRowsPromiseV2116 = null;
+let adminVolunteerCountV2116 = 0;
 let staffCommunityHousesV2072 = [];
 let staffHouseScopeIssueV2072 = '';
 let communityRequestId = 0;
@@ -104,6 +107,7 @@ function renderLoggedOut(){
   authRequestId += 1;
   clearSharedAuth();
   currentProfile=null; passwordPanelOpen=false; renderedPortalUserId=null; healthFeedbackModel=null; portalView=PORTAL_DEFAULT_VIEW_V2059;
+  adminVolunteerRowsLoadedV2116=false;adminVolunteerRowsPromiseV2116=null;adminVolunteerCountV2116=0;
   writePortalViewHistoryV2059(PORTAL_DEFAULT_VIEW_V2059,'replace');
   renderAuthView('login');
 }
@@ -148,6 +152,8 @@ async function restorePortalViewFromHistoryV2059(){
   if(resolved==='health'){
     try{if(!healthLoaded)await loadHealthModule();else await scheduleHealthPeopleLoad(120,'history-pop-v2059');}
     catch(e){const body=$('#health-person-body');if(body)body.innerHTML='<tr><td colspan="5">'+esc(e.message)+'</td></tr>';}
+  }else if(resolved==='volunteers'&&currentProfile?.role==='admin'){
+    try{await ensureAdminVolunteerRowsV2116();}catch(e){const body=$('#volunteer-body');if(body)body.innerHTML='<tr><td colspan="6">'+esc(e.message||'โหลดทะเบียน อสม. ไม่สำเร็จ')+'</td></tr>';}
   }
 }
 function setHealthIntentV2058(intent={}){
@@ -171,6 +177,9 @@ function configurePortalNav(role){
     b.onclick=async()=>{
       const wasActive=portalView===b.dataset.portalView;setPortalView(b.dataset.portalView,{historyMode:'push'});
       // Phase 2J: field-work-reporting owns the Work panel snapshot.
+      if(b.dataset.portalView==='volunteers'&&currentProfile?.role==='admin'){
+        try{await ensureAdminVolunteerRowsV2116();}catch(e){const body=$('#volunteer-body');if(body)body.innerHTML=`<tr><td colspan="6">${esc(e.message||'โหลดทะเบียน อสม. ไม่สำเร็จ')}</td></tr>`;}
+      }
       if(b.dataset.portalView==='health'){
         const filter=$('#health-filter'),stage=$('#health-stage'),assignment=$('#health-assignment'),search=$('#health-search');
         const intent=pendingHealthIntentV2058;pendingHealthIntentV2058=null;
@@ -1119,6 +1128,31 @@ async function getProfile(userId){
   throw lastError||new Error('ไม่สามารถอ่านโปรไฟล์ได้');
 }
 
+function renderVolunteerRowsV2116(rows){
+  return (rows||[]).map(v=>`<tr><td><strong>${esc(v.display_name||'ไม่ระบุ')}</strong></td><td>${esc(v.community||'—')}</td><td>${esc(anchorLabel(v.anchor_status))}</td><td>${num(v.house_count)}</td><td class="${Number(v.review_count)>0?'warn':'good'}">${num(v.review_count)}</td><td>${num(v.cross_community_count)}</td></tr>`).join('') || '<tr><td colspan="6">ไม่พบข้อมูล อสม. ตามสิทธิ์</td></tr>';
+}
+async function ensureAdminVolunteerRowsV2116(){
+  if(currentProfile?.role!=='admin')return portalVolunteerRows;
+  if(adminVolunteerRowsLoadedV2116)return portalVolunteerRows;
+  if(adminVolunteerRowsPromiseV2116)return adminVolunteerRowsPromiseV2116;
+  const body=$('#volunteer-body');
+  if(body)body.innerHTML='<tr><td colspan="6">กำลังโหลดทะเบียน อสม. …</td></tr>';
+  adminVolunteerRowsPromiseV2116=(async()=>{
+    const rows=await safePortalQueryV2029(
+      'admin volunteer workload lazy',
+      sharedCall('admin-volunteer-workload-v2116',async()=>await supabase.from('volunteer_workload').select('*').order('community').order('display_name'),300000),
+      []
+    );
+    if(currentProfile?.role!=='admin')return [];
+    portalVolunteerRows=rows||[];
+    adminVolunteerRowsLoadedV2116=true;
+    if(body?.isConnected)body.innerHTML=renderVolunteerRowsV2116(portalVolunteerRows);
+    return portalVolunteerRows;
+  })();
+  try{return await adminVolunteerRowsPromiseV2116;}
+  finally{adminVolunteerRowsPromiseV2116=null;}
+}
+
 function renderCommunityRowsV2072(rows,profile){
  return rows.map((r,index)=>{
    const fallbackCount=Math.max(0,Number(r.unassigned_houses??(Number(r.houses||0)-Number(r.assigned_houses||0))));
@@ -1164,11 +1198,33 @@ async function loadPortal(session, requestId){
   healthAssignmentFilter='all';
   let master=[],communities=[],workload=[],myHouses=[];
   if(profile.role==='admin'){
-    [master,communities,workload]=await Promise.all([
-      safePortalQueryV2029('communities',supabase.from('communities').select('name,moo,active').eq('active',true).order('moo').order('name'),[]),
-      safePortalQueryV2029('community summary',supabase.from('community_report_summary').select('*').order('community'),[]),
-      safePortalQueryV2029('volunteer workload',supabase.from('volunteer_workload').select('*').order('community').order('display_name'),[])
+    adminVolunteerRowsLoadedV2116=false;adminVolunteerRowsPromiseV2116=null;portalVolunteerRows=[];
+    const [fastResult,volunteerCountResult]=await Promise.all([
+      supabase.rpc('admin_community_fast_bundle_v2057'),
+      supabase.from('volunteers').select('source_pid',{count:'exact',head:true})
     ]);
+    adminVolunteerCountV2116=volunteerCountResult.error?0:Number(volunteerCountResult.count||0);
+    if(!fastResult.error&&Array.isArray(fastResult.data?.cards)&&fastResult.data.cards.length){
+      const cards=fastResult.data.cards;
+      master=cards.map(x=>({name:x.community,moo:x.moo,active:true}));
+      communities=cards.map(x=>({
+        community:x.community,moo:x.moo,houses:Number(x.houses||0),
+        assigned_houses:Number(x.assigned_houses||0),
+        unassigned_houses:Math.max(0,Number(x.houses||0)-Number(x.assigned_houses||0)),
+        review_houses:Number(x.review_houses||0),
+        outside_tambon:Number(x.outside_tambon||0),
+        missing_coordinates:Number(x.missing_coordinates||0),
+        volunteers_with_work:Number(x.volunteers||0),
+        is_assigned:Boolean(x.is_assigned),access_mode:x.access_mode||'manage'
+      }));
+      workload=[];
+    }else{
+      console.warn('[admin community fast bundle v2116]',fastResult.error?.code||fastResult.error?.message||'NO_CARDS');
+      [master,communities]=await Promise.all([
+        safePortalQueryV2029('communities fallback',supabase.from('communities').select('name,moo,active').eq('active',true).order('moo').order('name'),[]),
+        safePortalQueryV2029('community summary fallback',supabase.from('community_report_summary').select('*').order('community'),[])
+      ]);
+    }
   }else{
     let masterQuery=supabase.from('communities').select('name,moo,active').eq('active',true);
     if(profile.community)masterQuery=masterQuery.eq('name',profile.community);
@@ -1249,6 +1305,7 @@ const workloadQuery=supabase.from('volunteer_workload').select('*').eq('communit
   const unknownRows = allSummary.filter(r => !activeNames.has(r.community));
   const unknownHouses = unknownRows.reduce((s,r)=>s+Number(r.houses||0),0);
   const vols = workload || [];
+  const volunteerCountV2116=profile.role==='admin'?adminVolunteerCountV2116:vols.length;
   portalCommunityRows=rows;portalVolunteerRows=vols;communityRequestId+=1;healthCommunityFocus='';
   const workspace=$('#community-workspace');workspace.hidden=true;workspace.innerHTML='';
   const ownOverviewRowsV2072=profile.role==='staff'?rows.filter(r=>r.is_assigned===true||staffCommunityKeyV2072(r.community)===staffCommunityKeyV2072(profile.community)):rows;
@@ -1268,7 +1325,7 @@ const workloadQuery=supabase.from('volunteer_workload').select('*').eq('communit
   $('#stats').innerHTML = [
     [totals.houses,'ครัวเรือน'],
     [totals.assigned,'มอบหมาย อสม.'],
-    [vols.length,'อสม. ในขอบเขต'],
+    [volunteerCountV2116,'อสม. ในขอบเขต'],
     [totals.review,'ต้องตรวจ'],
     [totals.outside,'นอก ต.พระบาท'],
     [totals.missing,'ไม่มีพิกัด'],
@@ -1277,7 +1334,9 @@ const workloadQuery=supabase.from('volunteer_workload').select('*').eq('communit
   ].map(([v,l])=>`<article class="stat"><small>${esc(l)}</small><strong>${num(v)}</strong></article>`).join('');
   $('#community-body').innerHTML = renderCommunityRowsV2072(rows,profile);
   document.querySelectorAll('[data-community-open]').forEach(button=>button.onclick=()=>openCommunity(Number(button.dataset.communityOpen)));
-  $('#volunteer-body').innerHTML = vols.map(v=>`<tr><td><strong>${esc(v.display_name||'ไม่ระบุ')}</strong></td><td>${esc(v.community||'—')}</td><td>${esc(anchorLabel(v.anchor_status))}</td><td>${num(v.house_count)}</td><td class="${Number(v.review_count)>0?'warn':'good'}">${num(v.review_count)}</td><td>${num(v.cross_community_count)}</td></tr>`).join('') || '<tr><td colspan="6">ไม่พบข้อมูล อสม. ตามสิทธิ์</td></tr>';
+  $('#volunteer-body').innerHTML = profile.role==='admin'&&!adminVolunteerRowsLoadedV2116
+    ? '<tr><td colspan="6">ทะเบียน อสม. จะโหลดเมื่อเปิดเมนูนี้ เพื่อลดเวลาหน้าแรก</td></tr>'
+    : renderVolunteerRowsV2116(vols);
   const isStaffV2072=profile.role==='staff';
   $('#my-house-count').textContent=isStaffV2072?`${num(myHouses.length+staffFallbackRowsV2072.length)} หลัง (โดยตรง ${num(myHouses.length)} + ดูแลแทน ${num(staffFallbackRowsV2072.length)})`:`${num(myHouses.length)} หลัง`;
   const staffNoteV2072=$('#staff-house-note');
@@ -1292,6 +1351,7 @@ const workloadQuery=supabase.from('volunteer_workload').select('*').eq('communit
 
   if(requestId !== authRequestId || passwordPanelOpen) return;
   renderAuthView('portal');
+  if(profile.role==='admin'&&portalView==='volunteers')ensureAdminVolunteerRowsV2116().catch(()=>{});
   renderedPortalUserId=session.user.id;
   document.dispatchEvent(new CustomEvent('phc:auth-ready',{detail:{userId:session.user.id,role:profile.role,view:portalView}}));
 }
