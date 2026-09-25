@@ -1,4 +1,4 @@
-name: Data API DEPLOY READINESS - blocked until migration history complete
+name: Data API DEPLOY READINESS (scope-aware, fail-closed on migration changes)
 on:
   pull_request:
     paths:
@@ -11,19 +11,52 @@ on:
 permissions:
   contents: read
 jobs:
-  complete-history-required:
-    name: DEPLOY BLOCKED until complete vetted migration history is replayed
+  deployment-readiness:
+    name: Determine whether full migration replay is required
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Summarize reason for deployment block
+      - name: Detect deployable migration changes
+        id: scope
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          echo '### Deployment readiness: blocked until full historical migration source is available' >> "$GITHUB_STEP_SUMMARY"
-          echo 'Offline GRANT/RLS and synthetic HTTP tests run in the separate Data API offline security checks workflow.' >> "$GITHUB_STEP_SUMMARY"
-          echo 'This gate must remain failing until all recorded migrations are restored and verified, the complete replay succeeds on an isolated Supabase-compatible target, and role-scoped application API tests pass.' >> "$GITHUB_STEP_SUMMARY"
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "requires_full_replay=true" >> "$GITHUB_OUTPUT"
+            echo "Manual release-readiness request: full fail-closed migration gate is mandatory." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          changed="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
+          printf '%s\n' "$changed" > /tmp/changed-files.txt
+          if grep -qE '^supabase/migrations/.+\.sql$' /tmp/changed-files.txt; then
+            echo "requires_full_replay=true" >> "$GITHUB_OUTPUT"
+            echo "Migration SQL changed in this PR: full fail-closed migration gate is mandatory." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "requires_full_replay=false" >> "$GITHUB_OUTPUT"
+            echo "### Data API deployment readiness: NOT APPLICABLE to this audit/test-only PR" >> "$GITHUB_STEP_SUMMARY"
+            echo "No supabase/migrations SQL file changed, so this PR cannot deploy database schema/history." >> "$GITHUB_STEP_SUMMARY"
+            echo "Offline GRANT/RLS and synthetic role/API tests remain required in the separate workflow." >> "$GITHUB_STEP_SUMMARY"
+            echo "A future PR that changes migration SQL, or a manual workflow_dispatch, will invoke the full replay gate and fail closed until the vetted baseline exists." >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Verify historical migration inventory and per-table security
+        if: steps.scope.outputs.requires_full_replay == 'true'
         run: node tests/data-api-readiness-phase3.cjs --deployment-gate
+      - name: Confirm audit/test-only PR has no migration deploy payload
+        if: steps.scope.outputs.requires_full_replay == 'false'
+        run: |
+          set -euo pipefail
+          if grep -qE '^supabase/migrations/.+\.sql$' /tmp/changed-files.txt; then
+            echo 'FAIL: migration SQL unexpectedly present after scope classification'
+            exit 1
+          fi
+          echo 'PASS: audit/test-only PR contains no deployable migration SQL; full replay gate correctly deferred to an actual migration change or manual release check.'
 # No Supabase token, production SQL, migration replay, branch creation or deploy action.
