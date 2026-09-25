@@ -1,5 +1,12 @@
 -- Disposable PostgreSQL/PostgREST fixture. Synthetic moo/community/volunteer labels only.
 -- Mirrors product intent; real app derives roles from profiles, NOT these synthetic JWT claims.
+CREATE TABLE public.phase4_moo_communities (
+ moo integer NOT NULL, name text NOT NULL UNIQUE, PRIMARY KEY(moo,name)
+);
+INSERT INTO public.phase4_moo_communities(moo,name)
+ SELECT moo,'moo-'||moo||'-community-'||part
+ FROM generate_series(1,8) moo CROSS JOIN generate_series(1,2) part;
+GRANT SELECT ON public.phase4_moo_communities TO authenticated,service_role;
 CREATE TABLE public.phase4_moo_houses (
  id text PRIMARY KEY, moo integer NOT NULL CHECK (moo BETWEEN 1 AND 8),
  community text NOT NULL, volunteer_pid text, house_no text NOT NULL
@@ -12,9 +19,9 @@ CREATE POLICY phase4_moo_house_select ON public.phase4_moo_houses
    COALESCE(current_setting('request.jwt.claims',true),'{}')::jsonb->>'app_role'='staff'
    AND moo::text=COALESCE(current_setting('request.jwt.claims',true),'{}')::jsonb->>'moo'
    AND EXISTS (
-    SELECT 1 FROM public.phase4_moo_houses own
-    WHERE own.community=COALESCE(current_setting('request.jwt.claims',true),'{}')::jsonb->>'community'
-      AND own.moo::text=COALESCE(current_setting('request.jwt.claims',true),'{}')::jsonb->>'moo'
+    SELECT 1 FROM public.phase4_moo_communities c
+    WHERE c.name=COALESCE(current_setting('request.jwt.claims',true),'{}')::jsonb->>'community'
+      AND c.moo::text=COALESCE(current_setting('request.jwt.claims',true),'{}')::jsonb->>'moo'
    )
   )
   OR (
