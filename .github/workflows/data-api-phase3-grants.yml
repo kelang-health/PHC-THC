@@ -12,6 +12,8 @@ on:
       - 'tests/phase4-cloud-local-fk-safety.sql'
       - 'tests/phase4-cloud-local-scoped-http.sql'
       - 'tests/phase4-cloud-local-scoped-http.cjs'
+      - 'tests/phase4-moo-community-role-rls.sql'
+      - 'tests/phase4-moo-community-role-http.cjs'
       - 'tests/phase4-postgrest-http.cjs'
       - 'tests/phase4-booking-grant-rls.sql'
       - 'tests/phase4-booking-http.cjs'
@@ -112,6 +114,8 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -c "CREATE ROLE authenticator WITH LOGIN NOINHERIT PASSWORD 'phase4-disposable-fixture-only'; GRANT anon, authenticated, service_role TO authenticator;"
       - name: Seed isolated house and member read-card scope fixtures
         run: psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -f tests/phase4-cloud-local-scoped-http.sql
+      - name: Seed synthetic same-moo staff and volunteer assignment fixture
+        run: psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -f tests/phase4-moo-community-role-rls.sql
       - name: Start disposable PostgREST Data API
         run: |
           docker run --rm -d --network host --name phase4-grant-postgrest \
@@ -133,4 +137,6 @@ jobs:
         run: node tests/phase4-booking-http.cjs
       - name: Verify role-scoped synthetic house/member responses under repeated HTTP calls
         run: node tests/phase4-cloud-local-scoped-http.cjs
+      - name: Verify synthetic same-moo staff sibling read-only, own edit, USER assignment and member FK over HTTP
+        run: node tests/phase4-moo-community-role-http.cjs
 # These synthetic/offline jobs never validate migration replay or authorize deployment.
