@@ -6,6 +6,7 @@ on:
       - 'tests/data-api-readiness-phase3.cjs'
       - 'tests/data-api-frontend-unchanged.cjs'
       - 'tests/data-api-cloud-local-retention-safety.cjs'
+      - 'tests/data-api-cloud-local-card-projection.cjs'
       - 'tests/phase4-migration-inventory.cjs'
       - 'tests/phase4-postgres-grant-rls.sql'
       - 'tests/phase4-postgrest-http.cjs'
@@ -31,6 +32,8 @@ jobs:
         run: node tests/data-api-frontend-unchanged.cjs --self-test
       - name: Verify Cloud-to-Local planning never grants automatic Cloud deletion
         run: node tests/data-api-cloud-local-retention-safety.cjs
+      - name: Verify synthetic scoped house/member card projection and Local-offline fallback
+        run: node tests/data-api-cloud-local-card-projection.cjs
       - name: Confirm PR modifies no released frontend, runtime, real migrations or deployment
         if: github.event_name == 'pull_request'
         env:
