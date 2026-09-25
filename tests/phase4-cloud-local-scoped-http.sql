@@ -26,11 +26,9 @@ CREATE TABLE public.phase4_card_people(
 ALTER TABLE public.phase4_card_people ENABLE ROW LEVEL SECURITY;
 CREATE POLICY synthetic_member_card_scope ON public.phase4_card_people
  FOR SELECT TO authenticated USING (
-  COALESCE(NULLIF(current_setting('request.jwt.claims',true),''),'{}')::jsonb->>'app_role'='admin'
-  OR (COALESCE(NULLIF(current_setting('request.jwt.claims',true),''),'{}')::jsonb->>'app_role'='staff'
-       AND community=COALESCE(NULLIF(current_setting('request.jwt.claims',true),''),'{}')::jsonb->>'community')
-  OR (COALESCE(NULLIF(current_setting('request.jwt.claims',true),''),'{}')::jsonb->>'app_role'='user'
-       AND volunteer_pid=COALESCE(NULLIF(current_setting('request.jwt.claims',true),''),'{}')::jsonb->>'volunteer_pid')
+  -- Membership must follow its actual house FK and the house's scoped RLS.
+  -- A stale or manipulated denormalized member community/volunteer_pid must not grant access.
+  EXISTS (SELECT 1 FROM public.phase4_card_houses h WHERE h.id=house_id)
  );
 GRANT SELECT ON public.phase4_card_people TO authenticated,service_role;
 INSERT INTO public.phase4_card_people(id,house_id,source_pid,community,volunteer_pid,display_name)
@@ -38,4 +36,8 @@ INSERT INTO public.phase4_card_people(id,house_id,source_pid,community,volunteer
         (ROW_NUMBER() OVER(ORDER BY h.id,n))::bigint,
         h.community,h.volunteer_pid,'SYNTHETIC MEMBER'
  FROM public.phase4_card_houses h CROSS JOIN generate_series(1,3) n;
+-- Inconsistent member metadata on an out-of-scope house must NOT confer member access.
+UPDATE public.phase4_card_people
+ SET community='community-2',volunteer_pid='vol-3'
+ WHERE id='member-house-1-1';
 SELECT 'PASS: disposable 48-house/144-member scoped Data API fixture created' AS result;
