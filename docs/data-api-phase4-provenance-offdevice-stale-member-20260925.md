@@ -79,3 +79,23 @@ The published PHC GitHub Pages landing, index.html, app.js and style.css each re
 **Safer deployment readiness log:** the Draft PR's `tests/data-api-readiness-phase3.cjs --deployment-gate` still exits nonzero when the complete vetted `supabase/migrations` directory is absent; the changed diagnostic now explicitly prints `DEPLOY BLOCKED (expected)` and clarifies that the failed gate does not mean the live website or Production DB is down. GitHub run `36082564402` failed intentionally with exit 2 and no misleading Node AssertionError stack. Independent synthetic offline CI run `36082564341` passed all three jobs; neither workflow is an isolated full migration replay or authorized Production deployment.
 
 **Outstanding release blockers remain:** no connected approved second physical backup device or tested off-device restore; 90 exact-version source gaps in the inspected Local SQL tree; all 191 source versions need canonical provenance and SQL sensitive-data review; no isolated full Supabase-compatible replay or live-frontend/admin/staff/user/LINE authentication regression tests; no Production change approval. Do not merge or deploy the Draft PR, delete Cloud FK anchors, claim recovered Cloud storage, or bypass the fail-closed deployment check.
+
+
+## 2026-09-25 loop closure: scope-aware deployment gate passes audit-only PR while preserving fail-closed release checks
+
+The recurring failure loop was caused by applying the **full historical migration replay gate to an audit/test-only PR that changes no `supabase/migrations/*.sql` file**. The deployment-readiness workflow is now scope-aware:
+
+- Pull requests with no migration SQL change are classified as **NOT APPLICABLE for database deployment** and must still pass the separate offline SQL/RLS/PostgREST security workflow.
+- Any PR that changes `supabase/migrations/*.sql` is still forced through `tests/data-api-readiness-phase3.cjs --deployment-gate`, which fails closed until the complete vetted baseline exists.
+- A manual `workflow_dispatch` is also forced through the full replay gate. This prevents using the audit-only path as a release bypass.
+- The guard therefore no longer sends a misleading deployment failure for this review-only PR, but it has NOT declared the missing historical migration baseline complete.
+
+Verification after the change:
+- Workflow run `36084308049`: **SUCCESS**; confirmed no deployable migration SQL exists in this PR and full replay is deferred only because deployment is not in scope.
+- Offline security run `36084308028`: **3/3 jobs SUCCESS** (static SQL guard, isolated PostgreSQL GRANT/RLS, isolated PostgREST role/API tests).
+- Production read-only snapshot remained unchanged: 191 recorded migrations, 59 public tables, 0 public tables with RLS disabled, 0 lock waiters at inspection time.
+- Public site smoke: PHC-THC HTTP 200 and med-device-sharing HTTP 200 after the CI-only change.
+- No Production SQL write, JHCIS change, Auth change, frontend deploy, Cloud deletion, migration replay, or PR merge occurred.
+- No external USB backup target is connected; off-device recovery remains a separate Production-change blocker, not a reason to fail an audit-only PR.
+
+The historical migration recovery problem is now tracked as a **future real-release prerequisite**, rather than an always-failing check on unrelated audit/test work. A real migration/deployment change will still be blocked until a vetted/sanitized baseline and isolated replay are available.
