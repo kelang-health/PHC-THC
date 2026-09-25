@@ -9,6 +9,7 @@ on:
       - 'tests/data-api-cloud-local-card-projection.cjs'
       - 'tests/phase4-migration-inventory.cjs'
       - 'tests/phase4-postgres-grant-rls.sql'
+      - 'tests/phase4-cloud-local-fk-safety.sql'
       - 'tests/phase4-postgrest-http.cjs'
       - 'tests/phase4-booking-grant-rls.sql'
       - 'tests/phase4-booking-http.cjs'
@@ -72,6 +73,8 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -f tests/phase4-postgres-grant-rls.sql
       - name: Create isolated synthetic booking table and test role grants
         run: psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -f tests/phase4-booking-grant-rls.sql
+      - name: Verify archived Cloud FK restrictions and cascade data-loss hazard with rollback-only synthetic rows
+        run: psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -f tests/phase4-cloud-local-fk-safety.sql
   isolated-postgrest-http:
     runs-on: ubuntu-latest
     permissions:
