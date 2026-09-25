@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "phase": "5C.1",
+  "generated_date": "2026-09-25",
+  "source_file_count": 121,
+  "previous_manual_review_file_count": 106,
+  "manual_review_primary_buckets": {
+    "schema": 39,
+    "data_migration": 57,
+    "sensitive_auth_secret": 8,
+    "external_integration": 2
+  },
+  "all_file_primary_buckets": {
+    "schema": 54,
+    "data_migration": 57,
+    "sensitive_auth_secret": 8,
+    "external_integration": 2
+  },
+  "statement_classes": {
+    "schema_ddl": 1369,
+    "schema_function": 298,
+    "data_migration": 97,
+    "unclassified_manual": 70,
+    "sensitive_auth_secret": 10,
+    "external_integration": 2,
+    "complex_do_manual": 5,
+    "runtime_or_validation": 6
+  },
+  "included_schema_statements": 1667,
+  "deferred_statements": 190,
+  "sanitized_file_count": 121,
+  "combined_baseline_bytes": 1002007,
+  "combined_baseline_sha256": "03d4e8486230c0c0699fe24b860cf055b45ee5625179f1a8bb1846ca256d9fc0",
+  "validation": {
+    "top_level_dml": 0,
+    "possible_secret_literals": 0,
+    "possible_personal_literals": 0,
+    "external_integration_calls_or_urls": 0
+  },
+  "contains_sql_bodies": false,
+  "contains_personal_data": false,
+  "replay_performed": false,
+  "production_changed": false,
+  "release_approved": false
+}
