@@ -312,9 +312,11 @@ function normalizeScreeningSeedV2023(seed,pcucode,pid,personName=''){
   if(planDate!==thaiDayV208())return null;
   const ageYears=Number(seed.age_years),ageMonths=Number(seed.age_months??seed.screening_age_months);
   if(!Number.isFinite(ageYears)||!Number.isFinite(ageMonths))return null;
-  const route=String(seed.route),hasDm=Boolean(seed.has_dm),hasHt=Boolean(seed.has_ht);
-  const dmTarget=seed.dm_target===true||(seed.dm_target==null&&ageYears>=35&&!hasDm);
-  const htTarget=seed.ht_target===true||(seed.ht_target==null&&ageYears>=35&&!hasHt);
+  const route=String(seed.route);
+  if(['ncd_35_59','elderly_60_plus'].includes(route)&&(seed.dm_target==null||seed.ht_target==null))return null;
+  const hasDm=seed.has_dm===true,hasHt=seed.has_ht===true;
+  const dmTarget=seed.dm_target===true;
+  const htTarget=seed.ht_target===true;
   const ncdRequired=['ncd_35_59','elderly_60_plus'].includes(route)&&(dmTarget||htTarget);
   const ncdComplete=!ncdRequired||String(seed.ncd_status||'')==='complete'||String(seed.latest_screened_on||'').slice(0,10)===thaiDayV208();
   return {
@@ -583,6 +585,6 @@ async function createLineCode(){
   btn.onclick=async()=>{const ok=await copyTextV202(linkText);if(ok){btn.textContent='✓ คัดลอกแล้ว';status.textContent='คัดลอกแล้ว นำข้อความไปวางใน LINE OA ของหน่วยงานได้ทันที';setTimeout(()=>{if(document.body.contains(btn))btn.textContent='คัดลอกรหัส LINE'},1600)}else{status.textContent='คัดลอกอัตโนมัติไม่ได้ กรุณากดค้างที่รหัสเพื่อคัดลอก'}};
 }
 
-function bindGlobal(){if(globalBound)return;globalBound=true;document.addEventListener('click',e=>{const b=e.target.closest?.('[data-phc190-screen]');if(b){e.preventDefault();e.stopPropagation();const seed={plan_date:b.dataset.planDate||'',age_years:Number(b.dataset.ageYears),age_months:Number(b.dataset.ageMonths),route:b.dataset.screenRoute||'',route_label:b.dataset.routeLabel||'',dspm_target_months:b.dataset.dspmTarget?Number(b.dataset.dspmTarget):null,latest_screened_on:b.dataset.latestScreened||'',has_dm:b.dataset.hasDm==='true',has_ht:b.dataset.hasHt==='true',dm_target:b.dataset.dmTarget==='true',ht_target:b.dataset.htTarget==='true'};openAgeScreening(b.dataset.pcucode,Number(b.dataset.pid),b.dataset.name||'',seed).catch(x=>alert(friendlyError(x)));return}},true)}
+function bindGlobal(){if(globalBound)return;globalBound=true;document.addEventListener('click',e=>{const b=e.target.closest?.('[data-phc190-screen]');if(b){e.preventDefault();e.stopPropagation();const seed={plan_date:b.dataset.planDate||'',age_years:Number(b.dataset.ageYears),age_months:Number(b.dataset.ageMonths),route:b.dataset.screenRoute||'',route_label:b.dataset.routeLabel||'',dspm_target_months:b.dataset.dspmTarget?Number(b.dataset.dspmTarget):null,latest_screened_on:b.dataset.latestScreened||'',has_dm:b.dataset.hasDm==null?null:b.dataset.hasDm==='true',has_ht:b.dataset.hasHt==null?null:b.dataset.hasHt==='true',dm_target:b.dataset.dmTarget==null?null:b.dataset.dmTarget==='true',ht_target:b.dataset.htTarget==null?null:b.dataset.htTarget==='true'};openAgeScreening(b.dataset.pcucode,Number(b.dataset.pid),b.dataset.name||'',seed).catch(x=>alert(friendlyError(x)));return}},true)}
 async function start(){const ver=$('.login-version');if(ver)ver.textContent=`Cloud v${VERSION}`;window.PHCFiveFeatures190={renderHouseMemberRequests,openAgeScreening,renderAdminMemberQueue,refreshOverview:renderOverview};bindGlobal();bindLineLinkReturnRefreshV2039();bindPortalActivation('work',async()=>{profile=await loadProfile();if(profile?.active)await renderOverview();});}
 export async function initPHCFiveFeatures190(url,key){if(window.__PHC_FIVE_FEATURES_190__)return;window.__PHC_FIVE_FEATURES_190__=true;injectStyle();supabase=await getSharedSupabase(url,key);if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else await start()}
