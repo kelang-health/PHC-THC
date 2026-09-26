@@ -28,9 +28,13 @@ function paintAdminLineSelfV2057(root,data){
   bindAppointmentResponseV205(root);
 }
 function paintAdminTestResetV2057(root,x){
-  const host=root.querySelector('[data-admin-test-reset]');if(!host||!x?.reset_open)return;
-  host.innerHTML=`<section class="phc190-note phc190-warning"><strong>ข้อมูลทดสอบก่อน 1 ต.ค. 2569</strong><br>Session ${x.sessions||0} · NCD ${x.ncd||0} · Growth ${x.growth||0} · พัฒนาการ ${x.child_development||0} · 2Q ${x.mental_2q||0} · 9 ด้าน ${x.elderly_domains||0}<button type="button" class="phc190-secondary phc190-danger" style="width:100%;margin-top:8px" data-admin-reset-all-test>รีเซ็ตผลคัดกรองในแอปทั้งหมด</button></section>`;
-  host.querySelector('[data-admin-reset-all-test]').onclick=async()=>{if(!confirm('รีเซ็ตผลคัดกรองที่บันทึกผ่านหน้าแอปบน Cloud ทั้งหมดก่อน 1 ต.ค. 2569?\n\nจะเก็บ Archive ก่อนล้าง · ไม่ลบประชากร บ้าน อสม. บัญชี LINE, JHCIS, J-Report, 3Doctor หรือประวัติเดิม'))return;const reason=prompt('ระบุเหตุผลการรีเซ็ต','เตรียมระบบก่อนเปิดใช้จริง 1 ต.ค. 2569')||'';if(reason.trim().length<5){showPhcToast('กรุณาระบุเหตุผลอย่างน้อย 5 ตัวอักษร','warn');return}try{const {data,error}=await supabase.rpc('admin_reset_cloud_app_screenings_v2141',{p_reason:reason.trim()});if(error)throw error;showPhcToast(`รีเซ็ตผลคัดกรองในแอปแล้ว · Archive ${data?.archived_rows||0} รายการ`,'success',3200);await renderOverview()}catch(e){showPhcToast(friendlyError(e),'warn',3500)}};
+  const host=root.querySelector('[data-admin-test-reset]');if(!host||!x)return;
+  if(!x.reset_open){
+    host.innerHTML=`<section class="phc190-note"><strong>🔒 ปิดการรีเซ็ตผลคัดกรองแล้ว</strong><br>ระบบล็อกตามเวลาไทยตั้งแต่ 1 ต.ค. 2569 เวลา 00:00 น.<br><small>ข้อมูลหลังเปิดใช้งานจริงไม่สามารถรีเซ็ตผ่านเมนูนี้ได้</small></section>`;
+    return;
+  }
+  host.innerHTML=`<section class="phc190-note phc190-warning"><strong>ข้อมูลทดสอบก่อน 1 ต.ค. 2569</strong><br>Session ${x.sessions||0} · NCD ${x.ncd_test||x.ncd||0} · Growth ${x.growth||0} · พัฒนาการ ${x.child_development||0} · 2Q ${x.mental_2q||0} · 9 ด้าน ${x.elderly_domains||0}<br><small>เปิดถึง 30 ก.ย. 2569 เท่านั้น · เวลาไทย</small><button type="button" class="phc190-secondary phc190-danger" style="width:100%;margin-top:8px" data-admin-reset-all-test>รีเซ็ตผลคัดกรองในแอปทั้งหมด</button></section>`;
+  host.querySelector('[data-admin-reset-all-test]').onclick=async()=>{if(!confirm('รีเซ็ตผลคัดกรองที่บันทึกผ่านหน้าแอปบน Cloud ทั้งหมดก่อน 1 ต.ค. 2569?\n\nจะเก็บ Archive ก่อนล้าง · ไม่ลบประชากร บ้าน อสม. บัญชี LINE, JHCIS, J-Report, 3Doctor หรือประวัติเดิม'))return;const reason=prompt('ระบุเหตุผลการรีเซ็ต','เตรียมระบบก่อนเปิดใช้จริง 1 ต.ค. 2569')||'';if(reason.trim().length<5){showPhcToast('กรุณาระบุเหตุผลอย่างน้อย 5 ตัวอักษร','warn');return}try{const {data,error}=await supabase.rpc('admin_reset_cloud_app_screenings_v2142',{p_reason:reason.trim()});if(error)throw error;showPhcToast(`รีเซ็ตผลคัดกรองในแอปแล้ว · Archive ${data?.archived_rows||0} รายการ`,'success',3200);await renderOverview()}catch(e){showPhcToast(friendlyError(e),'warn',3500)}};
 }
 async function renderAdminWorkProgressiveV2057(root){
   const seq=++adminWorkLoadSeqV2057;renderAdminWorkShellV2057(root);
@@ -38,7 +42,7 @@ async function renderAdminWorkProgressiveV2057(root){
   const line=sharedCall('admin-work-line-v2057',()=>supabase.rpc('admin_line_overview_v190'),ADMIN_WORK_CACHE_MS_V2057);
   const notices=sharedCall('admin-work-notices-v2057',()=>supabase.rpc('admin_notification_center_v190',{p_limit:5}),ADMIN_WORK_CACHE_MS_V2057);
   const myLine=loadMyLineStatusV2038();
-  const reset=preGoLiveV208()?sharedCall('admin-work-reset-v2057',()=>supabase.rpc('admin_cloud_app_screening_reset_preview_v2141'),ADMIN_WORK_CACHE_MS_V2057):Promise.resolve({data:null,error:null});
+  const reset=sharedCall('admin-work-reset-v2142',()=>supabase.rpc('admin_cloud_app_screening_reset_preview_v2142'),ADMIN_WORK_CACHE_MS_V2057);
   member.then(r=>{if(!adminWorkAliveV2057(root,seq))return;const e=root.querySelector('[data-admin-member-kpi]');if(e)e.textContent=r.error?'—':String(r.data?.length||0)});
   line.then(r=>{if(!adminWorkAliveV2057(root,seq))return;const a=root.querySelector('[data-admin-line-kpi]'),b=root.querySelector('[data-admin-line-failed]');if(a)a.textContent=r.error?'—':String(r.data?.line_connected||0);if(b)b.textContent=r.error?'—':String(r.data?.message_failed||0)});
   notices.then(r=>{if(!adminWorkAliveV2057(root,seq))return;root.__adminNoticesV2057=r.error?[]:(r.data||[]).filter(n=>!n.read_at);const b=root.querySelector('[data-admin-notices]');if(b){b.disabled=false;b.textContent=`แจ้งเตือนล่าสุด ${root.__adminNoticesV2057.length}`}});
