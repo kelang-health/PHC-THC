@@ -612,10 +612,51 @@ function confirmNcdEntryGuardV2122(form,person){
   return confirm(lines.join('\n\n')+'\n\nยืนยันว่าได้ตรวจสอบค่าก่อนบันทึกแล้ว?');
 }
 
+
+function ensureBpRepeatUiV2123(form){
+  if(!form||$('#ncd-bp-repeat'))return;
+  const glucoseField=form.querySelector('.glucose-state-field');
+  if(!glucoseField)return;
+  const box=document.createElement('div');
+  box.id='ncd-bp-repeat';
+  box.className='notice compact-result';
+  box.hidden=true;
+  box.innerHTML='<strong>วัดซ้ำครั้งที่ 2</strong><p>ส่วนนี้จะแสดงเฉพาะเมื่อค่าครั้งแรกสูงตามเกณฑ์คัดกรอง เพื่อลดขั้นตอนในรายที่ค่าปกติ</p><div class="measure-grid"><div class="measure-card bp-card"><label>SYS รอบ 2</label><div class="measure-control"><input name="sbp_repeat" type="number" inputmode="numeric" min="70" max="260" step="1"></div></div><div class="measure-card bp-card"><label>DIA รอบ 2</label><div class="measure-control"><input name="dbp_repeat" type="number" inputmode="numeric" min="40" max="180" step="1"></div></div></div><small data-bp-repeat-result>กรอกครบ 2 ค่า ระบบจะใช้ค่าเฉลี่ยของสองครั้งเป็นค่าติดตาม</small>';
+  glucoseField.before(box);
+}
+function bpRepeatStateV2123(form){
+  const num=name=>{const raw=String(form?.elements?.[name]?.value??'').trim();return raw===''?null:Number(raw);};
+  const sbp=num('sbp'),dbp=num('dbp'),s2=num('sbp_repeat'),d2=num('dbp_repeat');
+  const firstComplete=Number.isFinite(sbp)&&Number.isFinite(dbp);
+  const highFirst=firstComplete&&(sbp>=140||dbp>=90);
+  const repeatComplete=Number.isFinite(s2)&&Number.isFinite(d2);
+  const effectiveSbp=highFirst&&repeatComplete?Math.round((sbp+s2)/2):sbp;
+  const effectiveDbp=highFirst&&repeatComplete?Math.round((dbp+d2)/2):dbp;
+  const anyGrade3=firstComplete&&(sbp>=180||dbp>=110)||(repeatComplete&&(s2>=180||d2>=110));
+  return {sbp,dbp,s2,d2,firstComplete,highFirst,repeatComplete,effectiveSbp,effectiveDbp,anyGrade3};
+}
+function syncBpRepeatUiV2123(form){
+  ensureBpRepeatUiV2123(form);
+  const box=$('#ncd-bp-repeat');if(!box)return bpRepeatStateV2123(form);
+  const x=bpRepeatStateV2123(form),s2=form.elements.sbp_repeat,d2=form.elements.dbp_repeat;
+  box.hidden=!x.highFirst;
+  s2.required=x.highFirst;d2.required=x.highFirst;
+  if(!x.highFirst){s2.value='';d2.value='';}
+  const out=box.querySelector('[data-bp-repeat-result]');
+  if(out){
+    out.textContent=x.highFirst
+      ? (x.repeatComplete?'ค่าเฉลี่ยที่ใช้สรุป '+x.effectiveSbp+'/'+x.effectiveDbp:'กรอก SYS และ DIA รอบ 2 ให้ครบก่อนบันทึก')
+      : '';
+  }
+  return bpRepeatStateV2123(form);
+}
+
 function ncdRequiredComplete(form){
   if(!form)return false;
   const required=['screened_on','weight_kg','height_cm','waist_cm','sbp','dbp','glucose_mg_dl'];
   if(required.some(name=>!String(form.elements[name]?.value||'').trim()))return false;
+  const bp=bpRepeatStateV2123(form);
+  if(bp.highFirst&&!bp.repeatComplete)return false;
   if(!form.querySelector('[name="glucose_type"]:checked'))return false;
   const smoke=form.querySelector('[name="smoking_state"]:checked')?.value;
   const alcohol=form.querySelector('[name="alcohol_state"]:checked')?.value;
@@ -678,15 +719,16 @@ function syncBehaviorPanels(form){
 }
 function renderNcdPreview(){
   const form=$('#ncd-form');if(!form||!selectedHealthPerson)return;
-  const n=name=>Number(form.elements[name]?.value||0),w=n('weight_kg'),h=n('height_cm'),waist=n('waist_cm'),sbp=n('sbp'),dbp=n('dbp'),g=n('glucose_mg_dl'),gt=form.elements.glucose_type.value;
+  const n=name=>Number(form.elements[name]?.value||0),w=n('weight_kg'),h=n('height_cm'),waist=n('waist_cm'),g=n('glucose_mg_dl'),gt=form.elements.glucose_type.value;
+  const bp=syncBpRepeatUiV2123(form),sbp=bp.effectiveSbp,dbp=bp.effectiveDbp;
   $('#preview-bmi').textContent=w>0&&h>0?(w/((h/100)**2)).toFixed(1):'—';
   $('#preview-bp').textContent=!sbp||!dbp?'รอกรอก':
-    (sbp>=180||dbp>=110?'ระดับ 3/อันตราย':
+    ((bp.anyGrade3?'ระดับ 3/อันตราย':
     sbp>=160||dbp>=100?'สูงระดับ 2':
     sbp>=140||dbp>=90?'สูงระดับ 1':
     sbp>=130||dbp>=80?'BP at risk':
     sbp<90||dbp<60?'ต่ำ':
-    sbp<120&&dbp<80?'Optimal':'Normal');
+    sbp<120&&dbp<80?'Optimal':'Normal')+(bp.repeatComplete?' · เฉลี่ย 2 ครั้ง':''));
   $('#preview-glucose').textContent=!g?'รอกรอก':g<70?'ต่ำ':
     gt==='fasting'?(g>=126?'สงสัยเบาหวาน · ต้องยืนยัน':g>=100?'กลุ่มเสี่ยง/IFG':'ช่วงปกติ'):
     gt==='random'?(g>=200?'สูงมาก · ต้องยืนยัน':g>=110?'ควรตรวจ FPG/FCBG ซ้ำ':'ช่วงปกติ'):
@@ -897,6 +939,7 @@ async function selectHealthPerson(index,forceNcd=false){
   form.elements.height_cm.value=p.previous_height_cm||'';
   setPreviousText('#hint-weight',previousHint(p.previous_weight_kg,'กก.'));setPreviousText('#hint-height',previousHint(p.previous_height_cm,'ซม.'));setPreviousText('#hint-waist',previousHint(p.previous_waist_cm,'ซม.'));setPreviousText('#hint-sbp',previousHint(p.previous_sbp));setPreviousText('#hint-dbp',previousHint(p.previous_dbp));setPreviousText('#hint-glucose',previousHint(p.previous_glucose_mg_dl,'mg/dL'));
   bindMeasurementControls(form);
+  ensureBpRepeatUiV2123(form);syncBpRepeatUiV2123(form);
   form.querySelectorAll('[data-range-for]').forEach(range=>{const input=form.elements[range.dataset.rangeFor];if(input?.value)range.value=String(Math.min(Number(range.max),Math.max(Number(range.min),Number(input.value))));});
   const previousBody=$('#ncd-use-previous-body'),hasPreviousBody=[p.previous_weight_kg,p.previous_height_cm,p.previous_waist_cm].some(v=>v!==null&&v!==undefined&&v!=='');
   previousBody.hidden=false;previousBody.disabled=!hasPreviousBody;previousBody.textContent=hasPreviousBody?'ใช้ส่วนสูง น้ำหนัก และรอบเอวครั้งก่อน':'ยังไม่มีส่วนสูง น้ำหนัก และรอบเอวครั้งก่อน';
@@ -958,10 +1001,12 @@ async function saveHealthScreening(event){
   const alcoholFrequency=alcoholState==='no'?'ไม่ดื่ม':d.get('alcohol_frequency');
   if(!smokingFrequency||!alcoholFrequency){error.textContent='กรุณาเลือกความถี่ของพฤติกรรมสุขภาพ';return;}
   if(!confirmNcdEntryGuardV2122(form,p)){error.textContent='ยังไม่บันทึก กรุณาตรวจวัด/ตรวจสอบค่าที่แจ้งเตือนอีกครั้ง';setActiveNcdSection('ncd-section-measure',true);return;}
-  const payload={p_source_pcucode:p.source_pcucode,p_source_pid:Number(p.source_pid),p_screened_on:d.get('screened_on')||null,p_weight_kg:formNumber(d.get('weight_kg')),p_height_cm:formNumber(d.get('height_cm')),p_waist_cm:formNumber(d.get('waist_cm')),p_sbp:formNumber(d.get('sbp')),p_dbp:formNumber(d.get('dbp')),p_glucose_mg_dl:formNumber(d.get('glucose_mg_dl')),p_glucose_type:glucoseType,p_danger_symptoms:false,p_smoking_frequency:smokingFrequency,p_alcohol_frequency:alcoholFrequency,p_exercise_frequency:d.get('exercise_frequency'),p_note:d.get('note')||'',p_request_id:form.dataset.requestId||requestId(),p_mental_2q_q1:mental.q1,p_mental_2q_q2:mental.q2};
+  const bp=bpRepeatStateV2123(form);
+  if(bp.highFirst&&!bp.repeatComplete){error.textContent='กรุณาวัดความดันซ้ำครั้งที่ 2 ให้ครบก่อนบันทึก';setActiveNcdSection('ncd-section-measure',true);return;}
+  const payload={p_source_pcucode:p.source_pcucode,p_source_pid:Number(p.source_pid),p_screened_on:d.get('screened_on')||null,p_weight_kg:formNumber(d.get('weight_kg')),p_height_cm:formNumber(d.get('height_cm')),p_waist_cm:formNumber(d.get('waist_cm')),p_sbp:formNumber(d.get('sbp')),p_dbp:formNumber(d.get('dbp')),p_glucose_mg_dl:formNumber(d.get('glucose_mg_dl')),p_glucose_type:glucoseType,p_danger_symptoms:false,p_smoking_frequency:smokingFrequency,p_alcohol_frequency:alcoholFrequency,p_exercise_frequency:d.get('exercise_frequency'),p_note:d.get('note')||'',p_request_id:form.dataset.requestId||requestId(),p_mental_2q_q1:mental.q1,p_mental_2q_q2:mental.q2,p_sbp_repeat:bp.highFirst?bp.s2:null,p_dbp_repeat:bp.highFirst?bp.d2:null};
   button.disabled=true;
   try{
-    const {data:saved,error:saveError}=await supabase.rpc('save_health_ncd_screening_v4',payload);if(saveError)throw saveError;
+    const {data:saved,error:saveError}=await supabase.rpc('save_health_ncd_screening_v5',payload);if(saveError)throw saveError;
     invalidateHealthWorklistCache();invalidateShared('report-snapshot:');invalidateShared('assignment-summary:');
     // A successful RPC is the commit boundary. Post-save reporting refresh must never turn a saved record into a red error.
     form.dataset.requestId=requestId();form.reset();result.hidden=true;returnToHealthWorklist(saved,p);
