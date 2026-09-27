@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="utf-8">
-  <meta name="phc-release" content="2.0.117">
+  <meta name="phc-release" content="2.0.122">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#f4f7f5">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -34,7 +34,7 @@
         <span>ระบบบริหารจัดการงานสุขภาพชุมชน</span>
         <small>อสม. พลัส · เทศบาลเมืองเขลางค์นคร</small>
       </div>
-      <span class="login-version phc-login-version" aria-label="เวอร์ชันระบบ">Cloud v2.0.117</span>
+      <span class="login-version phc-login-version" aria-label="เวอร์ชันระบบ">Cloud v2.0.122</span>
     </header>
 
     <section id="login-card" class="card auth-card login-card">
@@ -242,6 +242,7 @@
                 <div class="measure-card glucose-card"><label for="ncd-glucose">น้ำตาล <small>mg/dL</small></label><div class="measure-control"><button type="button" data-step-for="glucose_mg_dl" data-delta="-1" aria-label="ลดค่าน้ำตาล">−</button><input id="ncd-glucose" name="glucose_mg_dl" type="number" inputmode="numeric" min="20" max="700" step="1" placeholder="100" required><button type="button" data-step-for="glucose_mg_dl" data-delta="1" aria-label="เพิ่มค่าน้ำตาล">+</button></div><input class="measure-range" data-range-for="glucose_mg_dl" type="range" min="20" max="400" step="1" value="100" aria-label="เลื่อนค่าน้ำตาล"><small id="hint-glucose" class="old-hint"></small></div>
               </div>
               <fieldset class="choice-field glucose-state-field"><legend>สถานะก่อนตรวจน้ำตาล</legend><div class="choice-pills glucose-state-choice"><label><input type="radio" name="glucose_type" value="fasting" required><span>อดอาหารอย่างน้อย 8 ชม.</span></label><label><input type="radio" name="glucose_type" value="random"><span>ไม่ได้อดอาหาร</span></label></div></fieldset>
+              <div class="notice compact-result"><strong>ระบบตรวจค่าผิดปกติ:</strong> ค่าที่ดูเหมือนกรอกผิด เช่น น้ำหนักต่ำกว่า 20 กก. ส่วนสูงต่ำกว่า 100 ซม. หรือเปลี่ยนจากครั้งก่อนมาก จะให้ยืนยันก่อนบันทึก · ค่าความดัน/น้ำตาลที่ผิดปกติจะไม่ถูกทิ้ง แต่ระบบจะให้ตรวจซ้ำและจัดกลุ่มติดตามตามระดับความเสี่ยง</div>
             </section>
 
             <section id="ncd-section-mental" class="ncd-form-section">
@@ -302,13 +303,13 @@
     </section>
   </main>
 
-  <script type="module" src="./config.js?v=2.0.117&p=2117"></script>
+  <script type="module" src="./config.js?v=2.0.122&p=2117"></script>
   <script type="module" src="./perf-diagnostics-v2034.mjs?v=phase1.1-20260914-p2041"></script>
   <script type="module" src="./login-keypad-v1837.mjs?v=2.0.0"></script>
   <script type="module" src="./auth-security.mjs?v=2.0.59&p=2059"></script>
   <script type="module" src="./line-login-v201.mjs?v=2.0.45&p=2050"></script>
   <script type="module" src="./line-login-settings-v2013.mjs?v=2.0.45&p=2050"></script>
-  <script type="module" src="./app.js?v=2.0.117&p=2116"></script>
+  <script type="module" src="./app.js?v=2.0.122&p=2116"></script>
   <script type="module" src="./my-houses-mobile-v1820.mjs?v=2.0.115-archive30"></script>
   <script type="module" src="./field-request-corrections-v2122.mjs?v=2.0.113-field-intake-corrections-hardened"></script>
 </body>
