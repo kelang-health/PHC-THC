@@ -574,7 +574,8 @@ function previousHint(value,unit=''){return value===null||value===undefined||val
 
 function ncdEntryGuardV2122(form,person){
   const n=name=>Number(form?.elements?.[name]?.value);
-  const w=n('weight_kg'),h=n('height_cm'),waist=n('waist_cm'),sbp=n('sbp'),dbp=n('dbp'),g=n('glucose_mg_dl');
+  const w=n('weight_kg'),h=n('height_cm'),waist=n('waist_cm'),g=n('glucose_mg_dl');
+  const bpState=bpRepeatStateV2123(form),sbp=bpState.effectiveSbp,dbp=bpState.effectiveDbp;
   const gt=form?.querySelector('[name="glucose_type"]:checked')?.value||'';
   const verify=[],clinical=[];
   const add=(arr,msg)=>{if(msg&&!arr.includes(msg))arr.push(msg);};
@@ -588,11 +589,11 @@ function ncdEntryGuardV2122(form,person){
   if(Number.isFinite(prevH)&&prevH>0&&Number.isFinite(h)&&Math.abs(h-prevH)>5)add(verify,`ส่วนสูงต่างจากครั้งก่อนเกิน 5 ซม. (ครั้งก่อน ${prevH} ซม.)`);
   if(Number.isFinite(sbp)&&Number.isFinite(dbp)){
     const pulse=sbp-dbp;
-    if(pulse>0&&(pulse<10||pulse>120))add(verify,`ช่วงห่าง SYS-DIA ${pulse} มม.ปรอท ผิดปกติมาก ควรวัดซ้ำ`);
-    if(sbp>=180||dbp>=110)add(clinical,`ความดัน ${sbp}/${dbp} อยู่ระดับ 3/อันตราย: พักและวัดซ้ำ หากยังสูงหรือมีอาการให้ประสานเจ้าหน้าที่เร่งด่วน`);
-    else if(sbp>=160||dbp>=100)add(clinical,`ความดัน ${sbp}/${dbp} อยู่ระดับ 2: ควรวัดซ้ำและประสานเจ้าหน้าที่ติดตาม`);
-    else if(sbp>=140||dbp>=90)add(clinical,`ความดัน ${sbp}/${dbp} อยู่ระดับ 1: ควรวัดซ้ำเพื่อยืนยัน`);
-    else if(sbp<90||dbp<60)add(clinical,`ความดัน ${sbp}/${dbp} ต่ำ: ควรวัดซ้ำและประเมินอาการ`);
+    if(pulse>0&&(pulse<10||pulse>120))add(verify,`ช่วงห่าง SYS-DIA ${pulse} มม.ปรอท ผิดปกติมาก ควรตรวจค่าอีกครั้ง`);
+    if(bpState.anyGrade3)add(clinical,'พบค่าความดันระดับ 3/อันตรายอย่างน้อยหนึ่งครั้ง: ควรประเมินเร่งด่วนตามแนวทาง');
+    else if(sbp>=160||dbp>=100)add(clinical,`ค่าเฉลี่ยความดัน ${sbp}/${dbp} อยู่ระดับ 2: ควรประสานเจ้าหน้าที่ติดตาม`);
+    else if(sbp>=140||dbp>=90)add(clinical,`ค่าเฉลี่ยความดัน ${sbp}/${dbp} ยังสูง: ควรตรวจยืนยัน/ติดตาม`);
+    else if(sbp<90||dbp<60)add(clinical,`ความดัน ${sbp}/${dbp} ต่ำ: ควรประเมินอาการ`);
   }
   if(Number.isFinite(g)){
     if(g<50||g>500)add(verify,`น้ำตาล ${g} mg/dL ผิดปกติมาก ควรตรวจหน่วย/ตัวเลขและตรวจซ้ำ`);
@@ -621,7 +622,7 @@ function ensureBpRepeatUiV2123(form){
   box.id='ncd-bp-repeat';
   box.className='notice compact-result';
   box.hidden=true;
-  box.innerHTML='<strong>วัดซ้ำครั้งที่ 2</strong><p>ส่วนนี้จะแสดงเฉพาะเมื่อค่าครั้งแรกสูงตามเกณฑ์คัดกรอง เพื่อลดขั้นตอนในรายที่ค่าปกติ</p><div class="measure-grid"><div class="measure-card bp-card"><label>SYS รอบ 2</label><div class="measure-control"><input name="sbp_repeat" type="number" inputmode="numeric" min="70" max="260" step="1"></div></div><div class="measure-card bp-card"><label>DIA รอบ 2</label><div class="measure-control"><input name="dbp_repeat" type="number" inputmode="numeric" min="40" max="180" step="1"></div></div></div><small data-bp-repeat-result>กรอกครบ 2 ค่า ระบบจะใช้ค่าเฉลี่ยของสองครั้งเป็นค่าติดตาม</small>';
+  box.innerHTML='<strong>วัดซ้ำครั้งที่ 2</strong><p>ส่วนนี้จะแสดงเฉพาะเมื่อค่าครั้งแรกสูงตามเกณฑ์คัดกรอง · เว้นอย่างน้อย 1 นาที ใช้แขนและท่าเดิม</p><div class="measure-grid"><div class="measure-card bp-card"><label>SYS รอบ 2</label><div class="measure-control"><input name="sbp_repeat" type="number" inputmode="numeric" min="70" max="260" step="1"></div></div><div class="measure-card bp-card"><label>DIA รอบ 2</label><div class="measure-control"><input name="dbp_repeat" type="number" inputmode="numeric" min="40" max="180" step="1"></div></div></div><small data-bp-repeat-result>กรอกครบ 2 ค่า ระบบจะใช้ค่าเฉลี่ยของสองครั้งเป็นค่าติดตาม</small>';
   glucoseField.before(box);
 }
 function bpRepeatStateV2123(form){
