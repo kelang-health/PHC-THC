@@ -10,11 +10,11 @@ PATTERN = re.compile(r"^(\d{14})_([A-Za-z0-9_]+)\.sql$")
 
 
 def sha256_file(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as f:
-        for chunk in iter(lambda: f.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
+    data = path.read_bytes()
+    # Git may check out text as CRLF on Windows and LF on Linux.
+    # Migration integrity is content-based, not platform-line-ending-based.
+    data = data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return hashlib.sha256(data).hexdigest()
 
 
 def scan_migrations(root: Path):
@@ -74,6 +74,23 @@ def validate_against_previous(current_baseline, previous_baseline):
         item["version"]: item
         for item in current_baseline.get("migrations", [])
     }
+
+    prev_schema = previous_baseline.get("schema", 1)
+    cur_schema = current_baseline.get("schema", 1)
+    if prev_schema != cur_schema:
+        if set(prev_rows) != set(cur_rows):
+            errors.append("baseline schema upgrade may not add/remove migrations")
+            return errors
+        for version, old in prev_rows.items():
+            new = cur_rows[version]
+            for key in ("version", "name", "filename"):
+                if new.get(key) != old.get(key):
+                    errors.append(
+                        "baseline schema upgrade changed historical migration: "
+                        f"{old.get('filename', version)}"
+                    )
+        return errors
+
     for version, old in prev_rows.items():
         new = cur_rows.get(version)
         if new is None:
@@ -104,7 +121,8 @@ def main():
     rows, errors = scan_migrations(root)
 
     baseline = {
-        "schema": 1,
+        "schema": 2,
+        "hash_mode": "sha256_lf_normalized",
         "latest_version": rows[-1]["version"] if rows else None,
         "migration_count": len(rows),
         "migrations": rows,
