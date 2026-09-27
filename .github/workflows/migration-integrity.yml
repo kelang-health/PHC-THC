@@ -1,0 +1,37 @@
+name: Migration Integrity
+
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/migration-baseline.json"
+      - "tools/check_migration_integrity.py"
+  push:
+    branches: ["main"]
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/migration-baseline.json"
+      - "tools/check_migration_integrity.py"
+
+permissions:
+  contents: read
+
+jobs:
+  verify-migrations:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate migration tree
+        shell: bash
+        run: |
+          python tools/check_migration_integrity.py
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+          fi
+          python tools/check_migration_integrity.py --base-ref "$BASE"

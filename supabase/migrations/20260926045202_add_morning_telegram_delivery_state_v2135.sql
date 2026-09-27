@@ -1,0 +1,1 @@
+alter table public.daily_system_summary add column if not exists telegram_morning_sent_at timestamptz null, add column if not exists telegram_morning_send_status text not null default 'pending', add column if not exists telegram_morning_last_error text null;
