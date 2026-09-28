@@ -24,13 +24,13 @@ if (typeof window !== 'undefined') {
       await initInteractionFeedback1827();
       const { initCareDashboard1860 } = await import('./care-dashboard-v1860.mjs?v=2.0.59&p=2059');
       await initCareDashboard1860(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initSystemAboutNote1829 } = await import('./system-about-note-v1829.mjs?v=2.0.57&p=2057');
+      const { initSystemAboutNote1829 } = await import('./system-about-note-v1829.mjs?v=2.0.124&p=2124');
       initSystemAboutNote1829();
       const { initCommunityHouseholdQuality1831 } = await import('./community-household-quality-v1831.mjs?v=2.0.77&p=2077');
       await initCommunityHouseholdQuality1831(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initPHCFiveFeatures190 } = await import('./phc-five-features-v190.mjs?v=2.0.117&p=2117');
+      const { initPHCFiveFeatures190 } = await import('./phc-five-features-v190.mjs?v=2.0.124&p=2124');
       await initPHCFiveFeatures190(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initFieldWorkReportingV200 } = await import('./field-work-reporting-v200.mjs?v=2.0.59&p=2059');
+      const { initFieldWorkReportingV200 } = await import('./field-work-reporting-v200.mjs?v=2.0.124&p=2124');
       await initFieldWorkReportingV200(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     })
     .catch(error => console.error('Community GIS/house/mobile workflow modules load failed', error));
