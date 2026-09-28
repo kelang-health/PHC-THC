@@ -20,7 +20,7 @@ function statusText(s){return({complete:'เสร็จ',partial:'ทำบา�
 function priorityText(p){return({red:'เร่งด่วน',orange:'ต้องติดตาม',yellow:'คงเหลือ',normal:'ปกติ'})[p]||p}
 function followTypeText(t){return({child_development:'พัฒนาการเด็ก',mental_health:'สุขภาพจิต',elderly9:'ผู้สูงอายุ 9 ด้าน'})[t]||t}
 
-function setVersion(){const e=$('.login-version');if(e)e.textContent=`Cloud v${VERSION}`;document.title='อสม. พลัส | Field Work & Reporting Center'}
+function setVersion(){const e=$('.login-version');if(e)e.textContent=`Cloud v${VERSION}`;document.title='พระบาท พลัส | Field Work & Reporting Center'}
 
 function prepareMobileTableCards(root=document){
   root.querySelectorAll?.('.field200-table').forEach(table=>{
@@ -91,7 +91,7 @@ fetchAll('field_export_growth_v200','*',q=>q.gte('screened_at',start+'T00:00:00'
 fetchAll('field_export_child_dev_v200','*',q=>q.gte('screened_at',start+'T00:00:00')),
 fetchAll('field_export_elderly9_v200','*',q=>q.gte('screening_date',start)),
 fetchAll('field_export_followup_v200','*',q=>q.gte('created_at',start+'T00:00:00'))]);
-const wb=XLSX.utils.book_new();const summary=[{version:VERSION,generated_at:new Date().toISOString(),scope:d.scope_label,period_start:d.period_start,period_mode:d.period_mode,target_tasks:d.target_tasks,complete_tasks:d.complete_tasks,partial_tasks:d.partial_tasks,due_tasks:d.due_tasks,coverage_percent:d.coverage_percent,followup_open:d.followup_open,followup_done:d.followup_done,note:d.metric_note}];const sheets=[['01_Summary',summary],['02_Community',d.communities||[]],['03_VHV_Progress',d.volunteers||[]],['04_Work_Items',work],['05_NCD',ncd],['06_Growth',growth],['07_Child_Dev',child],['08_Elderly9',elder],['09_Followup',follow]];for(const [name,rows] of sheets){const ws=XLSX.utils.json_to_sheet(cleanRows(rows));XLSX.utils.book_append_sheet(wb,ws,name)}XLSX.writeFile(wb,`OSM-PHC_Field_Report_${new Date().toISOString().slice(0,10)}.xlsx`)}catch(e){alert('สร้าง Excel ไม่สำเร็จ: '+e.message)}finally{if(button){button.disabled=false;button.textContent='ส่งออก Excel'}}}
+const wb=XLSX.utils.book_new();const summary=[{version:VERSION,generated_at:new Date().toISOString(),scope:d.scope_label,period_start:d.period_start,period_mode:d.period_mode,target_tasks:d.target_tasks,complete_tasks:d.complete_tasks,partial_tasks:d.partial_tasks,due_tasks:d.due_tasks,coverage_percent:d.coverage_percent,followup_open:d.followup_open,followup_done:d.followup_done,note:d.metric_note}];const sheets=[['01_Summary',summary],['02_Community',d.communities||[]],['03_VHV_Progress',d.volunteers||[]],['04_Work_Items',work],['05_NCD',ncd],['06_Growth',growth],['07_Child_Dev',child],['08_Elderly9',elder],['09_Followup',follow]];for(const [name,rows] of sheets){const ws=XLSX.utils.json_to_sheet(cleanRows(rows));XLSX.utils.book_append_sheet(wb,ws,name)}XLSX.writeFile(wb,`PRB-PHC_Field_Report_${new Date().toISOString().slice(0,10)}.xlsx`)}catch(e){alert('สร้าง Excel ไม่สำเร็จ: '+e.message)}finally{if(button){button.disabled=false;button.textContent='ส่งออก Excel'}}}
 
 function ownsFieldLoadV2040(epoch){return epoch===loadEpochV2040&&isPortalViewActive('work');}
 async function load(){
