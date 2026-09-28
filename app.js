@@ -539,7 +539,7 @@ async function loadHealthHistory(){
   if(error)throw error;
   $('#ncd-history-body').innerHTML=(data||[]).map(r=>{
     const quality=r.quality_valid===false?'<small class="bad">ข้อมูลเดิมต้องตรวจสอบ</small>':'';
-    const source=`<span class="source-pill">${esc(r.source_label||'อสม. พลัส')}</span>${quality}`;
+    const source=`<span class="source-pill">${esc(r.source_label||'พระบาท พลัส')}</span>${quality}`;
     const cvd=r.cvd_risk_eligible?`<small>Thai CV Risk: ${esc(Number(r.cvd_risk_percent).toFixed(1))}% · ${esc(thaiCvLevelLabel(r.cvd_risk_level))}</small>`:(r.legacy_cvd_risk?`<small>CVD เดิม: ${esc(r.legacy_cvd_risk)} · ใช้อ้างอิงย้อนหลังเท่านั้น</small>`:'');
     const mental=`<span class="mental-2q-status ${r.mental_2q_status||'not_assessed'}">${esc(mental2QLabel(r.mental_2q_status,r.mental_2q_result))}</span>`;
     return `<tr><td>${esc(healthDateLabel(r.screened_on))}</td><td>${esc(r.display_name||'ไม่ระบุชื่อ')}</td><td>${esc(r.house_no||r.hcode||'—')}</td><td>${source}</td><td class="${healthClass(r.severity)}">${esc(r.ncd_status||'—')}${cvd}</td><td>${mental}</td></tr>`;
@@ -698,7 +698,7 @@ async function hydratePreviousScreening(p){
       .order('screened_on',{ascending:false}).order('recorded_at',{ascending:false}).limit(1).maybeSingle();
     if(!error&&data&&dateValue(data.screened_on)>=dateValue(best.screened_on))best={
       screened_on:data.screened_on,weight_kg:data.weight_kg,height_cm:data.height_cm,waist_cm:data.waist_cm,
-      sbp:data.sbp,dbp:data.dbp,glucose_mg_dl:data.glucose_mg_dl,bmi:data.bmi,source:data.source_label||'อสม. พลัส',
+      sbp:data.sbp,dbp:data.dbp,glucose_mg_dl:data.glucose_mg_dl,bmi:data.bmi,source:data.source_label||'พระบาท พลัส',
       smoking:data.smoking_frequency||'',alcohol:data.alcohol_frequency||'',exercise:data.exercise_frequency||''};
   }catch{}
   Object.assign(p,{
@@ -1124,7 +1124,7 @@ async function openCommunity(index){
    const volunteers=portalVolunteerRows.filter(v=>staffCommunityKeyV2072(v.community)===staffCommunityKeyV2072(row.community));
    const review=houses.filter(h=>h.review_required),mapped=houses.filter(h=>h.latitude!=null&&h.longitude!=null);
    const warning=viewOnly?'ชุมชนนี้อยู่ในหมู่เดียวกัน · ดูข้อมูลได้อย่างเดียว ไม่ใช่เขตรับผิดชอบของ Staff บัญชีนี้':staffOwned?'บ้านไม่มี อสม.จะอยู่ในความดูแลชั่วคราวของ Staff ประจำชุมชน โดยไม่เปลี่ยน PID ผู้รับผิดชอบใน JHCIS หรือ Cloud':'แสดงข้อมูลบ้านตามขอบเขตสิทธิ์ของบัญชี';
-   workspace.innerHTML=`<div class="community-workspace-head"><div><p class="eyebrow">OSM-PHC COMMUNITY WORKSPACE</p><h3>${esc(row.community||'ไม่ระบุชุมชน')}</h3><p>ทะเบียนบ้านและงานชุมชนตามสิทธิ์ของ ${esc(roleLabel(currentProfile?.role))}</p>${viewOnly?'<span class="staff-community-viewonly">ชุมชนอื่นในหมู่เดียวกัน · ดูอย่างเดียว</span>':''}</div><button type="button" class="secondary" data-community-close>ปิด</button></div>
+   workspace.innerHTML=`<div class="community-workspace-head"><div><p class="eyebrow">PRB-PHC COMMUNITY WORKSPACE</p><h3>${esc(row.community||'ไม่ระบุชุมชน')}</h3><p>ทะเบียนบ้านและงานชุมชนตามสิทธิ์ของ ${esc(roleLabel(currentProfile?.role))}</p>${viewOnly?'<span class="staff-community-viewonly">ชุมชนอื่นในหมู่เดียวกัน · ดูอย่างเดียว</span>':''}</div><button type="button" class="secondary" data-community-close>ปิด</button></div>
     <div class="community-actions">
     <button type="button" class="active" data-community-action="overview"><span>◫</span><strong>สรุปชุมชน</strong><small>${num(houses.length)} หลัง</small></button>
     <button type="button" data-community-action="houses"><span>⌂</span><strong>ครัวเรือนทั้งหมด</strong><small>${num(houses.length)} หลัง</small></button>
