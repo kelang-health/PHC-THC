@@ -34,7 +34,7 @@ function applyNote(){
   const note=document.querySelector('.privacy-note');
   if(!note) return;
   note.classList.add('system-about-note-v1829');
-  note.textContent=`© 2026 อสม. พลัส (VHV Plus) | Design & Developed by Apiwat Meethong | v${VERSION}`;
+  note.textContent=`© 2026 พระบาท พลัส (PRB-PHC) | Design & Developed by Apiwat Meethong | v${VERSION}`;
   const version=document.querySelector('.login-version');
   if(version) version.textContent=`Cloud v${VERSION}`;
 }
