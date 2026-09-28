@@ -160,7 +160,7 @@ async function resumeOauth(){
   if(err){
     cleanOauthQuery();clearOauth();busy=false;btn.disabled=false;btn.textContent='เข้าสู่ระบบด้วย LINE';
     if(err==='line_not_registered'){
-      state.innerHTML='<p class="line-login-status error">LINE นี้ยังไม่ได้เชื่อมกับบัญชี อสม. พลัส กรุณาเข้าสู่ระบบปกติก่อน แล้วเชื่อม LINE ครั้งแรก</p>';return;
+      state.innerHTML='<p class="line-login-status error">LINE นี้ยังไม่ได้เชื่อมกับบัญชี พระบาท พลัส กรุณาเข้าสู่ระบบปกติก่อน แล้วเชื่อม LINE ครั้งแรก</p>';return;
     }
     if(err==='not_configured'){
       state.innerHTML='<p class="line-login-status error">LINE Login ยังตั้งค่าไม่ครบ ระบบจะเปิดวิธียืนยันผ่าน LINE OA สำรอง</p>';await startCodeLogin(true);return;
