@@ -217,7 +217,7 @@ async function cancelMemberRequestV2070(id,label){
 async function renderAdminPendingHouseQueueV2070(){
   const body=openModal('จัดการบ้านที่ อสม. เพิ่ม','ยกเลิกได้เฉพาะบ้านที่ยังไม่ยืนยันกับ JHCIS และไม่มีคำขอสมาชิกค้าง ระบบเก็บประวัติการยกเลิกไว้');
   body.innerHTML='<div class="phc190-note">กำลังตรวจรายการบ้านที่ยังรอ JHCIS…</div>';
-  const {data,error}=await supabase.rpc('admin_cancellable_field_houses_v2070');
+  const {data,error}=await supabase.rpc('admin_cancellable_field_houses_v2163');
   if(error){body.innerHTML='<div class="phc190-error">'+esc(friendlyError(error))+'</div>';return;}
   const rows=data||[];
   body.innerHTML='<div class="phc190-request-list">'+rows.map(h=>
@@ -225,6 +225,7 @@ async function renderAdminPendingHouseQueueV2070(){
     '<strong>บ้านเลขที่ '+esc(h.house_no||'ไม่ระบุ')+'</strong>'+
     '<small>หมู่ '+esc(h.moo||'—')+' · '+esc(h.community||'—')+
     ' · รหัสบ้าน '+esc(h.house_id_11||'—')+'</small>'+
+    '<small class="phc190-requester">ผู้เพิ่มบ้าน: <strong>'+esc(h.requester_name||'ไม่ระบุ')+'</strong> · ชุมชนผู้เพิ่ม: <strong>'+esc(h.requester_community||h.community||'ไม่ระบุ')+'</strong></small>'+
     '<small>สถานะ '+esc(h.verification_status)+' · คำขอ/สมาชิกที่ผูกกับบ้าน (รวมตรวจแล้ว) '+Number(h.open_member_requests||0)+'</small>'+
     (h.verification_status!=='pending_jhcis_create'
       ?'<div class="phc190-note">ต้องตรวจทะเบียน JHCIS ก่อน บ้านนี้มีสถานะพบข้อมูลเดิมหรือต้องตรวจเพิ่มเติม จึงยังยกเลิกบน Cloud ไม่ได้</div>'
