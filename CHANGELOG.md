@@ -1,3 +1,12 @@
+## Cloud v2.0.126 — Supabase log pressure reduction
+
+- เปลี่ยน LINE OAuth ให้สร้างคำขอ `line_oauth_start_v2012` เฉพาะเมื่อผู้ใช้กดปุ่ม LINE Login และ redirect ต่อทันทีในคลิกเดียว; ยกเลิกการ pre-generate/refresh คำขอเบื้องหลังเมื่อเปิดหน้า, pageshow หรือกลับมา foreground
+- เพิ่ม profile cache ระดับ session 5 นาที เพื่อลด `GET /rest/v1/profiles` ซ้ำ โดยล้าง cache เมื่อ sign out หรือ profile ถูกแก้ไข; รวมทุกโมดูลให้ใช้ Shared Runtime URL รุ่นเดียวกันเพื่อลด module/client ซ้ำ; RLS/Auth ยังเป็นตัวบังคับสิทธิ์จริงเหมือนเดิม
+- เพิ่ม cache ของ `report_snapshot_v2033` จาก 30 วินาทีเป็น 120 วินาที พร้อม invalidate เมื่อ Admin สั่ง refresh snapshot
+- เพิ่ม LINE OAuth readiness cache 5 นาทีและไม่เรียก Edge Function เพียงเพราะปุ่มตั้งค่า Admin ถูก render
+- เพิ่ม cache ศูนย์ปฏิบัติการ Admin จาก 15 วินาทีเป็น 60 วินาที และลดการตรวจสถานะคำขอ/notifications ในหน้า “บ้านของฉัน” จาก 1 นาทีเป็น 5 นาทีเมื่อกลับเข้าเมนู
+- ไม่เปลี่ยน schema, RLS, Auth policy, JHCIS หรือข้อมูลผู้ใช้
+
 ## Cloud v2.0.116 — Admin portal performance fast path
 
 - เปลี่ยนหน้า Admin ให้ใช้ `admin_community_fast_bundle_v2057` เป็นเส้นทางหลัก แทนการอ่าน `community_report_summary` โดยตรงตอนเปิดระบบ

@@ -1,9 +1,11 @@
-import { getSharedSupabase, getSharedProfile } from './shared-runtime-v2035.mjs?v=2.0.35';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.44&p=2049';
+import { getSharedSupabase, getSharedProfile } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.126-log-usage&p=2164';
 
 const supabase=await getSharedSupabase(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
 let adminReady=false;
 let observing=false;
+let statusCache=null,statusCacheAt=0;
+const STATUS_CACHE_MS=5*60*1000;
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
 
@@ -15,11 +17,12 @@ function injectStyle(){
 }
 
 function edgeHeaders(){return {'content-type':'application/json','apikey':SUPABASE_PUBLISHABLE_KEY,'authorization':`Bearer ${SUPABASE_PUBLISHABLE_KEY}`};}
-async function getStatus(){
+async function getStatus(force=false){
+  if(!force&&statusCache&&(Date.now()-statusCacheAt)<STATUS_CACHE_MS)return statusCache;
   const r=await fetch(`${SUPABASE_URL}/functions/v1/line-oauth`,{method:'POST',cache:'no-store',headers:edgeHeaders(),body:JSON.stringify({action:'status'})});
   let data={};try{data=await r.json();}catch{}
   if(!r.ok)throw new Error(data.error||`STATUS_${r.status}`);
-  return data;
+  statusCache=data;statusCacheAt=Date.now();return data;
 }
 async function checkAdmin(){
   try{
@@ -32,10 +35,10 @@ function boolPill(ok,okText='มีแล้ว',badText='ยังไม่ม�
 function closeModal(){document.querySelector('.line-oauth-settings-overlay')?.remove();}
 async function copyText(text,button){try{await navigator.clipboard.writeText(text);const old=button.textContent;button.textContent='คัดลอกแล้ว';setTimeout(()=>button.textContent=old,1400);}catch{button.textContent='คัดลอกไม่ได้';}}
 
-async function renderStatus(host){
+async function renderStatus(host,force=false){
   host.innerHTML='<div class="line-oauth-settings-note">กำลังตรวจสอบสถานะ LINE Login…</div>';
   try{
-    const d=await getStatus();const req=d.requirements||{};const ready=Boolean(d.configured);const callback=String(d.callback_url||'');const appUrl=String(d.app_base_url||'https://kelang-health.github.io/PHC-THC/');
+    const d=await getStatus(force);const req=d.requirements||{};const ready=Boolean(d.configured);const callback=String(d.callback_url||'');const appUrl=String(d.app_base_url||'https://kelang-health.github.io/PHC-THC/');
     const trigger=$('#line-oauth-settings-btn');if(trigger)trigger.dataset.ready=ready?'1':'0';
     host.innerHTML=`
       <div class="line-oauth-setting-row"><strong>LINE OAuth / OpenID Connect</strong>${boolPill(ready,'พร้อมใช้งาน','ยังไม่พร้อม')}</div>
@@ -59,7 +62,7 @@ async function openSettings(){
   if(!adminReady&&!await checkAdmin())return;
   closeModal();injectStyle();
   const overlay=document.createElement('div');overlay.className='line-oauth-settings-overlay';overlay.innerHTML=`<section class="line-oauth-settings-card" role="dialog" aria-modal="true" aria-labelledby="line-oauth-settings-title"><div class="line-oauth-settings-head"><div><small class="line-oauth-settings-muted">ADMIN · AUTHENTICATION</small><h3 id="line-oauth-settings-title">ตั้งค่า LINE Login</h3><div class="line-oauth-settings-muted">ตรวจ readiness ของ one-tap LINE OAuth/OpenID Connect โดยไม่เปิดเผย secret ใน browser</div></div><button type="button" class="line-oauth-settings-close" aria-label="ปิด">×</button></div><div class="line-oauth-settings-status" data-line-oauth-status></div><div class="line-oauth-settings-actions"><button type="button" class="secondary" data-refresh>ตรวจสถานะอีกครั้ง</button><button type="button" class="primary" data-close>ปิด</button></div></section>`;
-  document.body.appendChild(overlay);overlay.querySelector('.line-oauth-settings-close').onclick=closeModal;overlay.querySelector('[data-close]').onclick=closeModal;overlay.querySelector('[data-refresh]').onclick=()=>renderStatus(overlay.querySelector('[data-line-oauth-status]'));overlay.addEventListener('click',e=>{if(e.target===overlay)closeModal()});
+  document.body.appendChild(overlay);overlay.querySelector('.line-oauth-settings-close').onclick=closeModal;overlay.querySelector('[data-close]').onclick=closeModal;overlay.querySelector('[data-refresh]').onclick=()=>renderStatus(overlay.querySelector('[data-line-oauth-status]'),true);overlay.addEventListener('click',e=>{if(e.target===overlay)closeModal()});
   await renderStatus(overlay.querySelector('[data-line-oauth-status]'));
 }
 
@@ -68,8 +71,7 @@ async function ensureAdminButton(){
   if($('#line-oauth-settings-btn'))return;
   const anchor=document.querySelector('[data-admin-line]');if(!anchor)return;
   const row=anchor.closest('.phc190-actions')||anchor.parentElement;if(!row)return;
-  const b=document.createElement('button');b.type='button';b.id='line-oauth-settings-btn';b.className='phc190-secondary line-oauth-admin-button';b.dataset.ready='0';b.textContent='ตั้งค่า LINE Login';b.onclick=openSettings;row.appendChild(b);
-  getStatus().then(s=>{b.dataset.ready=s.configured?'1':'0';}).catch(()=>{b.dataset.ready='0';});
+  const b=document.createElement('button');b.type='button';b.id='line-oauth-settings-btn';b.className='phc190-secondary line-oauth-admin-button';b.dataset.ready='unknown';b.textContent='ตั้งค่า LINE Login';b.onclick=openSettings;row.appendChild(b);
 }
 
 async function refreshAdminState(){await checkAdmin();if(!adminReady)$('#line-oauth-settings-btn')?.remove();else await ensureAdminButton();}

@@ -1,5 +1,5 @@
-import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall, invalidateShared } from './shared-runtime-v2035.mjs?v=2.0.59';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.105&p=2105';
+import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall, invalidateShared } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.126-log-usage&p=2164';
 const VERSION='2.0.115';
 const DEFAULT_CENTER=[18.2696,99.5071];
 const HOUSEHOLD_CACHE_MS_V2039=300000;
@@ -50,7 +50,7 @@ const COMPLETE_EVENTS_V2114=['house.jhcis_verified','member_request.jhcis_verifi
 const CANCEL_EVENTS_V2114=['house.admin_cancelled','member_request.admin_cancelled'];
 const NOTICE_EVENTS_V2114=[...COMPLETE_EVENTS_V2114,...CANCEL_EVENTS_V2114];
 const COMPLETION_ARCHIVE_DAYS_V2115=30;
-const COMPLETION_VIEW_REFRESH_MS_V2115=60000;
+const COMPLETION_VIEW_REFRESH_MS_V2115=300000;
 let completionLastLoadedAtV2115=0;
 const COMPLETION_ARCHIVE_MS_V2115=COMPLETION_ARCHIVE_DAYS_V2115*24*60*60*1000;
 async function loadCompletionNoticesV2069(){

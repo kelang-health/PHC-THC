@@ -1,4 +1,4 @@
-import { getSharedSupabase, getSharedSession } from './shared-runtime-v2035.mjs?v=2.0.35';
+import { getSharedSupabase, getSharedSession } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
 const VERSION='1.8.24';
 let supabase=null;
 const $=(s,r=document)=>r.querySelector(s);

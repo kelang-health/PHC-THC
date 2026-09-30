@@ -1,5 +1,5 @@
-import { getSharedSupabase } from './shared-runtime-v2035.mjs?v=2.0.35';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.44&p=2049';
+import { getSharedSupabase } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.126-log-usage&p=2164';
 
 const supabase=await getSharedSupabase(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
 const $=(s,r=document)=>r.querySelector(s);
@@ -92,38 +92,6 @@ function browserEnvironment(){
   else note='คอมพิวเตอร์: ใช้ LINE Login/QR หรือ LINE เดิมได้';
   return {ios,android,line,constrained,iosSafari,androidChrome,mobile,note,warn};
 }
-function scheduleOauthRefresh(data){
-  if(oauthRefreshTimer)clearTimeout(oauthRefreshTimer);
-  const exp=new Date(data?.expires_at||0).getTime();
-  const delay=Math.max(30000,Math.min(210000,exp-Date.now()-60000));
-  oauthRefreshTimer=setTimeout(()=>refreshPreparedOauth().catch(()=>{}),Number.isFinite(delay)?delay:180000);
-}
-async function refreshPreparedOauth(){
-  const link=$('#line-login-start'),web=$('#line-login-web');if(!link||link.tagName!=='A'||busy||hasOauthReturn())return;
-  const data=await callOauth('start');
-  if(!data.configured||!data.authorize_url||!data.request_id||!data.browser_secret)return;
-  saveOauth(data);link.href=data.authorize_url;if(web)web.href=webLoginUrl(data.authorize_url);scheduleOauthRefresh(data);
-}
-function renderPreparedOauth(btn,data,help){
-  const state=stateBox(),env=browserEnvironment();
-  const ready=document.createElement('div');ready.className='line-login-ready';
-  const link=document.createElement('a');link.id='line-login-start';link.className='line-login-button';link.href=data.authorize_url;link.textContent=env.mobile?'เปิดแอป LINE':'LINE Login';link.setAttribute('aria-label','เข้าสู่ระบบด้วย LINE');
-  link.addEventListener('click',()=>{busy=true;stopTimers();state.hidden=false;state.innerHTML='<p class="line-login-status">กำลังเปิด LINE เพื่อยืนยันตัวตน… หากไม่เปิดแอป คุณยังสามารถย้อนกลับมาใช้ LINE ผ่านเว็บได้</p>';});
-  ready.appendChild(link);
-  if(env.mobile){
-    const web=document.createElement('a');web.id='line-login-web';web.className='line-login-web';web.href=webLoginUrl(data.authorize_url);web.textContent='LINE ผ่านเว็บ';
-    web.addEventListener('click',()=>{busy=true;stopTimers();state.hidden=false;state.innerHTML='<p class="line-login-status">กำลังเปิด LINE Login ผ่านเว็บ โดยปิด Auto login สำหรับรอบนี้…</p>';});
-    ready.appendChild(web);
-  }
-  const legacy=document.createElement('button');legacy.type='button';legacy.id='line-login-legacy';legacy.className='line-login-legacy';legacy.textContent='LINE เดิม (LINE OA)';
-  legacy.addEventListener('click',()=>{busy=false;stopTimers();clearOauth();startCodeLogin(false).catch(()=>{})});
-  ready.appendChild(legacy);
-  const note=document.createElement('p');note.className=`line-login-browser-note${env.warn?' warn':''}`;note.textContent=env.note;ready.appendChild(note);
-  btn.replaceWith(ready);
-  if(help)help.textContent=env.mobile?'เลือกวิธี LINE ที่สะดวกกับอุปกรณ์ของคุณ':'เลือก LINE Login หรือ LINE เดิม';
-  scheduleOauthRefresh(data);
-}
-
 async function prepareDirectLineLogin(){
   if(oauthPreparePromise)return oauthPreparePromise;
   let btn=$('#line-login-start'),state=stateBox(),help=$('.line-login-help');
@@ -142,7 +110,11 @@ async function prepareDirectLineLogin(){
         return data;
       }
       if(!data.authorize_url||!data.request_id||!data.browser_secret)throw new Error('OAUTH_START_INCOMPLETE');
-      saveOauth(data);renderPreparedOauth(btn,data,help);return data;
+      saveOauth(data);
+      const env=browserEnvironment(),target=env.constrained?webLoginUrl(data.authorize_url):data.authorize_url;
+      busy=true;stopTimers();state.hidden=false;state.innerHTML='<p class="line-login-status">กำลังเปิด LINE เพื่อยืนยันตัวตน…</p>';
+      if(help)help.textContent='กำลังเปิด LINE Login…';
+      window.location.assign(target);return data;
     }catch(e){
       btn.disabled=false;btn.removeAttribute('aria-disabled');btn.textContent='ลองเข้าสู่ระบบด้วย LINE อีกครั้ง';btn.onclick=prepareDirectLineLogin;
       if(help)help.textContent='ยังเตรียม LINE Login ไม่สำเร็จ · Login ปกติยังใช้งานได้';
@@ -167,16 +139,16 @@ async function resumeOauth(){
     }
     const msg=err==='cancelled'||err==='access_denied'?'ยกเลิกการเข้าสู่ระบบด้วย LINE แล้ว สามารถลองใหม่ได้':'LINE Auto login ไม่สำเร็จ อาจเกิดจาก browser, Private Browsing หรือการเปิดลิงก์จากแอปอื่น กรุณาลองใหม่หรือใช้ LINE ผ่านเว็บ';
     state.innerHTML=`<p class="line-login-status error">${msg}</p>`;
-    await prepareDirectLineLogin();return;
+    btn.onclick=prepareDirectLineLogin;return;
   }
   const requestId=String(u.searchParams.get('request_id')||''),saved=readOauth();cleanOauthQuery();
-  if(!saved||saved.request_id!==requestId||!saved.browser_secret){clearOauth();busy=false;btn.disabled=false;btn.textContent='เข้าสู่ระบบด้วย LINE';state.innerHTML='<p class="line-login-status error">ข้อมูลยืนยันในเบราว์เซอร์หมดอายุ กรุณาลอง LINE Login ใหม่</p>';await prepareDirectLineLogin();return;}
+  if(!saved||saved.request_id!==requestId||!saved.browser_secret){clearOauth();busy=false;btn.disabled=false;btn.textContent='เข้าสู่ระบบด้วย LINE';btn.onclick=prepareDirectLineLogin;state.innerHTML='<p class="line-login-status error">ข้อมูลยืนยันในเบราว์เซอร์หมดอายุ กรุณากด LINE Login ใหม่</p>';return;}
   state.innerHTML='<p class="line-login-status success">LINE ยืนยันแล้ว กำลังเข้าสู่ระบบ…</p>';
   try{
     const data=await callOauth('claim',{request_id:requestId,browser_secret:saved.browser_secret});
     if(data.status==='approved'&&data.session?.access_token&&data.session?.refresh_token){clearOauth();await applySession(data.session);return;}
     throw new Error(data.status||'OAUTH_CLAIM_FAILED');
-  }catch(e){clearOauth();busy=false;btn.disabled=false;btn.textContent='เข้าสู่ระบบด้วย LINE';state.innerHTML='<p class="line-login-status error">ยืนยัน LINE แล้วแต่สร้าง session ไม่สำเร็จ กรุณาลองใหม่หรือเข้าสู่ระบบปกติ</p>';await prepareDirectLineLogin();}
+  }catch(e){clearOauth();busy=false;btn.disabled=false;btn.textContent='เข้าสู่ระบบด้วย LINE';btn.onclick=prepareDirectLineLogin;state.innerHTML='<p class="line-login-status error">ยืนยัน LINE แล้วแต่สร้าง session ไม่สำเร็จ กรุณากด LINE Login ใหม่หรือเข้าสู่ระบบปกติ</p>';}
 }
 
 function startCountdown(expiresAt){
@@ -206,17 +178,15 @@ async function startCodeLogin(fromFallback=false){
     const data=await callCode('start');current=data;
     state.innerHTML=`<p class="line-login-status" id="line-login-status">${fromFallback?'โหมดสำรอง: ':'LINE แบบเดิม: '}เปิด LINE OA ของหน่วยงาน แล้วส่งข้อความนี้ภายใน <span class="line-login-count" id="line-login-countdown">3:00</span></p><div class="line-login-code" id="line-login-code">LOGIN ${String(data.code||'')}</div><div class="line-login-actions"><button type="button" class="secondary" id="line-login-copy">คัดลอกรหัส</button><button type="button" class="secondary" id="line-login-cancel">ยกเลิก</button></div><p class="line-login-status">เมื่อ LINE ตอบว่าอนุมัติแล้ว หน้านี้จะเข้าสู่ระบบอัตโนมัติ</p>`;
     $('#line-login-copy').onclick=async()=>{try{await navigator.clipboard.writeText(`LOGIN ${data.code}`);statusText('คัดลอกรหัสแล้ว นำไปส่งที่ LINE OA ของหน่วยงาน')}catch{statusText('คัดลอกอัตโนมัติไม่ได้ กรุณากดค้างที่รหัสเพื่อคัดลอก',true)}};
-    $('#line-login-cancel').onclick=()=>{reset();prepareDirectLineLogin().catch(()=>{})};btn.textContent='กำลังรอการยืนยันจาก LINE';startCountdown(data.expires_at);pollTimer=setTimeout(poll,1200);
+    $('#line-login-cancel').onclick=()=>reset();btn.textContent='กำลังรอการยืนยันจาก LINE';startCountdown(data.expires_at);pollTimer=setTimeout(poll,1200);
   }catch(e){state.innerHTML='<p class="line-login-status error">ยังไม่สามารถเริ่มระบบ LINE แบบเดิมได้ กรุณาลองใหม่หรือเข้าสู่ระบบปกติ</p>';btn.disabled=false;btn.textContent='เข้าสู่ระบบด้วย LINE';btn.onclick=prepareDirectLineLogin;busy=false;}
 }
 function init(){
   injectStyle();const form=$('#login-form');if(!form||$('#line-login-v201'))return;
-  const box=document.createElement('section');box.id='line-login-v201';box.className='line-login-v201';box.innerHTML='<div class="line-login-or">หรือ</div><button type="button" class="line-login-button" id="line-login-start" disabled aria-disabled="true">กำลังเตรียม LINE…</button><p class="line-login-help">กำลังเตรียมการยืนยันตัวตนอย่างปลอดภัย…</p><div class="line-login-state" id="line-login-state" hidden></div>';
-  form.insertAdjacentElement('afterend',box);$('#line-login-start').onclick=prepareDirectLineLogin;
+  const box=document.createElement('section');box.id='line-login-v201';box.className='line-login-v201';box.innerHTML='<div class="line-login-or">หรือ</div><button type="button" class="line-login-button" id="line-login-start">เข้าสู่ระบบด้วย LINE</button><button type="button" class="line-login-legacy" id="line-login-legacy">LINE เดิม (LINE OA)</button><p class="line-login-help">เลือกวิธี LINE ที่สะดวก ระบบจะเริ่มเชื่อมต่อเมื่อกดปุ่มเท่านั้น</p><div class="line-login-state" id="line-login-state" hidden></div>';
+  form.insertAdjacentElement('afterend',box);$('#line-login-start').onclick=prepareDirectLineLogin;$('#line-login-legacy').onclick=()=>startCodeLogin(false);
   window.addEventListener('pagehide',stopTimers,{once:true});
-  window.addEventListener('pageshow',()=>{if(!hasOauthReturn()){busy=false;const state=stateBox();if(state)state.hidden=true;refreshPreparedOauth().catch(()=>{})}});
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!hasOauthReturn()){busy=false;refreshPreparedOauth().catch(()=>{})}});
-  if(hasOauthReturn())resumeOauth().catch(()=>{});else prepareDirectLineLogin().catch(()=>{});
+  if(hasOauthReturn())resumeOauth().catch(()=>{});
 }
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();

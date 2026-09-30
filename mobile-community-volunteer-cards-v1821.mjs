@@ -1,4 +1,4 @@
-import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall } from './shared-runtime-v2035.mjs?v=2.0.35';
+import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
 const VERSION='2.0.57';
 let supabase=null,profile=null,observer=null,leafletPromise=null,readonlyMap=null,readonlyMarkers=null,volMap=null,volMarkers=null;
 const $=(s,r=document)=>r.querySelector(s);

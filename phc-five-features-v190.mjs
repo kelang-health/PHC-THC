@@ -1,4 +1,4 @@
-import { getSharedSupabase, getSharedProfile, sharedCall, invalidateShared, bindPortalActivation, isPortalViewActive } from './shared-runtime-v2035.mjs?v=2.0.35';
+import { getSharedSupabase, getSharedProfile, sharedCall, invalidateShared, bindPortalActivation, isPortalViewActive } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
 const VERSION=document.querySelector('meta[name="phc-release"]')?.content||'2.0.59';
 let supabase=null,profile=null,activeOverlay=null,globalBound=false,toastTimer=null;
 const $=(s,r=document)=>r.querySelector(s);
@@ -9,7 +9,7 @@ const GO_LIVE_V208='2026-10-01';
 const thaiDayV208=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'});
 const preGoLiveV208=()=>thaiDayV208()<GO_LIVE_V208;
 
-const ADMIN_WORK_CACHE_MS_V2057=15000;
+const ADMIN_WORK_CACHE_MS_V2057=60000;
 let adminWorkLoadSeqV2057=0;
 function adminWorkAliveV2057(root,seq){return seq===adminWorkLoadSeqV2057&&document.body.contains(root)&&isPortalViewActive('work');}
 function renderAdminWorkShellV2057(root){

@@ -1,4 +1,4 @@
-import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall, invalidateShared } from './shared-runtime-v2035.mjs?v=2.0.35';
+import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall, invalidateShared } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
 const VERSION='2.0.57';
 const COMMUNITY_STABLE_CACHE_MS_V2039=120000;
 const USER_STAFF_STABLE_CACHE_MS_V2055=300000;

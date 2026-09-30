@@ -1,4 +1,4 @@
-import { getSharedSupabase, getSharedProfile } from './shared-runtime-v2035.mjs?v=2.0.35';
+import { getSharedSupabase, getSharedProfile } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
 const VERSION='1.8.20';
 const DEFAULT_CENTER=[18.2696,99.5071];
 let supabase=null,profile=null,observer=null,modal=null,map=null,marker=null,boundaryLayer=null,currentCommunity='',currentMoo='',currentMode='add',currentHouse=null,currentPoint=null,currentLocationCheck=null,leafletPromise=null;

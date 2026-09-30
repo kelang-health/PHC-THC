@@ -1,4 +1,4 @@
-import { getSharedSupabase, getSharedProfile, bindPortalActivation, isPortalViewActive } from './shared-runtime-v2035.mjs?v=2.0.35';
+import { getSharedSupabase, getSharedProfile, bindPortalActivation, isPortalViewActive } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
 /* Cloud phase 4: authenticated read-only notices. A separate Local phase 3 will publish. */
 const TABLE='cloud_announcements_v2083',SUMMARY='id,kind,title,summary,home_featured,image_path,priority,published_at,ends_at,is_demo,pilot_mode';
 const TTL=5*60*1000, PAGE_SIZE=20;

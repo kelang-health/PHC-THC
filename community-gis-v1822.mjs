@@ -1,4 +1,4 @@
-import { getSharedSupabase } from './shared-runtime-v2035.mjs?v=2.0.35';
+import { getSharedSupabase } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
 const VERSION='1.8.42';
 const DEFAULT_CENTER=[18.2696,99.5071];
 const FALLBACK_BOUNDS=[[18.18,99.41],[18.36,99.60]];

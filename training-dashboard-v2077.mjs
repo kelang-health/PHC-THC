@@ -1,4 +1,4 @@
-import {getSharedSupabase,getSharedProfile,bindPortalActivation,sharedCall,isPortalViewActive} from './shared-runtime-v2035.mjs?v=2.0.35';
+import {getSharedSupabase,getSharedProfile,bindPortalActivation,sharedCall,isPortalViewActive} from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
 
 const $=(selector,root=document)=>root.querySelector(selector);
 const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));

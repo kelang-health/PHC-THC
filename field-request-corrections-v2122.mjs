@@ -1,4 +1,4 @@
-import {getSharedSupabase,getSharedProfile,invalidateShared} from './shared-runtime-v2035.mjs?v=2.0.35';
+import {getSharedSupabase,getSharedProfile,invalidateShared} from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
 // Pending field-house corrections only. All authorization is rechecked by Supabase RPC.
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

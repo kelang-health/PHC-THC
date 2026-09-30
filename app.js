@@ -1,6 +1,6 @@
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.70&p=2070';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.126-log-usage&p=2164';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
-import { getSharedSupabase, setSharedSession, setSharedProfile, clearSharedAuth, sharedCall, invalidateShared, ensureSharedSession, refreshSharedSession, isSharedAuthError } from './shared-runtime-v2035.mjs?v=2.0.59';
+import { getSharedSupabase, setSharedSession, setSharedProfile, clearSharedAuth, sharedCall, invalidateShared, ensureSharedSession, refreshSharedSession, isSharedAuthError } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
 
 import { houseCards, volunteerCards, mergeHouseholdCards, selectCommunityView, POPULATION_NOTE } from './community-workspace-v2074.mjs?v=2.0.78&p=2078';
 import {createCommunityPager} from './community-pagination-v2078.mjs?v=2.0.78&p=2078';
@@ -357,7 +357,7 @@ function confirmRepeatNcdV2033(person){
 }
 async function loadHealthSummary(){
   const scope=effectivePerformanceScope(),owner=scope==='volunteer'?(careScopeVolunteerPid??null):null;
-  let {data,error}=await sharedCall(`report-snapshot:care:${scope}:${owner??''}`,()=>supabase.rpc('report_snapshot_v2033',{p_report_key:'care',p_scope:scope,p_owner_pid:owner}),30000);
+  let {data,error}=await sharedCall(`report-snapshot:care:${scope}:${owner??''}`,()=>supabase.rpc('report_snapshot_v2033',{p_report_key:'care',p_scope:scope,p_owner_pid:owner}),120000);
   if((error||!data)&&effectivePerformanceScope()!=='volunteer'){const legacy=await supabase.rpc('report_snapshot_v2031',{p_report_key:'care',p_scope:careScopeMode});data=legacy.data;error=legacy.error;}
   if((error||!data)&&effectivePerformanceScope()!=='volunteer'){const live=await supabase.rpc('care_dashboard_v1861',{p_scope:careScopeMode});data=live.data;error=live.error;}
   if(error)throw error;const x=data||{};

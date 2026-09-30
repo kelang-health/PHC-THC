@@ -1,5 +1,5 @@
-import { getSharedSupabase } from './shared-runtime-v2035.mjs?v=2.0.59';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.59&p=2059';
+import { getSharedSupabase } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.126-log-usage&p=2164';
 
 const supabase = await getSharedSupabase(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 

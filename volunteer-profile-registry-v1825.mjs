@@ -1,4 +1,4 @@
-import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall } from './shared-runtime-v2035.mjs?v=2.0.35';
+import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
 const VERSION=document.querySelector('meta[name="phc-release"]')?.content||'2.0.63';
 const WORK_PROFILE_DEFER_MS_V2044=2400;
 const WORK_AVATAR_DEFER_MS_V2044=700;

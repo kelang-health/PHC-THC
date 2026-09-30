@@ -2,6 +2,10 @@ const KEY='__PHC_SHARED_RUNTIME_V2035__';
 const state=window[KEY]||(window[KEY]={client:null,clientPromise:null,session:null,profile:null,profileUserId:null,profileAt:0,inflight:new Map(),cache:new Map(),authHooked:false,refreshPromise:null});
 if(!Object.prototype.hasOwnProperty.call(state,'clientPromise'))state.clientPromise=null;
 if(!Object.prototype.hasOwnProperty.call(state,'refreshPromise'))state.refreshPromise=null;
+const PROFILE_STORAGE_KEY='phc.shared.profile.v2035';
+function clearStoredProfile(){try{sessionStorage.removeItem(PROFILE_STORAGE_KEY)}catch{}}
+function storeProfile(profile,at=Date.now()){try{if(profile?.user_id)sessionStorage.setItem(PROFILE_STORAGE_KEY,JSON.stringify({profile,at}));else clearStoredProfile()}catch{}}
+function storedProfile(userId,ttlMs){try{const row=JSON.parse(sessionStorage.getItem(PROFILE_STORAGE_KEY)||'null');if(row?.profile?.user_id===userId&&(Date.now()-Number(row.at||0))<ttlMs)return row;clearStoredProfile()}catch{clearStoredProfile()}return null;}
 
 function hookAuth(client){
   if(state.authHooked||!client?.auth?.onAuthStateChange)return;
@@ -15,7 +19,9 @@ function hookAuth(client){
       state.cache.clear();
       state.inflight.clear();
       state.refreshPromise=null;
+      clearStoredProfile();
     }
+    if(event==='USER_UPDATED'){state.profile=null;state.profileUserId=null;state.profileAt=0;clearStoredProfile();}
     if(event==='USER_UPDATED'||event==='TOKEN_REFRESHED'||event==='SIGNED_IN')state.session=session||state.session;
   });
 }
@@ -46,6 +52,7 @@ export function setSharedProfile(profile){
   state.profile=profile||null;
   state.profileUserId=profile?.user_id||null;
   state.profileAt=Date.now();
+  storeProfile(state.profile,state.profileAt);
 }
 export function clearSharedAuth(){
   state.session=null;
@@ -53,6 +60,7 @@ export function clearSharedAuth(){
   state.profileUserId=null;
   state.profileAt=0;
   state.refreshPromise=null;
+  clearStoredProfile();
   state.cache.clear();
   state.inflight.clear();
 }
@@ -109,6 +117,7 @@ export async function getSharedProfile(client=state.client,{force=false,ttlMs=30
   const session=await getSharedSession(client);
   if(!session)return null;
   if(!force&&state.profile&&state.profileUserId===session.user.id&&(Date.now()-state.profileAt)<ttlMs)return state.profile;
+  if(!force){const saved=storedProfile(session.user.id,ttlMs);if(saved){state.profile=saved.profile;state.profileUserId=session.user.id;state.profileAt=Number(saved.at||Date.now());return state.profile;}}
   return sharedCall(`profile:${session.user.id}`,async()=>{
     const {data,error}=await client.from('profiles').select('user_id,display_name,role,community,volunteer_pid,active').eq('user_id',session.user.id).maybeSingle();
     if(error)throw error;
