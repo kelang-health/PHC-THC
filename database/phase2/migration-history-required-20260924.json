@@ -1,0 +1,772 @@
+{
+  "schema_version": 1,
+  "source": "Supabase migration history metadata only; no SQL or data",
+  "snapshot_date": "2026-09-25",
+  "project_ref": "tgeezbwbrovfyjbeykrj",
+  "required": [
+    {
+      "version": "20260908121831",
+      "name": "osm_phc_cloud_schema"
+    },
+    {
+      "version": "20260908144000",
+      "name": "cloud_account_password_policy"
+    },
+    {
+      "version": "20260908145000",
+      "name": "enforce_password_change_in_rls"
+    },
+    {
+      "version": "20260908151500",
+      "name": "sheet_user_roles"
+    },
+    {
+      "version": "20260908230500",
+      "name": "normalize_community_scope"
+    },
+    {
+      "version": "20260909090000",
+      "name": "health_ncd_module"
+    },
+    {
+      "version": "20260909095000",
+      "name": "health_history_view"
+    },
+    {
+      "version": "20260909095145",
+      "name": "disable_forced_password_change"
+    },
+    {
+      "version": "20260909102837",
+      "name": "health_mental_2q_optional"
+    },
+    {
+      "version": "20260909111000",
+      "name": "mobile_ncd_screening_ux"
+    },
+    {
+      "version": "20260909112500",
+      "name": "latest_screening_source"
+    },
+    {
+      "version": "20260909113000",
+      "name": "jreport_ncd_mobile_final"
+    },
+    {
+      "version": "20260909123000",
+      "name": "staff_community_scope_v182"
+    },
+    {
+      "version": "20260909134000",
+      "name": "legacy_smart_ncd_integration"
+    },
+    {
+      "version": "20260909140500",
+      "name": "go_live_test_reset_v185"
+    },
+    {
+      "version": "20260909161202",
+      "name": "add_login_lockout_state"
+    },
+    {
+      "version": "20260909162313",
+      "name": "harden_login_security_state_rls"
+    },
+    {
+      "version": "20260909162350",
+      "name": "enable_http_for_auth_security_test"
+    },
+    {
+      "version": "20260909162528",
+      "name": "disable_http_after_auth_security_test"
+    },
+    {
+      "version": "20260909163104",
+      "name": "enable_http_for_auth_reset_test_v2"
+    },
+    {
+      "version": "20260909163147",
+      "name": "disable_http_after_auth_reset_test_v2"
+    },
+    {
+      "version": "20260909233104",
+      "name": "community_gis_coordinate_update"
+    },
+    {
+      "version": "20260909233359",
+      "name": "finalize_community_gis_coordinate_resolution"
+    },
+    {
+      "version": "20260909233623",
+      "name": "community_gis_version_1818"
+    },
+    {
+      "version": "20260909234034",
+      "name": "fix_house_coordinate_scope_null_logic"
+    },
+    {
+      "version": "20260909234107",
+      "name": "expand_house_coordinate_audit_state"
+    },
+    {
+      "version": "20260909235112",
+      "name": "field_house_registration_v1819"
+    },
+    {
+      "version": "20260909235353",
+      "name": "house_location_precheck_v1819"
+    },
+    {
+      "version": "20260909235935",
+      "name": "deny_client_house_registration_audit"
+    },
+    {
+      "version": "20260910003253",
+      "name": "add_mobile_community_and_volunteer_spatial_cards_v1821"
+    },
+    {
+      "version": "20260910003913",
+      "name": "add_spatial_community_boundaries_v1821"
+    },
+    {
+      "version": "20260910005732",
+      "name": "add_spatial_workflow_dashboard_v1822"
+    },
+    {
+      "version": "20260910010653",
+      "name": "make_spatial_boundary_counts_exclusive_v1822"
+    },
+    {
+      "version": "20260910014310",
+      "name": "add_volunteer_profile_media_and_registry_status"
+    },
+    {
+      "version": "20260910022912",
+      "name": "add_volunteer_photo_source_url_and_registry_v2"
+    },
+    {
+      "version": "20260910060625",
+      "name": "add_household_quality_scope_v1831"
+    },
+    {
+      "version": "20260910201500",
+      "name": "volunteer_module_completion_v1836"
+    },
+    {
+      "version": "20260911002634",
+      "name": "person_residence_workflow_v1841"
+    },
+    {
+      "version": "20260911032406",
+      "name": "typelive_service_sync_v1841"
+    },
+    {
+      "version": "20260911032814",
+      "name": "security_hardening_v1841"
+    },
+    {
+      "version": "20260911091252",
+      "name": "staff_community_key_v1847"
+    },
+    {
+      "version": "20260911113000",
+      "name": "person_residence_workflow_v1841"
+    },
+    {
+      "version": "20260911124500",
+      "name": "typelive_service_sync_v1841"
+    },
+    {
+      "version": "20260911131500",
+      "name": "security_hardening_v1841"
+    },
+    {
+      "version": "20260911141157",
+      "name": "local_admin_cloud_diagnostics"
+    },
+    {
+      "version": "20260911151500",
+      "name": "thai_cv_risk_v1847"
+    },
+    {
+      "version": "20260911193000",
+      "name": "staff_community_key_v1847"
+    },
+    {
+      "version": "20260911210000",
+      "name": "role_community_scope_v1854"
+    },
+    {
+      "version": "20260911211000",
+      "name": "local_admin_cloud_diagnostics"
+    },
+    {
+      "version": "20260911214500",
+      "name": "user_household_members_v1855"
+    },
+    {
+      "version": "20260911230000",
+      "name": "union_boundary_field_save_v1858"
+    },
+    {
+      "version": "20260911233000",
+      "name": "role_linked_care_dashboard_v1860"
+    },
+    {
+      "version": "20260911235900",
+      "name": "reference_aligned_care_metrics_v1861"
+    },
+    {
+      "version": "20260911235930",
+      "name": "adl_elderly_scope_fix_v1861"
+    },
+    {
+      "version": "20260912102000",
+      "name": "member_notification_line_v190"
+    },
+    {
+      "version": "20260912103000",
+      "name": "age_screening_v190"
+    },
+    {
+      "version": "20260912103500",
+      "name": "v190_integration_refinements"
+    },
+    {
+      "version": "20260912143000",
+      "name": "field_work_reporting_v200"
+    },
+    {
+      "version": "20260912143500",
+      "name": "field_work_permissions_v200"
+    },
+    {
+      "version": "20260912144000",
+      "name": "field_work_aggregate_views_v200"
+    },
+    {
+      "version": "20260912153000",
+      "name": "line_admin_login_v201"
+    },
+    {
+      "version": "20260912164000",
+      "name": "growth_nutrition_doh_v204"
+    },
+    {
+      "version": "20260912164500",
+      "name": "growth_nutrition_selfcheck_v204"
+    },
+    {
+      "version": "20260912174000",
+      "name": "line_appointment_response_v205"
+    },
+    {
+      "version": "20260912181500",
+      "name": "dspm_followup_youth_campaign_v206"
+    },
+    {
+      "version": "20260912203000",
+      "name": "elderly9_community_wizard_v207"
+    },
+    {
+      "version": "20260912211500",
+      "name": "test_reset_all_screenings_v208"
+    },
+    {
+      "version": "20260912223000",
+      "name": "line_link_local_export_v209"
+    },
+    {
+      "version": "20260913001500",
+      "name": "line_oauth_v2012"
+    },
+    {
+      "version": "20260913030500",
+      "name": "health_worklist_cvd_compat_v2021"
+    },
+    {
+      "version": "20260913032500",
+      "name": "admin_test_reset_ncd_save_perf_v2022"
+    },
+    {
+      "version": "20260913034500",
+      "name": "screening_plan_performance_v2023"
+    },
+    {
+      "version": "20260913041000",
+      "name": "population_type13_v2025"
+    },
+    {
+      "version": "20260913043500",
+      "name": "screening_target_config_v2026"
+    },
+    {
+      "version": "20260913060000",
+      "name": "concurrent_target_rpc_v2030"
+    },
+    {
+      "version": "20260913061500",
+      "name": "concurrent_target_rpc_direct_v2030"
+    },
+    {
+      "version": "20260913063000",
+      "name": "target_cache_v2030"
+    },
+    {
+      "version": "20260913064500",
+      "name": "target_cache_json_rpc_v2030"
+    },
+    {
+      "version": "20260913070000",
+      "name": "target_cache_admin_refresh_v2030"
+    },
+    {
+      "version": "20260913071623",
+      "name": "report_snapshot_cache_v2031"
+    },
+    {
+      "version": "20260913092407",
+      "name": "public_branding_bucket_v2031"
+    },
+    {
+      "version": "20260913093939",
+      "name": "report_snapshot_state_fk_index_v2031"
+    },
+    {
+      "version": "20260913155805",
+      "name": "stabilization_validation_v2033"
+    },
+    {
+      "version": "20260913160446",
+      "name": "field_worklist_v2033_ambiguity_fix"
+    },
+    {
+      "version": "20260913160939",
+      "name": "health_worklist_v2033_hot_path"
+    },
+    {
+      "version": "20260913203000",
+      "name": "assignment_fallback_v2032"
+    },
+    {
+      "version": "20260914133800",
+      "name": "phase2g3_integrity_work_queue"
+    },
+    {
+      "version": "20260914180500",
+      "name": "phase2i_house_ownership_reconcile"
+    },
+    {
+      "version": "20260915060000",
+      "name": "household_residence_member_v2043"
+    },
+    {
+      "version": "20260915095000",
+      "name": "cloud_jhcis_reverse_reconcile_v2045"
+    },
+    {
+      "version": "20260915120712",
+      "name": "enable_http_for_auth_repair"
+    },
+    {
+      "version": "20260915120752",
+      "name": "remove_temporary_http_extension"
+    },
+    {
+      "version": "20260916231028",
+      "name": "login_security_telegram_v2046"
+    },
+    {
+      "version": "20260917015238",
+      "name": "limit_report_snapshot_retention_to_latest_four"
+    },
+    {
+      "version": "20260917053412",
+      "name": "enable_http_extension_for_auth_diagnostics"
+    },
+    {
+      "version": "20260917152000",
+      "name": "legacy_house_supersession_v2048"
+    },
+    {
+      "version": "20260917193000",
+      "name": "jhcis_authoritative_verification_v2050"
+    },
+    {
+      "version": "20260917195000",
+      "name": "jhcis_authoritative_finalize_v2050"
+    },
+    {
+      "version": "20260918051500",
+      "name": "cloud_performance_hardening_v2054"
+    },
+    {
+      "version": "20260918062500",
+      "name": "phase2h_user_staff_fastpath_v2055"
+    },
+    {
+      "version": "20260918065000",
+      "name": "child_growth_jhcis_history_v2056"
+    },
+    {
+      "version": "20260918070000",
+      "name": "jhcis_child_growth_sync_v2056"
+    },
+    {
+      "version": "20260918074500",
+      "name": "phase2h_admin_house_community_fastpath_v2057"
+    },
+    {
+      "version": "20260918080000",
+      "name": "phase2h_admin_community_parity_v2057"
+    },
+    {
+      "version": "20260918081500",
+      "name": "phase2h_admin_community_single_scan_v2057"
+    },
+    {
+      "version": "20260918083000",
+      "name": "phase2h_admin_community_normalized_single_join_v2057"
+    },
+    {
+      "version": "20260918090000",
+      "name": "phase2h1_residual_fastpath_v2058"
+    },
+    {
+      "version": "20260918091000",
+      "name": "phase2h1_assignment_cache_safeupdate_v2058"
+    },
+    {
+      "version": "20260919013854",
+      "name": "daily_admin_summary_v2066"
+    },
+    {
+      "version": "20260919014023",
+      "name": "daily_admin_summary_delivery_state_v2066"
+    },
+    {
+      "version": "20260919014050",
+      "name": "schedule_daily_admin_summary_public_guarded_v2066"
+    },
+    {
+      "version": "20260919014200",
+      "name": "fix_daily_admin_summary_cron_http_body_v2066"
+    },
+    {
+      "version": "20260919015952",
+      "name": "telegram_security_operations_center_v2066"
+    },
+    {
+      "version": "20260919020023",
+      "name": "enhance_daily_security_operations_summary_v2066"
+    },
+    {
+      "version": "20260919020113",
+      "name": "schedule_security_scan_and_telegram_dispatch_v2066"
+    },
+    {
+      "version": "20260919021145",
+      "name": "performance_early_warning_v2067"
+    },
+    {
+      "version": "20260919021158",
+      "name": "attach_performance_guard_to_security_scan_v2067"
+    },
+    {
+      "version": "20260919024730",
+      "name": "fix_cron_running_false_positive_v2067"
+    },
+    {
+      "version": "20260920044736",
+      "name": "telegram_login_lock_volunteer_pid_v2068"
+    },
+    {
+      "version": "20260920045730",
+      "name": "telegram_login_lock_identity_community_v2069"
+    },
+    {
+      "version": "20260921033942",
+      "name": "telegram_dispatch_skip_empty_queue_and_timeout_12s_v2070"
+    },
+    {
+      "version": "20260921120147",
+      "name": "disambiguate_unmapped_login_lock_alerts_v2071"
+    },
+    {
+      "version": "20260921132042",
+      "name": "staff_household_scope_and_virtual_fallback_v2072"
+    },
+    {
+      "version": "20260921132131",
+      "name": "staff_household_sort_numeric_house_number_v2072"
+    },
+    {
+      "version": "20260921133013",
+      "name": "staff_cross_community_moo_conflict_guard_v2072"
+    },
+    {
+      "version": "20260922050415",
+      "name": "retain_four_report_snapshot_generations_v2073"
+    },
+    {
+      "version": "20260922054911",
+      "name": "report_refresh_watermark_preserve_inflight_changes_v2074"
+    },
+    {
+      "version": "20260922054928",
+      "name": "coalesce_report_refresh_queue_one_pending_v2074"
+    },
+    {
+      "version": "20260922055011",
+      "name": "only_meaningful_report_source_changes_v2074"
+    },
+    {
+      "version": "20260922055206",
+      "name": "repair_health_persons_composite_key_report_trigger_v2074"
+    },
+    {
+      "version": "20260922060501",
+      "name": "screening_plan_skip_unchanged_upserts_v2075"
+    },
+    {
+      "version": "20260922060906",
+      "name": "preserve_real_screenings_in_full_target_cache_refresh_v2075"
+    },
+    {
+      "version": "20260922061231",
+      "name": "schedule_daily_screening_targets_freshness_v2075"
+    },
+    {
+      "version": "20260922061326",
+      "name": "propagate_house_assignment_and_address_to_target_cache_v2075"
+    },
+    {
+      "version": "20260922071345",
+      "name": "cloud_local_retention_policy_daily_metrics_v2076"
+    },
+    {
+      "version": "20260922071435",
+      "name": "safe_local_admin_on_demand_target_refresh_v2076"
+    },
+    {
+      "version": "20260922084917",
+      "name": "durable_nightly_snapshot_outcomes_v2077"
+    },
+    {
+      "version": "20260922084954",
+      "name": "persist_nightly_result_across_report_cache_pruning_v2077"
+    },
+    {
+      "version": "20260922085050",
+      "name": "distinguish_pruned_legacy_nightly_results_from_failures_v2077"
+    },
+    {
+      "version": "20260922085125",
+      "name": "nightly_watch_uses_durable_outcome_instead_of_pruned_cache_v2077"
+    },
+    {
+      "version": "20260923010049",
+      "name": "cloud_announcements_readonly_v2083"
+    },
+    {
+      "version": "20260923031319",
+      "name": "health_event_rounds_bookings_v2085"
+    },
+    {
+      "version": "20260923031335",
+      "name": "event_booking_policy_scope_fix_v2085"
+    },
+    {
+      "version": "20260923031448",
+      "name": "health_event_search_and_admin_report_v2085"
+    },
+    {
+      "version": "20260923031946",
+      "name": "service_health_event_report_v2085"
+    },
+    {
+      "version": "20260923032132",
+      "name": "health_event_slot_availability_v2085"
+    },
+    {
+      "version": "20260923032418",
+      "name": "event_booking_audience_and_concurrency_v2085"
+    },
+    {
+      "version": "20260923032719",
+      "name": "event_booking_close_race_lock_v2085"
+    },
+    {
+      "version": "20260923055611",
+      "name": "hcv_hbsag_booking_private_schema_h3_v2087"
+    },
+    {
+      "version": "20260923055641",
+      "name": "hcv_hbsag_scoped_people_search_h3_v2087"
+    },
+    {
+      "version": "20260923055709",
+      "name": "hcv_hbsag_atomic_booking_h3_v2087"
+    },
+    {
+      "version": "20260923055740",
+      "name": "hcv_hbsag_owner_booking_read_and_cancel_h3_v2087"
+    },
+    {
+      "version": "20260923055805",
+      "name": "hcv_hbsag_prevent_generic_booking_bypass_h3_v2087"
+    },
+    {
+      "version": "20260923055834",
+      "name": "hcv_hbsag_service_only_booking_report_h3_v2087"
+    },
+    {
+      "version": "20260923060102",
+      "name": "hcv_hbsag_null_safe_service_role_guards_h3_v2087"
+    },
+    {
+      "version": "20260923061421",
+      "name": "hcv_h4_own_bookings_on_demand_v2088"
+    },
+    {
+      "version": "20260923062207",
+      "name": "hcv_h5_private_review_fields_audit_v2089"
+    },
+    {
+      "version": "20260923062231",
+      "name": "hcv_h5_service_only_review_update_v2089"
+    },
+    {
+      "version": "20260923062254",
+      "name": "hcv_h5_private_report_service_vs_booking_totals_v2089"
+    },
+    {
+      "version": "20260923063356",
+      "name": "hcv_h5_prevent_cancel_after_recorded_service_v2089"
+    },
+    {
+      "version": "20260923082627",
+      "name": "hcv_h6_user_staff_volunteer_scoped_access_v2091"
+    },
+    {
+      "version": "20260923134412",
+      "name": "hcv_h65_staff_scoped_slot_visibility_v2092"
+    },
+    {
+      "version": "20260923143749",
+      "name": "hcv_h65_demo_marked_no_real_booking_v2093"
+    },
+    {
+      "version": "20260923144131",
+      "name": "hcv_h65_demo_visible_all_active_roles_v2093"
+    },
+    {
+      "version": "20260923145015",
+      "name": "hcv_demo_real_data_isolated_bookings_audit_v2094"
+    },
+    {
+      "version": "20260923145038",
+      "name": "hcv_demo_real_data_slot_summary_v2094"
+    },
+    {
+      "version": "20260923145105",
+      "name": "hcv_demo_real_data_booking_guard_v2094"
+    },
+    {
+      "version": "20260923145135",
+      "name": "hcv_demo_real_data_my_bookings_cancel_v2094"
+    },
+    {
+      "version": "20260923145200",
+      "name": "hcv_demo_real_data_service_report_v2094"
+    },
+    {
+      "version": "20260923145230",
+      "name": "hcv_demo_real_data_review_reset_admin_only_v2094"
+    },
+    {
+      "version": "20260923145348",
+      "name": "hcv_demo_real_data_explicit_feature_flag_v2094"
+    },
+    {
+      "version": "20260923145437",
+      "name": "hcv_demo_real_data_feature_gates_v2094"
+    },
+    {
+      "version": "20260923151320",
+      "name": "hcv_demo_booking_fix_ambiguous_user_variable_v2094"
+    },
+    {
+      "version": "20260923170255",
+      "name": "hcv_h7_restricted_pilot_guardrails_v2095"
+    },
+    {
+      "version": "20260923170324",
+      "name": "hcv_h7_pilot_rls_v2095"
+    },
+    {
+      "version": "20260923170408",
+      "name": "hcv_h7_pilot_rpc_authorization_v2095"
+    },
+    {
+      "version": "20260923224249",
+      "name": "hcv_demo_private_contact_phone_input_and_admin_report_v2099"
+    },
+    {
+      "version": "20260923230700",
+      "name": "hcv_h7_target_rule_required_before_real_booking_v2100"
+    },
+    {
+      "version": "20260923232302",
+      "name": "h7_eligibility_rule_snapshot_scoped_read_v2103"
+    },
+    {
+      "version": "20260923232859",
+      "name": "h7_real_hcv_booking_requires_fresh_local_preliminary_eligibility_v2103"
+    },
+    {
+      "version": "20260923233210",
+      "name": "h7_scoped_precomputed_people_search_status_v2103"
+    },
+    {
+      "version": "20260923235422",
+      "name": "pause_all_cloud_announcements_booking_and_public_reader_v2104"
+    },
+    {
+      "version": "20260924030527",
+      "name": "h7_service_eligibility_booking_guard_v2107"
+    },
+    {
+      "version": "20260924030631",
+      "name": "h7_scoped_rpc_private_v2107"
+    },
+    {
+      "version": "20260924034113",
+      "name": "h7_preliminary_request_v2108"
+    },
+    {
+      "version": "20260924054430",
+      "name": "h7_preliminary_staleness_v2108"
+    },
+    {
+      "version": "20260924054640",
+      "name": "h7_preliminary_service_results_v2108"
+    },
+    {
+      "version": "20260924081354",
+      "name": "admin_pending_member_line_contact_v2109"
+    },
+    {
+      "version": "20260924092024",
+      "name": "field_request_corrections_v2122"
+    },
+    {
+      "version": "20260924092145",
+      "name": "field_house_pending_scope_guard_v2122"
+    },
+    {
+      "version": "20260924110811",
+      "name": "houses_removed_from_jhcis_soft_archive_v2123"
+    }
+  ]
+}
