@@ -13,7 +13,7 @@ const ADMIN_WORK_CACHE_MS_V2057=60000;
 let adminWorkLoadSeqV2057=0;
 function adminWorkAliveV2057(root,seq){return seq===adminWorkLoadSeqV2057&&document.body.contains(root)&&isPortalViewActive('work');}
 function renderAdminWorkShellV2057(root){
-  root.innerHTML=`<h3>ศูนย์ปฏิบัติการ v${VERSION}</h3><div class="phc190-kpis"><div class="phc190-kpi"><small>คำขอเพิ่มสมาชิก</small><strong data-admin-member-kpi>…</strong></div><div class="phc190-kpi"><small>เชื่อม LINE</small><strong data-admin-line-kpi>…</strong></div><div class="phc190-kpi"><small>ส่ง LINE ไม่สำเร็จ</small><strong data-admin-line-failed>…</strong></div></div><div class="phc190-note" data-admin-line-self><strong>LINE ของบัญชีผู้ดูแล</strong><br>กำลังโหลดสถานะ…</div><div data-admin-next-appointment></div><div class="phc190-actions"><button class="phc190-primary" data-admin-requests>ตรวจคำขอสมาชิก</button><button class="phc190-secondary" data-admin-field-house-cancel>จัดการบ้านที่รอ JHCIS</button><button class="phc190-primary" data-admin-line>LINE / นัดหมาย</button><span data-admin-line-action><button class="phc190-secondary" disabled>กำลังโหลด LINE…</button></span></div><button class="phc190-secondary" data-admin-youth-campaign>ตั้งค่าคัดกรองเสริม 15–34 ปี</button><button class="phc190-secondary" data-admin-notices disabled>แจ้งเตือนล่าสุด …</button><div data-admin-test-reset></div><div class="phc190-note">Telegram ใช้เฉพาะ Admin event ผ่าน server worker และไม่ส่งข้อมูลส่วนบุคคลละเอียดในข้อความ</div>`;
+  root.innerHTML=`<h3>ศูนย์ปฏิบัติการ v${VERSION}</h3><div class="phc190-kpis"><div class="phc190-kpi"><small>คำขอเพิ่มสมาชิก</small><strong data-admin-member-kpi>…</strong></div><div class="phc190-kpi"><small>เชื่อม LINE</small><strong data-admin-line-kpi>…</strong></div><div class="phc190-kpi"><small>ส่ง LINE ไม่สำเร็จ</small><strong data-admin-line-failed>…</strong></div></div><div class="phc190-note" data-admin-line-self><strong>LINE ของบัญชีผู้ดูแล</strong><br>กำลังโหลดสถานะ…</div><div data-admin-next-appointment></div><div class="phc190-actions"><button class="phc190-primary" data-admin-requests>ตรวจคำขอสมาชิก</button><button class="phc190-secondary" data-admin-field-house-cancel>บ้านที่ อสม. เพิ่ม</button><button class="phc190-primary" data-admin-line>LINE / นัดหมาย</button><span data-admin-line-action><button class="phc190-secondary" disabled>กำลังโหลด LINE…</button></span></div><button class="phc190-secondary" data-admin-youth-campaign>ตั้งค่าคัดกรองเสริม 15–34 ปี</button><button class="phc190-secondary" data-admin-notices disabled>แจ้งเตือนล่าสุด …</button><div data-admin-test-reset></div><div class="phc190-note">Telegram ใช้เฉพาะ Admin event ผ่าน server worker และไม่ส่งข้อมูลส่วนบุคคลละเอียดในข้อความ</div>`;
   root.querySelector('[data-admin-requests]').onclick=renderAdminMemberQueue;
   root.querySelector('[data-admin-field-house-cancel]').onclick=renderAdminPendingHouseQueueV2070;
   root.querySelector('[data-admin-line]').onclick=openAdminCommunication;
@@ -215,25 +215,31 @@ async function cancelMemberRequestV2070(id,label){
 }
 
 async function renderAdminPendingHouseQueueV2070(){
-  const body=openModal('จัดการบ้านที่ อสม. เพิ่ม','ยกเลิกได้เฉพาะบ้านที่ยังไม่ยืนยันกับ JHCIS และไม่มีคำขอสมาชิกค้าง ระบบเก็บประวัติการยกเลิกไว้');
-  body.innerHTML='<div class="phc190-note">กำลังตรวจรายการบ้านที่ยังรอ JHCIS…</div>';
+  const body=openModal('จัดการบ้านที่ อสม. เพิ่ม','แสดงทั้งบ้านที่ยังรอและบ้านที่ยืนยันกับ JHCIS แล้ว · ยกเลิกได้เฉพาะบ้านที่ยังไม่ยืนยันและไม่มีคำขอสมาชิกค้าง');
+  body.innerHTML='<div class="phc190-note">กำลังตรวจประวัติบ้านที่ อสม. เพิ่ม…</div>';
   const {data,error}=await supabase.rpc('admin_cancellable_field_houses_v2163');
   if(error){body.innerHTML='<div class="phc190-error">'+esc(friendlyError(error))+'</div>';return;}
   const rows=data||[];
-  body.innerHTML='<div class="phc190-request-list">'+rows.map(h=>
+  const verifiedCount=rows.filter(h=>h.verification_status==='verified_jhcis').length;
+  const pendingCount=rows.length-verifiedCount;
+  const statusText=s=>s==='verified_jhcis'?'ยืนยัน JHCIS แล้ว':s==='pending_jhcis_create'?'รอบันทึก/ยืนยัน JHCIS':s==='pending_jhcis_update'?'รอยืนยันข้อมูลเดิมใน JHCIS':s==='review_required'?'ต้องตรวจเพิ่มเติม':String(s||'—');
+  body.innerHTML='<div class="phc190-note"><strong>บ้านที่ อสม. เพิ่ม '+rows.length+' หลัง</strong><br>รอยืนยัน '+pendingCount+' · ยืนยัน JHCIS แล้ว '+verifiedCount+'</div>'+
+    '<div class="phc190-request-list">'+rows.map(h=>
     '<article class="phc190-request" data-admin-field-cancel="'+esc(h.id)+'">'+
     '<strong>บ้านเลขที่ '+esc(h.house_no||'ไม่ระบุ')+'</strong>'+
     '<small>หมู่ '+esc(h.moo||'—')+' · '+esc(h.community||'—')+
     ' · รหัสบ้าน '+esc(h.house_id_11||'—')+'</small>'+
     '<small class="phc190-requester">ผู้เพิ่มบ้าน: <strong>'+esc(h.requester_name||'ไม่ระบุ')+'</strong> · ชุมชนผู้เพิ่ม: <strong>'+esc(h.requester_community||h.community||'ไม่ระบุ')+'</strong></small>'+
-    '<small>สถานะ '+esc(h.verification_status)+' · คำขอ/สมาชิกที่ผูกกับบ้าน (รวมตรวจแล้ว) '+Number(h.open_member_requests||0)+'</small>'+
-    (h.verification_status!=='pending_jhcis_create'
+    '<small>สถานะ <strong>'+esc(statusText(h.verification_status))+'</strong> · วันที่แจ้ง '+esc(fmt(h.created_at))+' · คำขอ/สมาชิกที่ผูกกับบ้าน '+Number(h.open_member_requests||0)+'</small>'+
+    (h.verification_status==='verified_jhcis'
+      ?'<div class="phc190-note"><strong>ยืนยันกับ JHCIS แล้ว</strong> · บ้านยังอยู่ใน Cloud และใช้งานตามทะเบียนได้ ไม่สามารถยกเลิกจากหน้าคำขอได้</div>'
+      :h.verification_status!=='pending_jhcis_create'
       ?'<div class="phc190-note">ต้องตรวจทะเบียน JHCIS ก่อน บ้านนี้มีสถานะพบข้อมูลเดิมหรือต้องตรวจเพิ่มเติม จึงยังยกเลิกบน Cloud ไม่ได้</div>'
       :Number(h.open_member_requests||0)>0
       ?'<div class="phc190-note">ยกเลิกบ้านไม่ได้: มีคำขอหรือสมาชิกที่เชื่อมทะเบียนอยู่ โปรดตรวจรายการก่อน</div><button type="button" class="phc190-secondary" data-manage-members>ดูคำขอที่ยังจัดการได้</button>'
       :'<button type="button" class="phc190-secondary phc190-danger" data-cancel-house>ยกเลิกคำขอเพิ่มบ้าน</button>')+
     '</article>').join('')+
-    (rows.length?'':'<div class="phc190-note">ไม่มีบ้านจาก อสม. ที่รอยืนยัน JHCIS</div>')+'</div>';
+    (rows.length?'':'<div class="phc190-note">ยังไม่มีบ้านที่ อสม. เพิ่มในระบบ</div>')+'</div>';
   body.querySelectorAll('[data-admin-field-cancel]').forEach(card=>{
     const h=rows.find(row=>String(row.id)===card.dataset.adminFieldCancel);
     card.querySelector('[data-manage-members]')?.addEventListener('click',renderAdminMemberQueue);
