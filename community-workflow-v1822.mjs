@@ -75,7 +75,7 @@ function beginFieldAdjustV2068(){
    fieldMarker?.setOpacity(1);
    m.querySelector('[data-field-adjust]').classList.remove('active');
    m.querySelector('[data-field-adjust]').textContent='✥ ปรับหมุด';
-   m.querySelector('[data-field-adjust-help]').textContent='ยกเลิกตำแหน่งร่างแล้ว พิกัดเดิมยังไม่ถูกเปลี่ยน';
+   m.querySelector('[data-field-adjust-help]').textContent='ยกเลิกแล้ว · พิกัดเดิมยังไม่เปลี่ยน';
    $('[data-field-msg]',m).textContent='ยกเลิกการปรับพิกัดแล้ว';return;
  }
  m.dataset.fieldEdit='1';const L=window.L,center=fieldMap.getCenter();
@@ -84,8 +84,8 @@ function beginFieldAdjustV2068(){
  fieldDraftMarker=L.marker(center,{icon:fieldHousePinIcon(L),draggable:true,keyboard:false,zIndexOffset:1100}).addTo(fieldMap);
  fieldDraftMarker.on('dragend',e=>{const p=e.target.getLatLng();fieldMap.panTo(p,{animate:false});setFieldDraftV2068(p.lat,p.lng,'drag');});
  m.querySelector('[data-field-adjust]').classList.add('active');
- m.querySelector('[data-field-adjust]').textContent='ยกเลิกการปรับพิกัด';
- m.querySelector('[data-field-adjust-help]').textContent='ลากหมุดหรือเลื่อนแผนที่ให้ตรงหลังคาบ้านจริง แล้วรอระบบตรวจพิกัดใหม่ก่อนกดบันทึก';
+ m.querySelector('[data-field-adjust]').textContent='ยกเลิกการปรับ';
+ m.querySelector('[data-field-adjust-help]').textContent='ลากหมุดให้ตรงบ้าน แล้วรอตรวจพิกัดก่อนบันทึก';
  setFieldDraftV2068(center.lat,center.lng,'map');
 }
 
