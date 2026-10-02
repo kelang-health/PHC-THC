@@ -1,5 +1,5 @@
 import { getSharedSupabase, getSharedProfile, bindPortalActivation, isPortalViewActive } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
-const VERSION='2.0.132';
+const VERSION='2.0.133';
 let supabase=null,profile=null,historyRows=[];
 const $=(s,r=document)=>r.querySelector(s), esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num=v=>Number(v||0).toLocaleString('th-TH');
