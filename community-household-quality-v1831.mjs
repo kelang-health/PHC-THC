@@ -1,5 +1,5 @@
 import { getSharedSupabase, getSharedProfile, sharedCall, bindPortalActivation, isPortalViewActive } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
-const VERSION='2.0.77';
+const VERSION='2.0.129';
 const COMMUNITY_STABLE_CACHE_MS_V2039=120000;
 const USER_STAFF_STABLE_CACHE_MS_V2055=300000;
 let supabase=null,profile=null,communityRows=[],scopeMode='own',scopeCommunity='',activeCommunity='',panelObserver=null,houseRows=[],houseFilter='all',houseSearch='',houseLimit=80,detailMap=null,houseMapOverlayV2068=null,leafletPromise=null,residenceFeatureReady=true;
@@ -106,14 +106,9 @@ async function openHouseMapV2068(h,row,healthAccess){
   const owned=profile?.role==='user'||(profile?.role==='staff'&&String(h.community||'').trim()===String(profile.community||'').trim());
   const canEdit=owned&&row?.can_edit!==false;
   const overlay=document.createElement('div');overlay.className='hq68-map-view';overlay.dataset.hq68Map='1';
-  overlay.innerHTML=`<header class="hq68-map-head"><div><strong>แผนที่บ้าน ${esc(h.house_no||'ไม่ระบุ')}</strong><small>หมู่ ${esc(h.moo||'—')} · ${esc(h.community||'—')}</small></div><button type="button" class="hq68-map-back" data-hq68-back>← กลับบ้าน</button></header><div class="hq68-map-canvas" data-hq68-canvas role="region" aria-label="ตำแหน่งบ้านบนแผนที่"></div><footer class="hq68-map-footer"><p>${hasPoint?'ตรวจตำแหน่งในแอปก่อน แล้วค่อยเลือกการนำทางด้านล่าง':'ยังไม่มีพิกัด · ใช้ปุ่มปรับพิกัดเพื่อกำหนดตำแหน่งบ้าน'}</p><button type="button" class="hq68-map-action" data-hq68-house>เปิดบ้าน / ประชากร</button><button type="button" class="hq68-map-action secondary" data-hq68-add ${healthAccess?'':'hidden'}>เพิ่มคนในบ้าน</button><button type="button" class="hq68-map-action secondary" data-hq68-edit ${canEdit?'':'hidden'}>ปรับพิกัด</button>${hasPoint?`<a class="hq68-map-action secondary" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(point.join(','))}" target="_blank" rel="noopener">นำทาง Google Maps</a><a class="hq68-map-action secondary" href="https://maps.apple.com/?daddr=${encodeURIComponent(point.join(','))}&dirflg=d" target="_blank" rel="noopener" ${isIOSDevice()?'':'hidden'}>นำทาง Apple Maps</a>`:''}</footer>`;
+  overlay.innerHTML=`<header class="hq68-map-head"><div><strong>แผนที่บ้าน ${esc(h.house_no||'ไม่ระบุ')}</strong><small>หมู่ ${esc(h.moo||'—')} · ${esc(h.community||'—')}</small></div><button type="button" class="hq68-map-back" data-hq68-back>← กลับบ้าน</button></header><div class="hq68-map-canvas" data-hq68-canvas role="region" aria-label="ตำแหน่งบ้านบนแผนที่"></div><footer class="hq68-map-footer"><p>${hasPoint?'หมุดนี้เป็นพิกัดเดิมเพื่ออ้างอิง · หากอยู่ที่บ้านจริงให้กดอัปเดต GPS':'บ้านนี้ยังไม่มีพิกัด · อยู่ที่บ้านจริงแล้วกดอัปเดต GPS'}</p><button type="button" class="hq68-map-action" data-hq68-edit ${canEdit?'':'hidden'}>◎ อัปเดตพิกัด GPS</button>${hasPoint?`<a class="hq68-map-action secondary" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(point.join(','))}" target="_blank" rel="noopener">นำทาง Google Maps</a><a class="hq68-map-action secondary" href="https://maps.apple.com/?daddr=${encodeURIComponent(point.join(','))}&dirflg=d" target="_blank" rel="noopener" ${isIOSDevice()?'':'hidden'}>นำทาง Apple Maps</a>`:''}</footer>`;
   const detail=detailOverlay();detail.hidden=true;document.body.appendChild(overlay);houseMapOverlayV2068=overlay;
   overlay.querySelector('[data-hq68-back]').onclick=()=>closeHouseMapV2068();
-  overlay.querySelector('[data-hq68-house]').onclick=()=>{closeHouseMapV2068();const members=$('.hq31-members',detail);if(members)members.scrollIntoView({block:'start'});};
-  overlay.querySelector('[data-hq68-add]')?.addEventListener('click',()=>{
-    closeHouseMapV2068();const add=$('[data-phc190-add]',detail);
-    if(add)add.click();else{const members=$('.hq31-members',detail);members?.scrollIntoView({block:'start'});alert('กำลังเตรียมรายการเพิ่มสมาชิก กรุณาลองกดปุ่ม “แจ้งเพิ่มสมาชิก” ในหน้าบ้านอีกครั้ง');}
-  });
   overlay.querySelector('[data-hq68-edit]')?.addEventListener('click',()=>{
     closeHouseMapV2068(false);closeDetail();
     document.dispatchEvent(new CustomEvent('phc:open-field-house',{detail:{houseId:row.id}}));
