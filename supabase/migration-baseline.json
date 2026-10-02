@@ -1,8 +1,8 @@
 {
   "schema": 2,
   "hash_mode": "sha256_lf_normalized",
-  "latest_version": "20260927040723",
-  "migration_count": 219,
+  "latest_version": "20261002035845",
+  "migration_count": 228,
   "migrations": [
     {
       "version": "20260908121831",
@@ -1317,6 +1317,60 @@
       "name": "index_house_coordinate_audit_house_id_v2147",
       "filename": "20260927040723_index_house_coordinate_audit_house_id_v2147.sql",
       "sha256": "f01eb7d1dbf8499694491229481de80f87fb9c6b26e792e739a0441bbb432f84"
+    },
+    {
+      "version": "20260928130647",
+      "name": "fy2570_target_reference_date_v2160",
+      "filename": "20260928130647_fy2570_target_reference_date_v2160.sql",
+      "sha256": "87684a9484966ec00f4504717b269041ed9378b544a179fd491b0cdb1f4fdb7c"
+    },
+    {
+      "version": "20260928233746",
+      "name": "preserve_cloud_field_coordinates_from_local_sync_v2161",
+      "filename": "20260928233746_preserve_cloud_field_coordinates_from_local_sync_v2161.sql",
+      "sha256": "f5596f2ae00be500d8a9bba5b4da9aa4c174f80f8fdf270413bd1320fa74d6fa"
+    },
+    {
+      "version": "20260929042118",
+      "name": "field_house_requester_identity_v2163",
+      "filename": "20260929042118_field_house_requester_identity_v2163.sql",
+      "sha256": "0ceef0349b43174cdc225dfa0f82bc16dc985a5432a141982b098cc1043bff7f"
+    },
+    {
+      "version": "20260929043720",
+      "name": "service_field_house_requesters_v2163",
+      "filename": "20260929043720_service_field_house_requesters_v2163.sql",
+      "sha256": "6c5742ff7c8c3707440187419bb9d2275dfce032d5b376622d131c8ca9e34839"
+    },
+    {
+      "version": "20260930070845",
+      "name": "linehub_telegram_ingress_v1",
+      "filename": "20260930070845_linehub_telegram_ingress_v1.sql",
+      "sha256": "97f128ed63113e4572b8b6c6b3a365ddbbcd6f4a7f8b25981ac5024a10882309"
+    },
+    {
+      "version": "20261002025648",
+      "name": "phase4_multisource_boundary_validation_v2130",
+      "filename": "20261002025648_phase4_multisource_boundary_validation_v2130.sql",
+      "sha256": "89a685e7ec406506bff7508c51fb7fd035dadac26d7f0215daf105f4afa121d0"
+    },
+    {
+      "version": "20261002034556",
+      "name": "phase6_coordinate_audit_reporting_v2132",
+      "filename": "20261002034556_phase6_coordinate_audit_reporting_v2132.sql",
+      "sha256": "31514bb10cffc7d44daf93f5bcd6ea222070ba1e9eb462796e2e422ec3daf534"
+    },
+    {
+      "version": "20261002035729",
+      "name": "phase6_coordinate_movement_geography_fix_v2132",
+      "filename": "20261002035729_phase6_coordinate_movement_geography_fix_v2132.sql",
+      "sha256": "f05c5ea35237e4f4567766501fcec9a8fa20bd9ca6fb9e01fbe5a49c7d355037"
+    },
+    {
+      "version": "20261002035845",
+      "name": "phase6_include_legacy_boundary_mismatches_v2132",
+      "filename": "20261002035845_phase6_include_legacy_boundary_mismatches_v2132.sql",
+      "sha256": "f2fca80e876c9ab42846fa09134de0ade721c0adbdafb3b618ab818b5281b6cb"
     }
   ]
 }
