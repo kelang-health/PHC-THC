@@ -1,6 +1,6 @@
 import { getSharedSupabase, getSharedProfile, bindPortalActivation, sharedCall, invalidateShared } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.127-staff-map&p=2165';
-const VERSION='2.0.115';
+const VERSION='2.0.130';
 const DEFAULT_CENTER=[18.2696,99.5071];
 const HOUSEHOLD_CACHE_MS_V2039=300000;
 const HOUSE_SECONDARY_CACHE_MS_V2055=60000;
