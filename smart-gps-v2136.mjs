@@ -33,14 +33,17 @@ function analyze(samples,startedAt){
   const selected=bestCluster.slice().sort((a,b)=>Number(a.accuracy)-Number(b.accuracy)||Number(b.ts)-Number(a.ts))[0];
   const radius=bestCluster.reduce((m,x)=>Math.max(m,distanceM(selected,x)),0);
   const accuracy=Number(selected.accuracy);
+  const durationMs=Date.now()-startedAt;
   const stable=(bestCluster.length>=3&&radius<=CLUSTER_RADIUS_M)||(accuracy<=10&&bestCluster.length>=2&&radius<=15);
-  const accepted=stable&&accuracy<=MAX_GPS_ACCURACY_M;
+  const excellentSingleFallback=!stable&&durationMs>=12000&&accuracy<=8;
+  const accepted=(stable&&accuracy<=MAX_GPS_ACCURACY_M)||excellentSingleFallback;
   return{
     lat:Number(selected.lat),lng:Number(selected.lng),accuracy,
     sampleCount:usable.length,stableCount:bestCluster.length,
     stabilityRadiusM:Math.round(radius*10)/10,
-    durationMs:Date.now()-startedAt,stable,accepted,
-    quality:qualityFor(accuracy,stable)
+    durationMs,stable,accepted,
+    quality:excellentSingleFallback?'good':qualityFor(accuracy,stable),
+    acceptanceMode:excellentSingleFallback?'excellent_single_timeout':stable?'stable_cluster':'not_ready'
   };
 }
 export function gpsPointReady(point){
