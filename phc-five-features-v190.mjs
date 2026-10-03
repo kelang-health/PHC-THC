@@ -377,11 +377,28 @@ async function bindTestResetV208(body,s,personName){
   const b=body.querySelector('[data-reset-test-v208]');if(!b)return;
   b.onclick=async()=>{if(!confirm(`รีเซทผลทดสอบ ${resetRouteLabelV208(s.route)} ของ ${personName}?\n\nระบบจะเก็บสำเนาไว้ใน Audit Archive และจะไม่ลบประวัติเดิมจาก JHCIS / J-Report / 3Doctor`))return;b.disabled=true;try{const {error}=await supabase.rpc('admin_reset_person_test_screening_v2022',{p_source_pcucode:s.source_pcucode,p_source_pid:Number(s.source_pid),p_route:s.route,p_reason:'ผู้ใช้กดรีเซทข้อมูลทดสอบก่อนเปิดใช้จริง'});if(error)throw error;showPhcToast('รีเซทข้อมูลทดสอบแล้ว');const {data:fresh,error:e}=await supabase.rpc('screening_plan_for_person_v2023',{p_source_pcucode:s.source_pcucode,p_source_pid:Number(s.source_pid),p_screening_date:thaiDayV208()});if(e)throw e;await renderScreenRoute(body,fresh,personName)}catch(e){showPhcToast(friendlyError(e),'warn',3200);b.disabled=false}};
 }
+async function childRouteEnabledV2137(){
+  const {data,error}=await supabase.from('health_screening_target_groups_v2026').select('enabled').eq('route','child_0_5').maybeSingle();
+  if(error)throw error;
+  return Boolean(data?.enabled);
+}
 async function renderScreenRoute(body,s,personName){
   body.innerHTML=`<div class="phc190-progress">${esc(personName)} · อายุ ${s.age_years} ปี (${s.age_months} เดือน)<br>${esc(s.route_label)}</div>${testResetBannerV208(s)}<div class="phc190-route" data-route></div>`;
   await bindTestResetV208(body,s,personName);
   const root=$('[data-route]',body);
-  if(s.route==='child_0_5'){root.innerHTML=growthHtml()+developmentHtml(s.dspm_target_months);bindGrowth(root,s);bindDevelopment(root,s)}
+  if(s.route==='child_0_5'){
+    try{
+      const enabled=await childRouteEnabledV2137();
+      if(!enabled){
+        root.innerHTML='<section class="phc190-step"><h3>คัดกรองเด็ก 0–5 ปี</h3><div class="phc190-note"><strong>ปิดใช้งานชั่วคราว</strong><br>หน่วยบริการยังไม่เปิดคัดกรองกลุ่ม 0–5 ปีในภาคสนาม ข้อมูลเดิมที่เคยบันทึกยังเก็บไว้เป็นประวัติ</div></section>';
+        return;
+      }
+    }catch(e){
+      root.innerHTML=`<div class="phc190-error">${esc(friendlyError(e))}</div>`;
+      return;
+    }
+    root.innerHTML=growthHtml()+developmentHtml(s.dspm_target_months);bindGrowth(root,s);bindDevelopment(root,s)
+  }
   else if(s.route==='school_6_14'){root.innerHTML=growthHtml();bindGrowth(root,s)}
   else if(s.route==='youth_15_34'){await renderYouthRouteV206(root,s,personName)}
   else if(s.route==='ncd_35_59'){
@@ -503,8 +520,27 @@ function collectElderlyAnswersV207(step,code){
 async function renderElderlyRoute(root,s,personName){
   const ready=['complete','not_required'].includes(String(s.ncd_status||''));
   const noNcdTarget=s.ncd_status==='not_required'||(!s.dm_target&&!s.ht_target);
-  const state=noNcdTarget?'🟢 มี DM + HT เดิม · ข้ามการคัดกรอง NCD ซ้ำ และไปต่อ 9 ด้าน':s.ncd_status==='complete'?'🟢 NCD เรียบร้อยแล้ว':'🟡 '+ncdRequirementTextV2117(s)+' ก่อน 9 ด้าน';
-  root.innerHTML=`<section class="phc190-step"><h3>ขั้นที่ 1 · NCD Screening</h3><p data-ncd-state>${esc(state)}</p>${ready?'':`<button class="phc190-primary" data-open-ncd>${esc(ncdActionLabelV2117(s))}</button><button class="phc190-secondary" data-check-ncd>ตรวจสอบ NCD ที่บันทึกวันนี้</button>`}</section><section class="phc190-step" data-elderly ${ready?'':'hidden'}><div class="phc190-progress" data-elderly-progress>${ready?'กำลังเปิด 9 ด้าน…':'รอ NCD Screening'}</div><div data-elderly-wizard></div></section>`;
+  const state=noNcdTarget
+    ?'🟢 มี DM + HT เดิม · ไม่ต้องคัดกรอง NCD ซ้ำ'
+    :s.ncd_status==='complete'
+      ?'🟢 NCD เรียบร้อยแล้ว'
+      :'🟡 '+ncdRequirementTextV2117(s)+' ก่อน';
+  const doneCount=Array.isArray(s.completed_domains)?s.completed_domains.length:0;
+  root.innerHTML=`<section class="phc190-step"><h3>ขั้นที่ 1 · NCD Screening</h3><p data-ncd-state>${esc(state)}</p>${ready?'':`<button class="phc190-primary" data-open-ncd>${esc(ncdActionLabelV2117(s))}</button><button class="phc190-secondary" data-check-ncd>ตรวจสอบ NCD ที่บันทึกวันนี้</button>`}</section>
+  <section class="phc190-step" data-elderly-choice ${ready?'':'hidden'}>
+    <h3>จะคัดกรองผู้สูงอายุ 9 ด้านต่อหรือไม่?</h3>
+    <div class="phc190-note">งาน 9 ด้านใช้เวลาเพิ่มเติมในภาคสนาม สามารถเลือกพักไว้ก่อนและกลับมาทำภายหลังได้ โดยผล NCD ที่บันทึกแล้วจะไม่หาย</div>
+    ${doneCount? `<div class="phc190-note">มีผล 9 ด้านที่ทำไว้แล้ว ${doneCount}/9 ด้าน · กด “ทำต่อ” เพื่อทำจากจุดเดิม</div>`:''}
+    <div class="phc190-actions">
+      <button type="button" class="phc190-primary" data-elderly-continue>${doneCount?'ทำ 9 ด้านต่อ':'ทำ 9 ด้านต่อเลย'}</button>
+      <button type="button" class="phc190-secondary" data-elderly-later>พักไว้ก่อน · จบงาน NCD</button>
+    </div>
+  </section>
+  <section class="phc190-step" data-elderly hidden>
+    <div class="phc190-progress" data-elderly-progress>กำลังเตรียมคัดกรองผู้สูงอายุ 9 ด้าน…</div>
+    <div data-elderly-wizard></div>
+  </section>`;
+
   root.querySelector('[data-open-ncd]')?.addEventListener('click',()=>openExistingNcd(personName,s.source_pcucode,s.source_pid));
   root.querySelector('[data-check-ncd]')?.addEventListener('click',async()=>{
     try{
@@ -512,17 +548,38 @@ async function renderElderlyRoute(root,s,personName){
       if(planError)throw planError;
       Object.assign(s,latest||{});
       if(!['complete','not_required'].includes(String(s.ncd_status||''))){
-        showPhcToast('ยังมีงาน NCD ที่ต้องทำวันนี้ กรุณาบันทึกการคัดกรองโรคที่เหลือให้เสร็จก่อน','warn',3200);return
-      }
-      await ensureScreeningSessionV2023(s);
-      if(s.ncd_status==='complete'&&s.ncd_screening_id){
-        const {data,error}=await supabase.rpc('attach_ncd_to_screening_session_v190',{p_session_id:s.session_id,p_ncd_screening_id:s.ncd_screening_id});
-        if(error)throw error;Object.assign(s,data||{});
+        showPhcToast('ยังมีงาน NCD ที่ต้องทำวันนี้ กรุณาบันทึก NCD ให้เสร็จก่อน','warn',3200);
+        return;
       }
       await renderElderlyRoute(root,s,personName);
     }catch(e){showPhcToast(friendlyError(e),'warn',3200)}
   });
-  if(ready){ensureScreeningSessionV2023(s).then(()=>loadElderlyWizardV207(root,s)).catch(e=>{const p=root.querySelector('[data-elderly-progress]');if(p)p.textContent=friendlyError(e)})}
+
+  root.querySelector('[data-elderly-later]')?.addEventListener('click',()=>{
+    showPhcToast('บันทึก NCD แล้ว · พักคัดกรอง 9 ด้านไว้ทำภายหลัง','success',3000);
+    closeModal();
+  });
+
+  root.querySelector('[data-elderly-continue]')?.addEventListener('click',async e=>{
+    const btn=e.currentTarget;
+    btn.disabled=true;
+    try{
+      await ensureScreeningSessionV2023(s);
+      if(s.ncd_status==='complete'&&s.ncd_screening_id){
+        const {data,error}=await supabase.rpc('attach_ncd_to_screening_session_v190',{p_session_id:s.session_id,p_ncd_screening_id:s.ncd_screening_id});
+        if(error)throw error;
+        Object.assign(s,data||{});
+      }
+      const choice=root.querySelector('[data-elderly-choice]');
+      const section=root.querySelector('[data-elderly]');
+      if(choice)choice.hidden=true;
+      if(section)section.hidden=false;
+      await loadElderlyWizardV207(root,s);
+    }catch(e){
+      showPhcToast(friendlyError(e),'warn',3200);
+      btn.disabled=false;
+    }
+  });
 }
 async function loadElderlyWizardV207(root,s,preferredIndex=null){
   const {data,error}=await supabase.rpc('elderly9_progress_v190',{p_session_id:s.session_id});const progress=root.querySelector('[data-elderly-progress]'),host=root.querySelector('[data-elderly-wizard]');if(error){progress.textContent=friendlyError(error);return}const saved=new Map((data.results||[]).map(x=>[x.domain_code,x]));progress.textContent=`คัดกรองผู้สูงอายุ 9 ด้าน · ทำแล้ว ${data.completed}/9 · เหลือ ${data.remaining} · พบความเสี่ยง ${data.observations} ด้าน`;let index=preferredIndex;if(index===null||index===undefined){index=ELDER_V207.findIndex(d=>!saved.has(d.code)||!['normal','observation'].includes(saved.get(d.code)?.status));if(index<0)index=9}if(index>=9){renderElderlySummaryV207(host,s,saved,data);return}index=Math.max(0,Math.min(8,index));const def=ELDER_V207[index],r=saved.get(def.code);host.innerHTML=`<div class="phc207-wizard"><div class="phc207-stepbar"><div class="phc207-step-tabs">${ELDER_V207.map((d,i)=>`<button type="button" class="phc207-step-tab ${i===index?'current':''} ${elderRiskClassV207(saved.get(d.code))}" data-elder-step="${i}" aria-label="ด้าน ${i+1} ${esc(d.label)}">${i+1}</button>`).join('')}</div></div><div class="phc207-step-title"><span class="icon">${def.icon}</span><div><h3>${index+1}. ${esc(def.label)}</h3><small>${esc(def.tool)} · อสม.ตอบคำถาม/ทดสอบ ระบบแปลผลอัตโนมัติ</small></div></div>${elderlyQuestionHtmlV207(def,r)}<label>หมายเหตุเพิ่มเติม (ไม่บังคับ)<textarea data-elder-note maxlength="500">${esc(r?.note||'')}</textarea></label><div class="phc190-error" data-elder-error></div>${r?`<div class="phc207-result ${r.status==='observation'?(r.checklist?.priority==='red'?'urgent':'risk'):''}">ผลที่บันทึกไว้: ${r.status==='normal'?'ปกติ':'พบความเสี่ยง'}${r.checklist?.score!==undefined?` · ${r.checklist.score}/5 คะแนน`:''}${r.status==='observation'?' · ส่งงานให้เจ้าหน้าที่ติดตามแล้ว':''}</div>`:''}<div class="phc207-nav"><button type="button" class="phc190-secondary" data-elder-prev ${index===0?'disabled':''}>← ก่อนหน้า</button><button type="button" class="phc190-primary" data-elder-next>${index===8?'บันทึกและสรุป':'บันทึก · ถัดไป →'}</button></div></div>`;const step=host.querySelector('.phc207-wizard');bindElderlyChoiceControlsV207(step);host.querySelectorAll('[data-elder-step]').forEach(b=>b.onclick=()=>loadElderlyWizardV207(root,s,Number(b.dataset.elderStep)));host.querySelector('[data-elder-prev]').onclick=()=>loadElderlyWizardV207(root,s,index-1);host.querySelector('[data-elder-next]').onclick=async()=>{const out=collectElderlyAnswersV207(step,def.code),err=step.querySelector('[data-elder-error]');err.textContent='';if(!out.ok){err.textContent=out.error;return}const btn=host.querySelector('[data-elder-next]');btn.disabled=true;try{const {data:res,error:e}=await supabase.rpc('save_elderly9_community_v207',{p_session_id:s.session_id,p_domain_code:def.code,p_answers:out.answers,p_note:step.querySelector('[data-elder-note]').value.trim()});if(e)throw e;if(res?.urgent){showPhcToast('พบความเสี่ยงเร่งด่วน · ส่งงานให้เจ้าหน้าที่แล้ว','warn',4000)}else if(res?.status==='observation'){showPhcToast('บันทึกแล้ว · ส่งงานให้เจ้าหน้าที่ติดตาม','warn',2400)}else showPhcToast('บันทึกด้านนี้แล้ว');await loadElderlyWizardV207(root,s,index+1)}catch(e){err.textContent=friendlyError(e);btn.disabled=false}};
