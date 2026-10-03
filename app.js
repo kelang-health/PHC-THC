@@ -975,8 +975,8 @@ function returnToHealthWorklist(saved,person){
   const search=$('#health-search'),filter=$('#health-filter');if(search)search.value='';if(filter)filter.value='field_targets';healthPageOffset=0;syncHealthTargetButtons();
   showHealthFieldStatus(saved,person);
   if(Number(person?.age_years)>=60&&window.PHCFiveFeatures190?.openAgeScreening){
-    const box=$('#health-field-status');if(box&&!box.hidden)box.textContent+=' · ไปต่อคัดกรองผู้สูงอายุ 9 ด้าน';
-    setTimeout(()=>window.PHCFiveFeatures190.openAgeScreening(person.source_pcucode,Number(person.source_pid),person.display_name,{plan_date:localDate(),age_years:Number(person.age_years),age_months:Number(person.screening_age_months??(Number(person.age_years)*12)),route:'elderly_60_plus',route_label:'NCD Screening ก่อน แล้วทำผู้สูงอายุ 9 ด้าน',dspm_target_months:null,ncd_status:'complete',latest_screened_on:localDate()}),80);
+    const box=$('#health-field-status');if(box&&!box.hidden)box.textContent+=' · เลือกได้ว่าจะทำผู้สูงอายุ 9 ด้านต่อหรือพักไว้ก่อน';
+    setTimeout(()=>window.PHCFiveFeatures190.openAgeScreening(person.source_pcucode,Number(person.source_pid),person.display_name,{plan_date:localDate(),age_years:Number(person.age_years),age_months:Number(person.screening_age_months??(Number(person.age_years)*12)),route:'elderly_60_plus',route_label:'NCD Screening เสร็จแล้ว · เลือกทำผู้สูงอายุ 9 ด้านต่อได้',dspm_target_months:null,ncd_status:'complete',latest_screened_on:localDate()}),80);
     return;
   }
   const list=$('#health-person-list')||$('#health-worklist-start');
