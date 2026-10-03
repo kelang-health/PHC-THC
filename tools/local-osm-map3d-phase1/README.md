@@ -4,7 +4,7 @@
 
 ## Phase 1
 - 2D / 3D camera mode
-- บ้านจากพิกัด Cloud/Local connector
+- บ้านจากฐาน Local OSM-PHC โดยตรง (หน้าแผนที่ไม่เรียก Cloud)
 - clustering เพื่อรองรับหลายพันหลัง
 - สีสถานะพิกัด: ยืนยันภาคสนาม / รอตรวจ / ผิดแนวเขต / พิกัดเดิม
 - แสดงบ้านเลขที่เมื่อซูมใกล้
@@ -26,7 +26,7 @@ const provider = {
 }
 ```
 
-Local backend ต้องเป็นผู้เชื่อม Cloud/Supabase; ห้ามฝัง service-role key ใน JavaScript ฝั่ง browser
+Phase 1 ที่ติดตั้งจริงใช้ Local household database + Local boundary snapshot โดยตรง ไม่มี service-role key และไม่เรียก Cloud ขณะเปิดหน้า
 
 ## Integration
 ```html
@@ -54,4 +54,4 @@ const app = await initPRBMap3D({
 6. ทดสอบกับข้อมูล 4,000+ หลังและมือถือ
 7. ยืนยันว่าไม่มีการเขียน JHCIS/Cloud จากหน้าแผนที่ใน Phase 1
 
-หมายเหตุ: อาคาร 3D แบบ extrusion จะเชื่อมในขั้นติดตั้ง Local เมื่อยืนยันแหล่ง building footprints/cached OSM ของเครื่องจริง เพื่อไม่ให้พึ่ง public Overpass API แบบไม่ควบคุมใน production
+อาคาร 3D ใช้ OpenStreetMap/Overpass ผ่าน backend Local เฉพาะเมื่อผู้ใช้เลือกชุมชนและเปิด 3D พร้อม cache 15 นาที; หากโหลดไม่ได้ หมุดบ้านและข้อมูล Local ยังใช้งานได้ตามปกติ
