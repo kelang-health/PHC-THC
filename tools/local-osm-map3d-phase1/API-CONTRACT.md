@@ -1,44 +1,44 @@
-# Phase 1 Local API contract
+# Local Map 3D API Contract v2.1.77
 
-Recommended read-only endpoints:
+ทุก endpoint ด้านล่างอยู่ใต้ `/api/v1` และต้องผ่าน Local authentication; ฟังก์ชัน Map 3D จำกัด Admin
 
-```
-GET /osm-phc/api/v1/map3d/houses?community=<optional>
-GET /osm-phc/api/v1/map3d/communities\nGET /osm-phc/api/v1/map3d/buildings?south=&west=&north=&east=
-```
+## GET /map3d/houses
+Query: `community` optional
 
-## houses response
-Return only fields needed by the map:
-```json
-[
-  {
-    "id": "uuid-or-local-id",
-    "house_no": "12/3",
-    "house_id_11": "optional",
-    "moo": "7",
-    "community": "ชุมชนหนองห้า",
-    "latitude": 18.2696,
-    "longitude": 99.5071,
-    "coordinate_source": "gps",
-    "coordinate_status": "field_confirmed",
-    "review_required": false,
-    "inside_tambon": true,
-    "inside_community": true,
-    "updated_at": "ISO-8601"
-  }
-]
-```
+คืนข้อมูลบ้านสำหรับแผนที่จาก Local household DB: id, hcode, house_no, house_id_11, moo, community, latitude, longitude, geo/coordinate status และ updated_at. Read-only.
 
-## Security
-- endpoint เป็น read-only
-- ต้องผ่าน session/Admin auth ของ Local เดิม
-- Cloud service key อยู่เฉพาะ backend
-- ห้ามส่งข้อมูลบุคคล, CID, เบอร์โทร หรือข้อมูลสุขภาพใน Phase 1
-- หน้าแผนที่ไม่มี endpoint สำหรับแก้ JHCIS หรือแก้ Cloud
+## GET /boundary/geojson
+คืน community boundary snapshot ในเครื่อง ใช้กำหนดขอบเขต/fit map และเป็น bbox อ้างอิงสำหรับโหลดอาคาร ไม่ใช้ min/max ของหมุดบ้านเพราะ legacy coordinates อาจเป็น outlier.
 
+## GET /map3d/health/ncd
+Query: `community` optional
 
-## Building extrusion
-- `map3d/buildings` เป็น Admin read-only proxy ไป OpenStreetMap/Overpass
-- จำกัด bbox ไม่เกิน 0.09° ต่อแกน และ cache ในหน่วยความจำ 15 นาที
-- ไม่อ่านหรือเขียน Cloud/JHCIS
-- ถ้า OSM/อินเทอร์เน็ตไม่พร้อม หน้าแผนที่ Local และหมุดบ้านยังทำงานต่อได้
+คืน aggregate ต่อ hcode เท่านั้น: target, followup, urgent, alert, risk, due, normal, no_data, known_ncd, abnormal และ highest-priority level.
+Policy: no person names, no PID/CID, no individual clinical values, no write-back.
+แหล่งข้อมูลคือ existing Local Tracking Center aggregation.
+
+## GET /map3d/buildings
+Query required: `south, west, north, east`
+
+Admin read-only proxy สำหรับ OpenStreetMap/Overpass building footprints.
+- bbox จำกัดไม่เกิน 0.09 degree ต่อแกน
+- Overpass fallback 2 endpoints
+- memory cache 15 นาที
+- disk cache 24 ชั่วโมง
+- stale disk fallback สูงสุด 30 วันเมื่อ upstream ล่ม
+- ไม่อ่าน/เขียน Cloud หรือ JHCIS
+
+## GET /map3d/environment/rain
+คืน metadata ของ RainViewer radar ล่าสุดและ raster tile template.
+ใช้เพื่อบริบทสภาพอากาศเท่านั้น ไม่ใช่ flood forecast/hazard score.
+
+## Client-only raster sources
+- OSM base: tile.openstreetmap.org
+- Satellite base: services.arcgisonline.com World Imagery
+- DEM: AWS elevation-tiles-prod Terrarium
+- Rain radar: tilecache.rainviewer.com
+
+CSP ต้องอนุญาตเฉพาะ host ที่จำเป็นข้างต้น พร้อม worker-src/child-src self + blob สำหรับ MapLibre.
+
+## Failure behavior
+External tile/provider failure ต้องไม่ทำให้ Local household/boundary data หายหรือเกิด write operation. Map 3D มี background fallback และ optional overlays สามารถปิดได้.
