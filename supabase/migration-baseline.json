@@ -1,8 +1,8 @@
 {
   "schema": 2,
   "hash_mode": "sha256_lf_normalized",
-  "latest_version": "20261002084919",
-  "migration_count": 229,
+  "latest_version": "20261003025208",
+  "migration_count": 230,
   "migrations": [
     {
       "version": "20260908121831",
@@ -1377,6 +1377,12 @@
       "name": "field_house_history_v2174",
       "filename": "20261002084919_field_house_history_v2174.sql",
       "sha256": "efc9a1c498e4d45c577de00f0176d77f45157039565c57cea6e4a469e6098b33"
+    },
+    {
+      "version": "20261003025208",
+      "name": "elderly_optin_and_disable_child_screening_v2137",
+      "filename": "20261003025208_elderly_optin_and_disable_child_screening_v2137.sql",
+      "sha256": "0732e7e8864814bac308dc668d4f3974a071e3e679b5f44df79cacb1a26b22bb"
     }
   ]
 }
