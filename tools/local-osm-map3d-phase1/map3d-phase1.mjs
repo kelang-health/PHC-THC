@@ -163,8 +163,8 @@ export async function initPRBMap3D({container,provider,onOpenHouse,center=DEFAUL
     if(map.getSource(SOURCE_RAIN))map.removeSource(SOURCE_RAIN);
     const url=String(data?.tile_url||'');
     if(!data?.available||!url){rainOn=false;return false;}
-    map.addSource(SOURCE_RAIN,{type:'raster',tiles:[url],tileSize:256});
-    map.addLayer({id:'rain-radar',type:'raster',source:SOURCE_RAIN,paint:{'raster-opacity':0.58}},'house-clusters');
+    map.addSource(SOURCE_RAIN,{type:'raster',tiles:[url],tileSize:256,minzoom:0,maxzoom:7});
+    map.addLayer({id:'rain-radar',type:'raster',source:SOURCE_RAIN,paint:{'raster-opacity':0.58,'raster-resampling':'linear'}},'house-clusters');
     rainOn=true;
     return true;
   }
