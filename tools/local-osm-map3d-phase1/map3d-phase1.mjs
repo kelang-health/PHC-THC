@@ -26,6 +26,7 @@ function housesGeoJSON(rows,healthIndex){
     return {type:'Feature',geometry:{type:'Point',coordinates:[Number(h.longitude),Number(h.latitude)]},properties:{
       id:String(h.id||''),hcode:String(h.hcode||''),house_no:String(h.house_no||''),moo:String(h.moo||''),community:String(h.community||''),
       source:String(h.coordinate_source||''),coordinate_status:String(h.coordinate_status||''),review_required:Boolean(h.review_required),
+      forced_display:Boolean(h.forced_display),forced_flag:h.forced_display?1:0,force_reason:String(h.force_reason||''),forced_community:String(h.forced_community||''),distance_to_community_km:Number(h.distance_to_community_km||0),
       inside_tambon:h.inside_tambon!==false,inside_community:h.inside_community!==false,status:statusOf(h),updated_at:String(h.updated_at||''),
       health_level:String(health.level||'none'),ncd_target:Number(health.target||0),ncd_followup:Number(health.followup||0),
       ncd_risk:Number(health.risk||0),ncd_due:Number(health.due||0),ncd_known:Number(health.known_ncd||0)
@@ -76,9 +77,9 @@ export async function initPRBMap3D({container,provider,onOpenHouse,center=DEFAUL
   await new Promise((resolve,reject)=>{map.once('load',resolve);map.once('error',e=>reject(e.error||e));});
 
   map.addSource(SOURCE_HOUSES,{type:'geojson',data:housesGeoJSON([],healthIndex),cluster:true,clusterRadius:42,clusterMaxZoom:16,
-    clusterProperties:{ncd_followup_sum:['+',['get','ncd_followup']]}});
+    clusterProperties:{ncd_followup_sum:['+',['get','ncd_followup']],forced_sum:['+',['get','forced_flag']]}});
   map.addLayer({id:'house-clusters',type:'circle',source:SOURCE_HOUSES,filter:['has','point_count'],paint:{
-    'circle-color':'#0f766e','circle-radius':['step',['get','point_count'],18,100,24,500,31],'circle-stroke-width':2,'circle-stroke-color':'#fff'
+    'circle-color':['case',['>', ['get','forced_sum'],0],'#f59e0b','#0f766e'],'circle-radius':['step',['get','point_count'],18,100,24,500,31],'circle-stroke-width':2,'circle-stroke-color':'#fff'
   }});
   map.addLayer({id:'house-cluster-count',type:'symbol',source:SOURCE_HOUSES,filter:['has','point_count'],layout:{'text-field':['get','point_count_abbreviated'],'text-size':12},paint:{'text-color':'#fff'}});
   map.addLayer({id:'house-points',type:'circle',source:SOURCE_HOUSES,filter:['!',['has','point_count']],paint:{
@@ -108,7 +109,7 @@ export async function initPRBMap3D({container,provider,onOpenHouse,center=DEFAUL
     }else{
       map.setPaintProperty('house-points','circle-color',['match',['get','status'],'field','#16a36f','review','#f59e0b','boundary','#ef4444','legacy','#3b82f6','#94a3b8']);
       map.setPaintProperty('house-points','circle-radius',['interpolate',['linear'],['zoom'],12,4,17,8,20,11]);
-      map.setPaintProperty('house-clusters','circle-color','#0f766e');
+      map.setPaintProperty('house-clusters','circle-color',['case',['>', ['get','forced_sum'],0],'#f59e0b','#0f766e']);
     }
   }
   async function refresh(nextCommunity=community){
@@ -193,10 +194,12 @@ export async function initPRBMap3D({container,provider,onOpenHouse,center=DEFAUL
   });
   map.on('click','house-points',e=>{
     const f=e.features?.[0];if(!f)return;const p=f.properties||{};const coords=f.geometry.coordinates.slice();
+    const forced=String(p.forced_display)==='true'||p.forced_display===true;
+    const guardNote=forced?'<hr><div><strong>⚠ ตำแหน่งแสดงผลบังคับ</strong></div><div>พิกัดต้นทางอยู่นอก ต.พระบาทและห่างชุมชนประมาณ '+esc(Number(p.distance_to_community_km||0).toFixed(1))+' กม.</div><div>ระบบย้ายหมุดเฉพาะบนแผนที่เข้า '+esc(p.forced_community||p.community||'ชุมชนตนเอง')+'</div><div>สถานะ: รอตรวจพิกัดจริง · ไม่ได้เขียนทับ Cloud/JHCIS</div>':'';
     const health=layerMode==='ncd'&&Number(p.ncd_target||0)>0
       ? '<hr><div><strong>งาน NCD ระดับบ้าน</strong></div><div>กลุ่มเป้าหมาย '+esc(p.ncd_target)+' · ต้องติดตาม '+esc(p.ncd_followup)+'</div><div>เสี่ยง/โรคเดิม '+esc(p.ncd_risk)+' · คงค้าง '+esc(p.ncd_due)+'</div>'
       : '';
-    const html='<div class="prb-map3d-popup"><strong>บ้าน '+esc(p.house_no||'ไม่ระบุ')+'</strong><div>'+esc(p.community||'')+' · หมู่ '+esc(p.moo||'—')+'</div><div>แหล่งพิกัด: '+esc(p.source||'—')+'</div><div>สถานะ: '+esc(p.coordinate_status||p.status||'—')+'</div>'+health+'<button type="button" data-map3d-open-house="'+esc(p.id)+'">เปิดข้อมูลบ้าน</button></div>';
+    const html='<div class="prb-map3d-popup"><strong>บ้าน '+esc(p.house_no||'ไม่ระบุ')+'</strong><div>'+esc(p.community||'')+' · หมู่ '+esc(p.moo||'—')+'</div><div>แหล่งพิกัด: '+esc(p.source||'—')+'</div><div>สถานะ: '+esc(p.coordinate_status||p.status||'—')+'</div>'+guardNote+health+'<button type="button" data-map3d-open-house="'+esc(p.id)+'">เปิดข้อมูลบ้าน</button></div>';
     const popup=new maplibregl.Popup({offset:18}).setLngLat(coords).setHTML(html).addTo(map);
     setTimeout(()=>popup.getElement()?.querySelector('[data-map3d-open-house]')?.addEventListener('click',()=>onOpenHouse?.(p.id)),0);
   });
