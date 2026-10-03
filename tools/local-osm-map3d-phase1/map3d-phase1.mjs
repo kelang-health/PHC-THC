@@ -1,0 +1,102 @@
+const DEFAULT_CENTER=[99.5071,18.2696];
+const DEFAULT_ZOOM=13.5;
+const SOURCE_HOUSES='prb-houses';
+const SOURCE_COMMUNITIES='prb-communities';
+
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function isCoord(h){return Number.isFinite(Number(h?.latitude))&&Number.isFinite(Number(h?.longitude));}
+function statusOf(h){
+  if(!isCoord(h)) return 'missing';
+  if(h.review_required) return 'review';
+  if(h.inside_tambon===false||h.inside_community===false) return 'boundary';
+  if(['gps','map'].includes(String(h.coordinate_source||''))) return 'field';
+  return 'legacy';
+}
+function colorOf(s){return ({field:'#16a36f',review:'#f59e0b',boundary:'#ef4444',legacy:'#3b82f6',missing:'#94a3b8'})[s]||'#64748b';}
+function housesGeoJSON(rows){
+  return {type:'FeatureCollection',features:(rows||[]).filter(isCoord).map(h=>({type:'Feature',geometry:{type:'Point',coordinates:[Number(h.longitude),Number(h.latitude)]},properties:{
+    id:String(h.id||''),house_no:String(h.house_no||''),moo:String(h.moo||''),community:String(h.community||''),
+    source:String(h.coordinate_source||''),coordinate_status:String(h.coordinate_status||''),review_required:Boolean(h.review_required),
+    inside_tambon:h.inside_tambon!==false,inside_community:h.inside_community!==false,status:statusOf(h),updated_at:String(h.updated_at||'')
+  }}))};
+}
+function communitiesGeoJSON(rows){
+  const features=[];
+  for(const c of rows||[]){
+    let g=c.geometry_geojson;
+    if(typeof g==='string'){try{g=JSON.parse(g);}catch{g=null;}}
+    if(!g)continue;
+    features.push({type:'Feature',geometry:g,properties:{name:String(c.name||''),moo:String(c.moo||'')}});
+  }
+  return {type:'FeatureCollection',features};
+}
+async function ensureMapLibre(){
+  if(window.maplibregl)return window.maplibregl;
+  await new Promise((resolve,reject)=>{
+    if(!document.querySelector('link[data-prb-maplibre]')){
+      const l=document.createElement('link');l.rel='stylesheet';l.dataset.prbMaplibre='1';
+      l.href='https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css';document.head.appendChild(l);
+    }
+    const existing=document.querySelector('script[data-prb-maplibre]');
+    if(existing){existing.addEventListener('load',resolve,{once:true});existing.addEventListener('error',reject,{once:true});return;}
+    const s=document.createElement('script');s.src='https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';
+    s.async=true;s.dataset.prbMaplibre='1';s.onload=resolve;s.onerror=reject;document.head.appendChild(s);
+  });
+  return window.maplibregl;
+}
+function rasterStyle(){
+  return {version:8,sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OpenStreetMap contributors'}},layers:[{id:'osm',type:'raster',source:'osm'}]};
+}
+export async function initPRBMap3D({
+  container,provider,onOpenHouse,center=DEFAULT_CENTER,zoom=DEFAULT_ZOOM,initial3D=false
+}={}){
+  if(!container)throw new Error('MAP3D_CONTAINER_REQUIRED');
+  if(!provider?.getHouses||!provider?.getCommunities)throw new Error('MAP3D_PROVIDER_REQUIRED');
+  const maplibregl=await ensureMapLibre();
+  const map=new maplibregl.Map({container,style:rasterStyle(),center,zoom,pitch:initial3D?55:0,bearing:initial3D?-18:0,antialias:true});
+  map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'top-right');
+  let allHouses=[],communities=[],community='',mode3D=initial3D;
+  await new Promise((resolve,reject)=>{map.once('load',resolve);map.once('error',e=>reject(e.error||e));});
+  map.addSource(SOURCE_HOUSES,{type:'geojson',data:housesGeoJSON([]),cluster:true,clusterRadius:42,clusterMaxZoom:16});
+  map.addLayer({id:'house-clusters',type:'circle',source:SOURCE_HOUSES,filter:['has','point_count'],paint:{'circle-color':'#0f766e','circle-radius':['step',['get','point_count'],18,100,24,500,31],'circle-stroke-width':2,'circle-stroke-color':'#fff'}});
+  map.addLayer({id:'house-cluster-count',type:'symbol',source:SOURCE_HOUSES,filter:['has','point_count'],layout:{'text-field':['get','point_count_abbreviated'],'text-size':12},paint:{'text-color':'#fff'}});
+  map.addLayer({id:'house-points',type:'circle',source:SOURCE_HOUSES,filter:['!',['has','point_count']],paint:{
+    'circle-radius':['interpolate',['linear'],['zoom'],12,4,17,8,20,11],
+    'circle-color':['match',['get','status'],'field','#16a36f','review','#f59e0b','boundary','#ef4444','legacy','#3b82f6','#94a3b8'],
+    'circle-stroke-width':2,'circle-stroke-color':'#fff'
+  }});
+  map.addLayer({id:'house-labels',type:'symbol',source:SOURCE_HOUSES,minzoom:17.5,filter:['!',['has','point_count']],layout:{'text-field':['get','house_no'],'text-size':11,'text-offset':[0,1.25]},paint:{'text-color':'#15342e','text-halo-color':'#fff','text-halo-width':1.5}});
+  map.addSource(SOURCE_COMMUNITIES,{type:'geojson',data:communitiesGeoJSON([])});
+  map.addLayer({id:'community-fill',type:'fill',source:SOURCE_COMMUNITIES,paint:{'fill-color':'#0f766e','fill-opacity':0.055}});
+  map.addLayer({id:'community-line',type:'line',source:SOURCE_COMMUNITIES,paint:{'line-color':'#0f766e','line-width':2.5,'line-opacity':0.9}});
+  async function refresh(nextCommunity=community){
+    community=nextCommunity||'';
+    const [hs,cs]=await Promise.all([provider.getHouses({community}),provider.getCommunities()]);
+    allHouses=hs||[];communities=cs||[];
+    map.getSource(SOURCE_HOUSES)?.setData(housesGeoJSON(allHouses));
+    map.getSource(SOURCE_COMMUNITIES)?.setData(communitiesGeoJSON(communities));
+    return {houses:allHouses,communities};
+  }
+  function set3D(next){
+    mode3D=Boolean(next);map.easeTo({pitch:mode3D?55:0,bearing:mode3D?-18:0,duration:450});
+    return mode3D;
+  }
+  function focusHouse(id){
+    const h=allHouses.find(x=>String(x.id)===String(id));if(!h||!isCoord(h))return false;
+    map.flyTo({center:[Number(h.longitude),Number(h.latitude)],zoom:19,pitch:mode3D?58:0,duration:650});return true;
+  }
+  function search(q){
+    q=String(q||'').trim().toLowerCase();if(!q)return allHouses.slice(0,50);
+    return allHouses.filter(h=>[h.house_no,h.house_id_11,h.community].some(v=>String(v||'').toLowerCase().includes(q))).slice(0,100);
+  }
+  map.on('click','house-clusters',async e=>{const f=e.features?.[0];if(!f)return;const src=map.getSource(SOURCE_HOUSES);const z=await src.getClusterExpansionZoom(f.properties.cluster_id);map.easeTo({center:f.geometry.coordinates,zoom:z});});
+  map.on('click','house-points',e=>{
+    const f=e.features?.[0];if(!f)return;const p=f.properties||{};const coords=f.geometry.coordinates.slice();
+    const html=`<div class="prb-map3d-popup"><strong>บ้าน ${esc(p.house_no||'ไม่ระบุ')}</strong><div>${esc(p.community||'')} · หมู่ ${esc(p.moo||'—')}</div><div>แหล่งพิกัด: ${esc(p.source||'—')}</div><div>สถานะ: ${esc(p.coordinate_status||p.status||'—')}</div><button type="button" data-map3d-open-house="${esc(p.id)}">เปิดข้อมูลบ้าน</button></div>`;
+    const popup=new maplibregl.Popup({offset:18}).setLngLat(coords).setHTML(html).addTo(map);
+    setTimeout(()=>popup.getElement()?.querySelector('[data-map3d-open-house]')?.addEventListener('click',()=>onOpenHouse?.(p.id)),0);
+  });
+  for(const layer of ['house-points','house-clusters']){map.on('mouseenter',layer,()=>map.getCanvas().style.cursor='pointer');map.on('mouseleave',layer,()=>map.getCanvas().style.cursor='');}
+  await refresh('');
+  return {map,refresh,set3D,focusHouse,search,getState:()=>({mode3D,community,houses:allHouses,communities})};
+}
