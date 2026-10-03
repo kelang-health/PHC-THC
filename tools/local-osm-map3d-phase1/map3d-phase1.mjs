@@ -2,6 +2,7 @@ const DEFAULT_CENTER=[99.5071,18.2696];
 const DEFAULT_ZOOM=13.5;
 const SOURCE_HOUSES='prb-houses';
 const SOURCE_COMMUNITIES='prb-communities';
+const SOURCE_BUILDINGS='prb-buildings';
 
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function isCoord(h){return Number.isFinite(Number(h?.latitude))&&Number.isFinite(Number(h?.longitude));}
@@ -9,7 +10,7 @@ function statusOf(h){
   if(!isCoord(h)) return 'missing';
   if(h.review_required) return 'review';
   if(h.inside_tambon===false||h.inside_community===false) return 'boundary';
-  if(['gps','map'].includes(String(h.coordinate_source||''))) return 'field';
+  if(['gps','map','local_verified'].includes(String(h.coordinate_source||''))||String(h.geo_quality||'')==='verified') return 'field';
   return 'legacy';
 }
 function colorOf(s){return ({field:'#16a36f',review:'#f59e0b',boundary:'#ef4444',legacy:'#3b82f6',missing:'#94a3b8'})[s]||'#64748b';}
@@ -35,11 +36,11 @@ async function ensureMapLibre(){
   await new Promise((resolve,reject)=>{
     if(!document.querySelector('link[data-prb-maplibre]')){
       const l=document.createElement('link');l.rel='stylesheet';l.dataset.prbMaplibre='1';
-      l.href='https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css';document.head.appendChild(l);
+      l.href='/assets/vendor/maplibre-gl.css';document.head.appendChild(l);
     }
     const existing=document.querySelector('script[data-prb-maplibre]');
     if(existing){existing.addEventListener('load',resolve,{once:true});existing.addEventListener('error',reject,{once:true});return;}
-    const s=document.createElement('script');s.src='https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';
+    const s=document.createElement('script');s.src='/assets/vendor/maplibre-gl.js';
     s.async=true;s.dataset.prbMaplibre='1';s.onload=resolve;s.onerror=reject;document.head.appendChild(s);
   });
   return window.maplibregl;
@@ -69,6 +70,8 @@ export async function initPRBMap3D({
   map.addSource(SOURCE_COMMUNITIES,{type:'geojson',data:communitiesGeoJSON([])});
   map.addLayer({id:'community-fill',type:'fill',source:SOURCE_COMMUNITIES,paint:{'fill-color':'#0f766e','fill-opacity':0.055}});
   map.addLayer({id:'community-line',type:'line',source:SOURCE_COMMUNITIES,paint:{'line-color':'#0f766e','line-width':2.5,'line-opacity':0.9}});
+  map.addSource(SOURCE_BUILDINGS,{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+  map.addLayer({id:'osm-buildings-3d',type:'fill-extrusion',source:SOURCE_BUILDINGS,minzoom:14,layout:{visibility:initial3D?'visible':'none'},paint:{'fill-extrusion-color':'#c8d2cf','fill-extrusion-height':['get','height'],'fill-extrusion-base':0,'fill-extrusion-opacity':0.72}},'house-clusters');
   async function refresh(nextCommunity=community){
     community=nextCommunity||'';
     const [hs,cs]=await Promise.all([provider.getHouses({community}),provider.getCommunities()]);
@@ -79,7 +82,13 @@ export async function initPRBMap3D({
   }
   function set3D(next){
     mode3D=Boolean(next);map.easeTo({pitch:mode3D?55:0,bearing:mode3D?-18:0,duration:450});
+    if(map.getLayer('osm-buildings-3d'))map.setLayoutProperty('osm-buildings-3d','visibility',mode3D?'visible':'none');
     return mode3D;
+  }
+  function setBuildings(data){
+    const geo=data&&data.type==='FeatureCollection'?data:{type:'FeatureCollection',features:[]};
+    map.getSource(SOURCE_BUILDINGS)?.setData(geo);
+    return geo.features?.length||0;
   }
   function focusHouse(id){
     const h=allHouses.find(x=>String(x.id)===String(id));if(!h||!isCoord(h))return false;
@@ -87,7 +96,7 @@ export async function initPRBMap3D({
   }
   function search(q){
     q=String(q||'').trim().toLowerCase();if(!q)return allHouses.slice(0,50);
-    return allHouses.filter(h=>[h.house_no,h.house_id_11,h.community].some(v=>String(v||'').toLowerCase().includes(q))).slice(0,100);
+    return allHouses.filter(h=>[h.house_no,h.house_id_11,h.hcode,h.community].some(v=>String(v||'').toLowerCase().includes(q))).slice(0,100);
   }
   map.on('click','house-clusters',async e=>{const f=e.features?.[0];if(!f)return;const src=map.getSource(SOURCE_HOUSES);const z=await src.getClusterExpansionZoom(f.properties.cluster_id);map.easeTo({center:f.geometry.coordinates,zoom:z});});
   map.on('click','house-points',e=>{
@@ -98,5 +107,5 @@ export async function initPRBMap3D({
   });
   for(const layer of ['house-points','house-clusters']){map.on('mouseenter',layer,()=>map.getCanvas().style.cursor='pointer');map.on('mouseleave',layer,()=>map.getCanvas().style.cursor='');}
   await refresh('');
-  return {map,refresh,set3D,focusHouse,search,getState:()=>({mode3D,community,houses:allHouses,communities})};
+  return {map,refresh,set3D,setBuildings,focusHouse,search,getState:()=>({mode3D,community,houses:allHouses,communities})};
 }
