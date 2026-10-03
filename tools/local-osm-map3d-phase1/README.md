@@ -1,57 +1,44 @@
-# Local OSM-PHC — Map 3D Phase 1
+# Local OSM-PHC — Map 3D v2.1.77
 
-แพ็กเกจเตรียมติดตั้งสำหรับ Local OSM-PHC โดยไม่แก้ Cloud production และไม่เปิด service-role key ใน browser
+โมดูลแผนที่สุขภาพสำหรับ Local OSM-PHC เท่านั้น หน้าแผนที่เป็น Admin read-only และไม่มีคำสั่งเขียน Cloud หรือ JHCIS
 
-## Phase 1
-- 2D / 3D camera mode
-- บ้านจากฐาน Local OSM-PHC โดยตรง (หน้าแผนที่ไม่เรียก Cloud)
-- clustering เพื่อรองรับหลายพันหลัง
-- สีสถานะพิกัด: ยืนยันภาคสนาม / รอตรวจ / ผิดแนวเขต / พิกัดเดิม
-- แสดงบ้านเลขที่เมื่อซูมใกล้
-- polygon ชุมชน
-- ค้นบ้านเลขที่ / HID / ชุมชน
-- คลิกหมุดแล้วเปิดข้อมูลบ้านผ่าน callback ของระบบ Local
+## ฟังก์ชันที่ติดตั้ง
+- 2D / 3D พร้อม MapLibre GL ที่เก็บไฟล์ library ไว้ใน Local
+- แผนที่ฐาน OpenStreetMap และ Esri World Imagery
+- บ้านจาก Local OSM-PHC, clustering, ค้นบ้านเลขที่/HCODE/HID และเปิดข้อมูลบ้านเดิม
+- polygon 16 ชุมชนจาก Local boundary snapshot
+- OSM building footprint แบบ 3D extrusion; โหลดเฉพาะชุมชนที่เลือก
+- building cache: memory 15 นาที, disk 24 ชั่วโมง และ stale fallback สูงสุด 30 วันเมื่อ Overpass ใช้ไม่ได้
+- ชั้นงาน NCD แบบ aggregate ระดับบ้านเท่านั้น ไม่มีชื่อบุคคลหรือค่าความดัน/น้ำตาลรายบุคคล
+- DEM terrain + hillshade แบบเปิด/ปิด
+- RainViewer radar แบบเปิด/ปิด ใช้เป็นบริบทสภาพอากาศ ไม่ใช่การพยากรณ์น้ำท่วม
+- responsive toolbar สำหรับ desktop/mobile
 
-## Data provider contract
-```js
-const provider = {
-  async getHouses({ community }) {
-    // return [{id,house_no,house_id_11,moo,community,latitude,longitude,
-    // coordinate_source,coordinate_status,review_required,inside_tambon,
-    // inside_community,updated_at}]
-  },
-  async getCommunities() {
-    // return [{id,name,moo,geometry_geojson}]
-  }
-}
-```
+## Data flow
+Browser -> Local FastAPI -> Local household database / Local Tracking Center / Local boundary snapshot
 
-Phase 1 ที่ติดตั้งจริงใช้ Local household database + Local boundary snapshot โดยตรง ไม่มี service-role key และไม่เรียก Cloud ขณะเปิดหน้า
+แหล่งภายนอกที่ใช้เฉพาะการแสดงผล:
+- OpenStreetMap raster tiles
+- Esri World Imagery raster tiles
+- OpenStreetMap Overpass building footprints
+- AWS Terrarium elevation tiles
+- RainViewer radar tiles
 
-## Integration
-```html
-<link rel="stylesheet" href="/osm-phc/assets/map3d-phase1.css">
-<div class="prb-map3d-shell">
-  <div class="prb-map3d-toolbar">...</div>
-  <div class="prb-map3d-stage"><div id="prb-map3d" class="prb-map3d-map"></div></div>
-</div>
-<script type="module">
-import { initPRBMap3D } from '/osm-phc/assets/map3d-phase1.mjs';
-const app = await initPRBMap3D({
-  container:'prb-map3d',
-  provider,
-  onOpenHouse:(id)=>openLocalHouse(id)
-});
-</script>
-```
+ไม่มี Supabase service-role key ใน browser และหน้า Map 3D ไม่เพิ่ม Cloud write path
 
-## Local deployment checklist
-1. สำรองไฟล์ Local เดิม
-2. คัดลอก JS/CSS เข้า assets
-3. เพิ่มเมนู “แผนที่สุขภาพ 3 มิติ”
-4. เชื่อม Local API provider
-5. ทดสอบ 2D/3D, filter ชุมชน, search, popup, เปิดข้อมูลบ้าน
-6. ทดสอบกับข้อมูล 4,000+ หลังและมือถือ
-7. ยืนยันว่าไม่มีการเขียน JHCIS/Cloud จากหน้าแผนที่ใน Phase 1
+## Privacy
+ชั้น NCD ส่งเฉพาะ aggregate ต่อ HCODE เช่นจำนวนกลุ่มเป้าหมาย จำนวนต้องติดตาม และระดับงานสูงสุดของบ้าน ไม่ส่งชื่อ PID/CID หรือค่าทางคลินิกรายบุคคลไปยังหน้าแผนที่
 
-อาคาร 3D ใช้ OpenStreetMap/Overpass ผ่าน backend Local เฉพาะเมื่อผู้ใช้เลือกชุมชนและเปิด 3D พร้อม cache 15 นาที; หากโหลดไม่ได้ หมุดบ้านและข้อมูล Local ยังใช้งานได้ตามปกติ
+## Fail-safe
+ถ้า OSM/Esri/DEM/RainViewer/Overpass ใช้ไม่ได้ ข้อมูลบ้านและขอบเขต Local ยังคงอยู่บนแผนที่ โดยมีพื้นหลัง fallback; ฟังก์ชัน external overlay ถูกออกแบบให้ล้มแยกจากข้อมูล Local
+
+## Validation snapshot
+- Local houses with coordinates: 4,276
+- NCD aggregate: 6,181 persons -> 3,314 households
+- OSM building test in ชุมชนกอกชุม: 106 footprints
+- Building cache verified network -> disk after memory clear
+- DEM, RainViewer radar and Esri imagery test tiles returned HTTP 200
+- Unauthenticated Map 3D endpoints return HTTP 401
+
+## Deliberately not implemented
+ยังไม่สร้างคะแนนหรือสี “เสี่ยงน้ำท่วม” จาก DEM + เรดาร์ฝน เพราะข้อมูลสองชนิดนี้ไม่เพียงพอสำหรับ hazard classification ที่น่าเชื่อถือ ต้องเพิ่ม authoritative flood/hazard layer ก่อน
