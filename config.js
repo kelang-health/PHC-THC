@@ -3,16 +3,16 @@ export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_' + 'bw0sKPthqc6S' + 'l9
 
 if (typeof window !== 'undefined') {
   // All Cloud announcements and booking activities are paused by the operator.
-  import('./community-gis-v1822.mjs?v=2.0.133-mobile-map-focus&p=2171')
+  import('./community-gis-v1822.mjs?v=2.0.136-smart-gps&p=2176')
     .then(async ({ initCommunityGIS1822 }) => {
       await initCommunityGIS1822(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initHouseRegistration } = await import('./community-house-registration-v1819.mjs?v=2.0.133-mobile-map-focus&p=2171');
       await initHouseRegistration(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initMyHousesMobile } = await import('./my-houses-mobile-v1820.mjs?v=2.0.133-mobile-map-focus&p=2171');
+      const { initMyHousesMobile } = await import('./my-houses-mobile-v1820.mjs?v=2.0.136-smart-gps&p=2176');
       await initMyHousesMobile(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initMobileSpatialCards } = await import('./mobile-community-volunteer-cards-v1821.mjs?v=2.0.133-mobile-map-focus&p=2171');
       await initMobileSpatialCards(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initCommunityWorkflow1822 } = await import('./community-workflow-v1822.mjs?v=2.0.133-mobile-map-focus&p=2171');
+      const { initCommunityWorkflow1822 } = await import('./community-workflow-v1822.mjs?v=2.0.136-smart-gps&p=2176');
       await initCommunityWorkflow1822(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initMobileUIPolish1824 } = await import('./mobile-ui-polish-v1824.mjs?v=2.0.133-mobile-map-focus&p=2171');
       await initMobileUIPolish1824(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
