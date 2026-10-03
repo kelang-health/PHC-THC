@@ -150,8 +150,12 @@ export async function initPRBMap3D({container,provider,onOpenHouse,center=DEFAUL
   function setTerrain(next){
     terrainOn=Boolean(next);
     if(terrainOn){
-      map.setTerrain({source:SOURCE_DEM,exaggeration:1.2});
+      mode3D=true;
+      if(map.getLayer('osm-buildings-3d'))map.setLayoutProperty('osm-buildings-3d','visibility','visible');
+      map.setTerrain({source:SOURCE_DEM,exaggeration:1.45});
       map.setLayoutProperty('terrain-hillshade','visibility','visible');
+      const z=Math.max(13.5,Math.min(Number(map.getZoom()||14),16));
+      map.easeTo({pitch:60,bearing:-22,zoom:z,duration:650});
     }else{
       map.setTerrain(null);
       map.setLayoutProperty('terrain-hillshade','visibility','none');
