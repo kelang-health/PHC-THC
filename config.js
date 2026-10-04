@@ -12,7 +12,7 @@ if (typeof window !== 'undefined') {
       await initMyHousesMobile(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initMobileSpatialCards } = await import('./mobile-community-volunteer-cards-v1821.mjs?v=2.0.133-mobile-map-focus&p=2171');
       await initMobileSpatialCards(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initCommunityWorkflow1822 } = await import('./community-workflow-v1822.mjs?v=2.0.140-admin-house-map-fix&p=2180');
+      const { initCommunityWorkflow1822 } = await import('./community-workflow-v1822.mjs?v=2.0.141-stay-on-house-after-save&p=2181');
       await initCommunityWorkflow1822(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initMobileUIPolish1824 } = await import('./mobile-ui-polish-v1824.mjs?v=2.0.133-mobile-map-focus&p=2171');
       await initMobileUIPolish1824(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
