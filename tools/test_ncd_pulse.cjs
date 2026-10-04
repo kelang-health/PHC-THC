@@ -10,7 +10,7 @@ const {parseHTML}=dependency('linkedom');
  assert(document.querySelector('#ncd-dbp').closest('.measure-card').nextElementSibling.contains(pulse));
  assert(app.includes("supabase.rpc('save_health_ncd_screening_v6'"));
  const migration=fs.readFileSync('supabase/migrations/20261004080138_ncd_pulse_cloud_local.sql','utf8');
- const sig=migration.match(/save_health_ncd_screening_v6\((.*?)\)\nRETURNS/s)[1];
+ const sig=migration.match(/save_health_ncd_screening_v6\((.*?)\)\r?\nRETURNS/s)[1];
  const oldsig=sig.replace(/, p_pulse integer DEFAULT NULL$/,'');
  const db=new PGlite();
  await db.exec(`CREATE SCHEMA auth; CREATE SCHEMA private; CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;
