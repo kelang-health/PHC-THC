@@ -343,13 +343,22 @@ function personKey(p){return `${p.source_pcucode}:${p.source_pid}`;}
 function healthClass(severity){return severity==='urgent'?'bad':severity==='alert'?'attention':severity==='risk'?'warn':severity==='normal'?'good':'';}
 function formatHealthValue(value,suffix=''){return value===null||value===undefined||value===''?'—':`${value}${suffix}`;}
 function healthDateLabel(value){if(!value)return 'ยังไม่มีประวัติคัดกรอง';try{return new Date(value+'T00:00:00').toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});}catch{return value;}}
+function ncdSameFiscalYearV2143(screenedOn,serviceOn=localDate()){
+  const last=String(screenedOn||'').slice(0,10),today=String(serviceOn||'').slice(0,10);
+  const valid=value=>/^\d{4}-\d{2}-\d{2}$/.test(value)&&Number.isFinite(Date.parse(value+'T00:00:00Z'));
+  if(!valid(last)||!valid(today))return false;
+  const year=Number(today.slice(0,4)),startYear=Number(today.slice(5,7))>=10?year:year-1;
+  const start=startYear+'-10-01';
+  return last>=start&&last<=today;
+}
 function confirmRepeatNcdV2033(person){
-  const last=String(person?.latest_screened_on||'').slice(0,10);if(!last)return Promise.resolve(true);
-  const sameDay=last===localDate(),label=healthDateLabel(last);
+  const last=String(person?.latest_screened_on||'').slice(0,10),today=localDate();
+  if(!ncdSameFiscalYearV2143(last,today))return Promise.resolve(true);
+  const sameDay=last===today,label=healthDateLabel(last);
   return new Promise(resolve=>{
     document.querySelector('.repeat-screening-dialog')?.remove();
     const overlay=document.createElement('div');overlay.className='repeat-screening-dialog';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','repeat-screening-title');
-    overlay.innerHTML=`<section class="repeat-screening-card ${sameDay?'same-day':''}"><div class="repeat-screening-icon">${sameDay?'!':'↻'}</div><h2 id="repeat-screening-title">${sameDay?'มีผลคัดกรองของวันนี้แล้ว':'พบประวัติคัดกรองเดิม'}</h2><p><strong>${esc(person?.display_name||'บุคคลนี้')}</strong> คัดกรองแล้วเมื่อวันที่ ${esc(label)}</p><p>${sameDay?'หากดำเนินการต่อ ระบบจะบันทึกผลวันนี้เพิ่มเป็นอีกรายการ และไม่ทับผลเดิม':'ต้องการคัดกรองซ้ำหรือไม่? ผลใหม่จะถูกเก็บเพิ่มในประวัติและไม่ทับผลเดิม'}</p><div class="repeat-screening-actions"><button type="button" class="secondary" data-repeat-cancel>ยกเลิก</button><button type="button" class="primary" data-repeat-confirm>คัดกรองซ้ำ</button></div></section>`;
+    overlay.innerHTML=`<section class="repeat-screening-card ${sameDay?'same-day':''}"><div class="repeat-screening-icon">${sameDay?'!':'↻'}</div><h2 id="repeat-screening-title">${sameDay?'มีผลคัดกรองของวันนี้แล้ว':'คัดกรองแล้วในปีงบนี้'}</h2><p><strong>${esc(person?.display_name||'บุคคลนี้')}</strong> คัดกรองแล้วเมื่อวันที่ ${esc(label)}</p><p>${sameDay?'หากดำเนินการต่อ ระบบจะบันทึกผลวันนี้เพิ่มเป็นอีกรายการ และไม่ทับผลเดิม':'ต้องการคัดกรองซ้ำหรือไม่? ผลใหม่จะถูกเก็บเพิ่มในประวัติและไม่ทับผลเดิม'}</p><div class="repeat-screening-actions"><button type="button" class="secondary" data-repeat-cancel>ยกเลิก</button><button type="button" class="primary" data-repeat-confirm>คัดกรองซ้ำ</button></div></section>`;
     const finish=value=>{overlay.remove();resolve(value);};
     overlay.querySelector('[data-repeat-cancel]').onclick=()=>finish(false);overlay.querySelector('[data-repeat-confirm]').onclick=()=>finish(true);
     overlay.onclick=e=>{if(e.target===overlay)finish(false);};overlay.onkeydown=e=>{if(e.key==='Escape')finish(false);};document.body.append(overlay);overlay.querySelector('[data-repeat-cancel]').focus();

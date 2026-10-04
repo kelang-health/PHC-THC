@@ -1,0 +1,15 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const source=fs.readFileSync('app.js','utf8');const code=source.slice(source.indexOf('function ncdSameFiscalYearV2143('),source.indexOf('async function loadHealthSummary('));
+const context=vm.createContext({localDate:()=> '2026-10-04',document:{querySelector:()=>{throw Error('Old FY must not open dialog');}}});vm.runInContext(code,context);
+const same=context.ncdSameFiscalYearV2143;
+assert.equal(same('2025-11-28','2026-10-04'),false);
+assert.equal(same('2026-09-30','2026-10-01'),false);
+assert.equal(same('2026-10-01','2026-10-04'),true);
+assert.equal(same('2026-10-04','2026-10-04'),true);
+assert.equal(same('2026-10-05','2026-10-04'),false);
+assert.equal(same('2025-10-01','2026-09-30'),true);
+assert.equal(same('2025-09-30','2026-09-30'),false);
+assert.equal(same('2026-10-01','2027-01-01'),true);
+assert.equal(same('', '2026-10-04'),false);
+assert.equal(same('invalid', '2026-10-04'),false);
+(async()=>{assert.equal(await context.confirmRepeatNcdV2033({latest_screened_on:'2025-11-28'}),true);console.log('11 fiscal repeat cases passed, including old-year bypass without dialog');})().catch(e=>{console.error(e);process.exitCode=1;});
