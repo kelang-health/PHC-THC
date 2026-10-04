@@ -675,7 +675,7 @@ function syncBpRepeatUiV2123(form){
 
 function ncdRequiredComplete(form){
   if(!form)return false;
-  const required=['screened_on','weight_kg','height_cm','waist_cm','sbp','dbp','glucose_mg_dl'];
+  const required=['screened_on','weight_kg','height_cm','waist_cm','sbp','dbp','pulse','glucose_mg_dl'];
   if(required.some(name=>!String(form.elements[name]?.value||'').trim()))return false;
   const bp=bpRepeatStateV2123(form);
   if(bp.highFirst&&!bp.repeatComplete)return false;
