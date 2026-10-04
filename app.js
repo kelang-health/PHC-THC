@@ -573,21 +573,32 @@ function previousHint(value,unit=''){return value===null||value===undefined||val
 
 
 function ncdEntryGuardV2122(form,person){
-  const n=name=>Number(form?.elements?.[name]?.value);
+  const n=name=>{const raw=form?.elements?.[name]?.value;return raw==null||String(raw).trim()===''?NaN:Number(raw);};
   const w=n('weight_kg'),h=n('height_cm'),waist=n('waist_cm'),g=n('glucose_mg_dl');
   const bpState=bpRepeatStateV2123(form),sbp=bpState.effectiveSbp,dbp=bpState.effectiveDbp;
   const gt=form?.querySelector('[name="glucose_type"]:checked')?.value||'';
   const verify=[],clinical=[];
   const add=(arr,msg)=>{if(msg&&!arr.includes(msg))arr.push(msg);};
   const bmi=Number.isFinite(w)&&Number.isFinite(h)&&h>0?w/((h/100)**2):NaN;
-  if(Number.isFinite(w)&&(w<20||w>250))add(verify,`น้ำหนัก ${w} กก. อยู่นอกช่วงที่พบบ่อยในผู้ใหญ่`);
-  if(Number.isFinite(h)&&(h<100||h>220))add(verify,`ส่วนสูง ${h} ซม. อยู่นอกช่วงที่พบบ่อยในผู้ใหญ่`);
-  if(Number.isFinite(waist)&&(waist<40||waist>180))add(verify,`รอบเอว ${waist} ซม. ควรตรวจตัวเลขอีกครั้ง`);
-  if(Number.isFinite(bmi)&&(bmi<10||bmi>70))add(verify,`BMI ที่คำนวณได้ ${bmi.toFixed(1)} ผิดปกติมาก ควรตรวจน้ำหนัก/ส่วนสูงอีกครั้ง`);
+  if(Number.isFinite(w)&&(w<30||w>150))add(verify,`น้ำหนัก ${w} กก. อยู่นอกช่วงที่พบบ่อยในผู้ใหญ่`);
+  if(Number.isFinite(h)&&(h<130||h>200))add(verify,`ส่วนสูง ${h} ซม. อยู่นอกช่วงที่พบบ่อยในผู้ใหญ่`);
+  if(Number.isFinite(waist)&&(waist<50||waist>150))add(verify,`รอบเอว ${waist} ซม. ควรตรวจตัวเลขอีกครั้ง`);
+  if(Number.isFinite(bmi)&&(bmi<16||bmi>40))add(verify,`BMI ที่คำนวณได้ ${bmi.toFixed(1)} ผิดปกติมาก ควรตรวจน้ำหนัก/ส่วนสูงอีกครั้ง`);
   const prevW=Number(person?.previous_weight_kg),prevH=Number(person?.previous_height_cm);
-  if(Number.isFinite(prevW)&&prevW>0&&Number.isFinite(w)&&Math.abs(w-prevW)/prevW>0.20)add(verify,`น้ำหนักต่างจากครั้งก่อนเกิน 20% (ครั้งก่อน ${prevW} กก.)`);
+  if(Number.isFinite(prevW)&&prevW>0&&Number.isFinite(w)&&(Math.abs(w-prevW)>10||Math.abs(w-prevW)/prevW>0.20))add(verify,`น้ำหนักต่างจากครั้งก่อนเกิน 10 กก. หรือ 20% (ครั้งก่อน ${prevW} กก.)`);
   if(Number.isFinite(prevH)&&prevH>0&&Number.isFinite(h)&&Math.abs(h-prevH)>5)add(verify,`ส่วนสูงต่างจากครั้งก่อนเกิน 5 ซม. (ครั้งก่อน ${prevH} ซม.)`);
-  if(Number.isFinite(sbp)&&Number.isFinite(dbp)){
+  const previousDate=person?.previous_screened_on?' วันที่ '+person.previous_screened_on:'';
+  const compare=(value,previous,delta,label,unit)=>{
+    const old=Number(previous);
+    if(previous!=null&&String(previous).trim()!==''&&Number.isFinite(old)&&old>0&&Number.isFinite(value)&&Math.abs(value-old)>delta)
+      add(verify,label+' '+value+' '+unit+' ต่างจากครั้งก่อน '+old+' '+unit+previousDate+' เกิน '+delta+' '+unit+' ควรตรวจยืนยัน');
+  };
+  compare(waist,person?.previous_waist_cm,10,'รอบเอว','ซม.');
+  compare(sbp,person?.previous_sbp,30,'ความดันตัวบน','มม.ปรอท');
+  compare(dbp,person?.previous_dbp,20,'ความดันตัวล่าง','มม.ปรอท');
+  const pulse=n('pulse');
+  if(Number.isFinite(pulse)&&(pulse<50||pulse>120))add(verify,'ชีพจร '+pulse+' ครั้ง/นาที ควรวัดซ้ำและตรวจยืนยัน');
+  if(Number.isFinite(sbp)&&Number.isFinite(dbp)&&sbp>0&&dbp>0){
     const pulse=sbp-dbp;
     if(pulse>0&&(pulse<10||pulse>120))add(verify,`ช่วงห่าง SYS-DIA ${pulse} มม.ปรอท ผิดปกติมาก ควรตรวจค่าอีกครั้ง`);
     if(bpState.anyGrade3)add(clinical,'พบค่าความดันระดับ 3/อันตรายอย่างน้อยหนึ่งครั้ง: ควรประเมินเร่งด่วนตามแนวทาง');
@@ -598,6 +609,7 @@ function ncdEntryGuardV2122(form,person){
   if(Number.isFinite(g)){
     if(g<50||g>500)add(verify,`น้ำตาล ${g} mg/dL ผิดปกติมาก ควรตรวจหน่วย/ตัวเลขและตรวจซ้ำ`);
     if(g<70)add(clinical,`น้ำตาล ${g} mg/dL ต่ำ: ตรวจซ้ำและประเมินอาการทันที โดยเฉพาะผู้ใช้ยาลดน้ำตาล/อินซูลิน`);
+    else if(gt==='fasting'&&g>=100&&g<126)add(clinical,'น้ำตาลอดอาหาร '+g+' mg/dL ควรตรวจยืนยันและติดตาม');
     else if(gt==='fasting'&&g>=126)add(clinical,`น้ำตาลอดอาหาร ${g} mg/dL อยู่ในกลุ่มสงสัยเบาหวาน: ต้องตรวจยืนยันตามแนวทาง`);
     else if(gt==='random'&&g>=200)add(clinical,`น้ำตาลสุ่ม ${g} mg/dL สูงมาก: ต้องตรวจยืนยันตามแนวทาง`);
   }
@@ -671,7 +683,11 @@ function syncNcdSubmitState(form=$('#ncd-form')){
   const ready=ncdRequiredComplete(form);
   button.disabled=!ready;
   button.setAttribute('aria-disabled',String(!ready));
-  if(hint)hint.textContent=ready?'ข้อมูลที่จำเป็นครบแล้ว · ตรวจสอบแล้วกดบันทึก':'กรอกข้อมูลที่จำเป็นใน ค่าที่วัด และพฤติกรรม ให้ครบก่อนบันทึก';
+  if(hint){
+    const guard=ncdEntryGuardV2122(form,selectedHealthPerson),warnings=[...guard.verify,...guard.clinical];
+    hint.textContent=warnings.length?'ต้องตรวจสอบก่อนบันทึก: '+warnings.join(' · '):(ready?'ข้อมูลที่จำเป็นครบแล้ว · ตรวจสอบแล้วกดบันทึก':'กรอกข้อมูลที่จำเป็นใน ค่าที่วัด และพฤติกรรม ให้ครบก่อนบันทึก');
+    hint.setAttribute('role','status');hint.style.color=warnings.length?'#9a3412':'';
+  }
 }
 async function hydratePreviousScreening(p){
   if(!p?.source_pcucode||p?.source_pid==null)return p;
