@@ -288,6 +288,15 @@ def route_groups(db, groups: list[dict]) -> dict:
         if primary.get("remaining") is not None
         else 10 ** 9
     ) if primary.get("ready") else 0
+    if (
+        cfg.get("enabled")
+        and state == "failover"
+        and primary.get("remaining") is not None
+    ):
+        primary_slots = max(
+            0,
+            primary_slots - max(0, int(cfg.get("primary_reserve") or 0)),
+        )
     backup_slots = (
         int(backup.get("remaining") or 0)
         if backup.get("remaining") is not None
@@ -357,15 +366,24 @@ def coverage(db) -> dict:
         CloudLineLink.active.is_(True),
         CloudLineLink.profile_active.is_(True),
     ).all()
+    primary_ids = {
+        int(x.volunteer_id) for x in primary_links if x.volunteer_id
+    }
+    backup_ids = set(mapped)
+    dual_ids = primary_ids & backup_ids
+    staff_ids = {
+        int(user.volunteer_id) for user in staff if user.volunteer_id
+    }
     return {
         "volunteers_total": len(volunteers),
-        "primary_linked_volunteers": len({
-            int(x.volunteer_id) for x in primary_links if x.volunteer_id
-        }),
-        "backup_ready_volunteers": len(mapped),
-        "backup_not_ready_volunteers": max(0, len(volunteers) - len(mapped)),
+        "primary_linked_volunteers": len(primary_ids),
+        "backup_ready_volunteers": len(backup_ids),
+        "dual_ready_volunteers": len(dual_ids),
+        "backup_not_ready_volunteers": max(0, len(volunteers) - len(backup_ids)),
+        "dual_not_ready_volunteers": max(0, len(volunteers) - len(dual_ids)),
         "staff_total": len(staff),
         "backup_ready_staff": staff_ready,
+        "dual_ready_staff": len(staff_ids & dual_ids),
     }
 
 
