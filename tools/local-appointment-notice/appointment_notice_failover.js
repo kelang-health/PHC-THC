@@ -48,9 +48,9 @@ window.AppointmentNoticeFailover={
             </article>
             <article>
               <div class="notice-oa-title"><strong>Backup coverage</strong></div>
-              <div class="notice-oa-coverage"><b>${num(v.backup_ready_volunteers||0)}</b> / ${num(v.volunteers_total||0)} อสม.</div>
-              <div class="notice-oa-coverage"><b>${num(v.backup_ready_staff||0)}</b> / ${num(v.staff_total||0)} Staff</div>
-              <small>${num(v.backup_not_ready_volunteers||0)} อสม. ยังไม่สามารถสลับ OA ได้</small>
+              <div class="notice-oa-coverage"><b>${num(v.dual_ready_volunteers||0)}</b> / ${num(v.volunteers_total||0)} อสม.</div>
+              <div class="notice-oa-coverage"><b>${num(v.dual_ready_staff||0)}</b> / ${num(v.staff_total||0)} Staff</div>
+              <small>${num(v.dual_not_ready_volunteers||0)} อสม. ยังไม่พร้อมทั้ง Primary + Backup</small>
             </article>
           </div>
           <div class="notice-failover-settings">
