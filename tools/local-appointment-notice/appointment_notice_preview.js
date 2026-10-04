@@ -13,9 +13,12 @@ window.AppointmentNoticePreview={
 
     const shell=()=>{
       host.innerHTML=`
-      <div class="welcome"><div><span class="eyebrow">PHASE 3.2 · BACKUP COVERAGE ONBOARDING</span><h2>แจ้งเตือนนัดหมาย อสม.</h2><p>Auto D-1 + Multi-OA พร้อมติดตาม coverage รายชุมชน, QR ลงทะเบียน และ quota forecast ก่อนส่ง</p></div><span class="badge good">Coverage + Forecast</span></div>
+      <div class="welcome"><div><span class="eyebrow">PHASE 3.6 · STAFF-FIRST CONTROLLED ROLLOUT</span><h2>แจ้งเตือนนัดหมาย อสม.</h2><p>Auto D-1 + Multi-OA พร้อมติดตาม coverage รายชุมชน, QR ลงทะเบียน และ quota forecast ก่อนส่ง</p></div><span class="badge good">Coverage + Forecast</span></div>
       <section class="panel" id="an-failover-panel"><div class="empty">กำลังตรวจโควตา LINE OA…</div></section>
       <section class="panel" id="an-onboarding-panel"><div class="empty">กำลังตรวจ Backup coverage…</div></section>
+      <section class="panel" id="an-osm-bridge-panel"><div class="empty">กำลังตรวจ OSM Primary Bridge…</div></section>
+      <section class="panel" id="an-rollout-panel"><div class="empty">กำลังโหลด Operational Rollout…</div></section>
+      <section class="panel" id="an-acceleration-panel"><div class="empty">กำลังคำนวณ Coverage Acceleration…</div></section>
       <section class="panel" id="an-forecast-panel"><div class="empty">กำลังคำนวณ Quota Forecast…</div></section>
       <section class="panel" id="an-auto-panel"><div class="empty">กำลังโหลด Auto D-1…</div></section>
       <section class="notice-filter">
@@ -369,6 +372,6 @@ window.AppointmentNoticePreview={
       }
     };
 
-    shell();bind();await load();await loadHistory();if(window.AppointmentNoticeFailover)await AppointmentNoticeFailover.mount();if(window.AppointmentNoticePhase32)await AppointmentNoticePhase32.mount();if(window.AppointmentNoticePhase3)await AppointmentNoticePhase3.mount();
+    shell();bind();await load();await loadHistory();if(window.AppointmentNoticeFailover)await AppointmentNoticeFailover.mount();if(window.AppointmentNoticePhase32)await AppointmentNoticePhase32.mount();if(window.AppointmentNoticePhase33)await AppointmentNoticePhase33.mount();if(window.AppointmentNoticePhase34)await AppointmentNoticePhase34.mount();if(window.AppointmentNoticePhase36)await AppointmentNoticePhase36.mount();if(window.AppointmentNoticePhase3)await AppointmentNoticePhase3.mount();
   }
 };
