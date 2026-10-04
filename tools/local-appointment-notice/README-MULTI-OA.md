@@ -90,3 +90,20 @@ Production snapshot for Local OSM-PHC appointment reminders.
 - Safe token-consume validation against an already dual-ready account returned already_ready, kept verified mappings 18 -> 18, and LINE Hub sent deliveries 28 -> 28.
 - Connector patient refs increased to 236 active refs after preparing the 206 OSM-path candidates; JHCIS remained read-only.
 - Primary quota at final check: @322ozezc, 0/300 used, 300 remaining.
+
+
+## Phase 3.6 Staff-first Controlled Rollout
+- Local OSM-PHC version: 2.1.91.
+- Staff is the default recipient filter and highest rollout priority.
+- Role source is authoritative Local account data: active User.role=staff; community chairs are explicit appointment-recipient configuration only and are never guessed.
+- Current role validation:
+  - Staff: 15 total, 13 Primary-ready, 1 dual-ready, 12 ready for OSM Bridge, 2 fallback, target 100%.
+  - Explicit chairs: 0 configured.
+  - General VHV: 261 total, 198 Primary-ready, 5 dual-ready, 194 ready for OSM Bridge, 62 fallback, target 90%.
+  - Overall: 276 total, 211 Primary-ready, 6 dual-ready, 206 ready for OSM Bridge, 64 fallback.
+- Role Conversion Dashboard states: ready_to_invite, invited_active, expired_wait, resend_ready, dual_ready, fallback_registration, primary_link_unusable.
+- Staff-first bulk selection selects only Staff who are ready_to_invite/resend_ready.
+- Staff dry-run validation passed 12/12, blocked 0, sent 0.
+- No live invitation was sent during Phase 3.6 installation or testing.
+- Primary @322ozezc remained 0/300 used with 300 remaining at final validation.
+- OSM appointment sent ledger remained 0 and LINE Hub sent deliveries remained 28.
