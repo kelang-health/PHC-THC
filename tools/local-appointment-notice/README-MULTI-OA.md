@@ -56,3 +56,16 @@ Production snapshot for Local OSM-PHC appointment reminders.
 - Validation on 2026-10-04: 5 dual-ready recipients across 5 communities; drill passed 5/5, live_message_sent=false.
 - OSM sent ledger remained 0 and LINE Hub sent count remained 28 during drill validation.
 - Project closure rule: every completed change must report results, current status, risks/pending work, and any next development plan in the same completion report.
+
+
+## Phase 3.4 Coverage Acceleration & Readiness Gate
+- Local version: 2.1.88.
+- Default Readiness Gate: 90%; Operational Goal: 95%.
+- Default acceleration window: 14 days; stalled-community check: 3 days.
+- Current validation: 276 VHV, 5 dual-ready (1.8%), 244-person gap to 90%, 258-person gap to 95%.
+- Calculated onboarding target: 18 people/day for the 14-day window; community daily targets sum to 18.
+- Priority ranking uses gap-to-target, current coverage, rollout activity, and stalled/not-started state.
+- Current top priorities: โทกหัวช้าง, เหล่าบุญเกิด, หัวทุ่งสามัคคี, ผาลาด, กอกชุม.
+- Current gate state: closed.
+- Live Failover feature remains disabled and no live drill endpoint exists in Phase 3.4.
+- The dashboard contains aggregate readiness data only; no CID, PID, raw LINE user ID, or message content.
