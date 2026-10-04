@@ -46,14 +46,14 @@ window.AppointmentNoticePhase32={
               <strong>${esc(o.backup_basic_id||'')}</strong>
             </div>
             <div>
-              <h4>เชื่อม OA สำรองครั้งเดียว</h4>
+              <h4>Fallback: สำหรับผู้ที่ยังไม่เชื่อม OSM OA</h4>
               <ol>${(o.steps||[]).map(x=>'<li>'+esc(x)+'</li>').join('')}</ol>
               <div class="actions">
                 <a class="button primary" href="${esc(o.add_friend_url||'#')}" target="_blank" rel="noopener">เพิ่มเพื่อน OA สำรอง</a>
                 <a class="button secondary" href="${esc(o.register_chat_url||'#')}" target="_blank" rel="noopener">เปิดแชต “ลงทะเบียน”</a>
                 <button type="button" class="secondary" id="fo-coverage-refresh">ตรวจสถานะใหม่</button>
               </div>
-              <p class="muted">หน้า OSM แสดงเฉพาะสถานะพร้อม/ไม่พร้อม ไม่เปิด CID, PID หรือ raw LINE user ID</p>
+              <p class="muted">ผู้ที่เชื่อม OSM OA อยู่แล้วให้ใช้ OSM Primary Bridge ด้านบนก่อน ส่วน QR/ลงทะเบียนนี้ใช้เป็น fallback เท่านั้น · หน้า OSM ไม่เปิด CID, PID หรือ raw LINE user ID</p>
             </div>
           </div>
 
