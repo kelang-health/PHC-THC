@@ -1,4 +1,5 @@
 import {getSharedSupabase,getSharedProfile,invalidateShared} from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
+import {gpsPermissionState,showGpsPermissionHelp} from './smart-gps-v2136.mjs?v=2.0.138-gps-permission&p=2178';
 // Pending field-house corrections only. All authorization is rechecked by Supabase RPC.
 const $=(s,r=document)=>r.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -85,11 +86,12 @@ async function openHouse(id,onSaved){
     location.hidden=!form.elements.changeLocation.checked;
     if(!location.hidden&&!map)showMap();
   };
-  $('[data-fc22-gps]',dialog).onclick=()=>{
+  $('[data-fc22-gps]',dialog).onclick=async()=>{
     if(!navigator.geolocation){geoMsg.textContent='อุปกรณ์ไม่รองรับ GPS';return;}
+    if(await gpsPermissionState()==='denied'){geoMsg.textContent='พระบาท พลัสยังไม่ได้รับอนุญาตให้ใช้ตำแหน่ง กรุณาเปิดสิทธิ์ตำแหน่งแล้วลองอีกครั้ง';await showGpsPermissionHelp({onRetry:()=>{if(dialog.open)$('[data-fc22-gps]',dialog)?.click();}});return;}
     geoMsg.textContent='กำลังอ่านตำแหน่ง…';
     navigator.geolocation.getCurrentPosition(p=>{setPoint(p.coords.latitude,p.coords.longitude,'gps');geoMsg.textContent='ได้ตำแหน่งแล้ว · ตรวจเขตก่อนบันทึก';},
-      ()=>{geoMsg.textContent='อ่าน GPS ไม่สำเร็จ กรุณาเลือกตำแหน่งบนแผนที่';},
+      async e=>{if(e?.code===1){geoMsg.textContent='ยังไม่ได้อนุญาตตำแหน่ง จึงจับ GPS ไม่ได้';await showGpsPermissionHelp({onRetry:()=>{if(dialog.open)$('[data-fc22-gps]',dialog)?.click();}});}else if(e?.code===2)geoMsg.textContent='ยังหาตำแหน่งไม่ได้ กรุณาเปิด Location หรือออกพื้นที่โล่งแล้วลองใหม่';else geoMsg.textContent='จับตำแหน่งไม่ทันเวลา กรุณาลองใหม่';},
       {enableHighAccuracy:true,timeout:15000,maximumAge:0});
   };
   $('[data-fc22-cancel]',dialog).onclick=close;
