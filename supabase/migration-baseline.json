@@ -1,8 +1,8 @@
 {
   "schema": 2,
   "hash_mode": "sha256_lf_normalized",
-  "latest_version": "20261003025208",
-  "migration_count": 230,
+  "latest_version": "20261004080138",
+  "migration_count": 231,
   "migrations": [
     {
       "version": "20260908121831",
@@ -1383,6 +1383,12 @@
       "name": "elderly_optin_and_disable_child_screening_v2137",
       "filename": "20261003025208_elderly_optin_and_disable_child_screening_v2137.sql",
       "sha256": "0732e7e8864814bac308dc668d4f3974a071e3e679b5f44df79cacb1a26b22bb"
+    },
+    {
+      "version": "20261004080138",
+      "name": "ncd_pulse_cloud_local",
+      "filename": "20261004080138_ncd_pulse_cloud_local.sql",
+      "sha256": "995632b6b2dc7d1c36e36a9cc901338a0894df240035831aa8a19e0bee31167e"
     }
   ]
 }

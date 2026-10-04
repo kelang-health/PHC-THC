@@ -535,14 +535,14 @@ async function loadHealthPeople(options={}){
   finally{if(healthLoadPromise===run){healthLoadPromise=null;healthLoadSignature='';}}
 }
 async function loadHealthHistory(){
-  const {data,error}=await supabase.from('health_ncd_history').select('screened_on,display_name,house_no,hcode,ncd_status,severity,source_label,quality_valid,quality_issues,legacy_cvd_risk,recorded_at,mental_2q_status,mental_2q_result,cvd_risk_percent,cvd_risk_level,cvd_risk_eligible,cvd_risk_reason,cvd_model_version').order('screened_on',{ascending:false}).order('recorded_at',{ascending:false}).limit(50);
+  const {data,error}=await supabase.from('health_ncd_history').select('screened_on,display_name,house_no,hcode,ncd_status,severity,source_label,quality_valid,quality_issues,legacy_cvd_risk,recorded_at,mental_2q_status,mental_2q_result,cvd_risk_percent,cvd_risk_level,cvd_risk_eligible,cvd_risk_reason,cvd_model_version,pulse').order('screened_on',{ascending:false}).order('recorded_at',{ascending:false}).limit(50);
   if(error)throw error;
   $('#ncd-history-body').innerHTML=(data||[]).map(r=>{
     const quality=r.quality_valid===false?'<small class="bad">ข้อมูลเดิมต้องตรวจสอบ</small>':'';
     const source=`<span class="source-pill">${esc(r.source_label||'พระบาท พลัส')}</span>${quality}`;
     const cvd=r.cvd_risk_eligible?`<small>Thai CV Risk: ${esc(Number(r.cvd_risk_percent).toFixed(1))}% · ${esc(thaiCvLevelLabel(r.cvd_risk_level))}</small>`:(r.legacy_cvd_risk?`<small>CVD เดิม: ${esc(r.legacy_cvd_risk)} · ใช้อ้างอิงย้อนหลังเท่านั้น</small>`:'');
     const mental=`<span class="mental-2q-status ${r.mental_2q_status||'not_assessed'}">${esc(mental2QLabel(r.mental_2q_status,r.mental_2q_result))}</span>`;
-    return `<tr><td>${esc(healthDateLabel(r.screened_on))}</td><td>${esc(r.display_name||'ไม่ระบุชื่อ')}</td><td>${esc(r.house_no||r.hcode||'—')}</td><td>${source}</td><td class="${healthClass(r.severity)}">${esc(r.ncd_status||'—')}${cvd}</td><td>${mental}</td></tr>`;
+    return `<tr><td>${esc(healthDateLabel(r.screened_on))}</td><td>${esc(r.display_name||'ไม่ระบุชื่อ')}</td><td>${esc(r.house_no||r.hcode||'—')}</td><td>${source}</td><td class="${healthClass(r.severity)}">${esc(r.ncd_status||'—')}${cvd}<small>ชีพจร: ${esc(r.pulse==null?'ไม่ได้วัด':`${r.pulse} ครั้ง/นาที`)}</small></td><td>${mental}</td></tr>`;
   }).join('')||'<tr><td colspan="6">ยังไม่มีผลคัดกรองในขอบเขตของคุณ</td></tr>';
 }
 function fmtPrevious(value,unit=''){return value===null||value===undefined||value===''?'—':`${value}${unit?` ${unit}`:''}`;}
@@ -826,6 +826,7 @@ function buildHealthFeedbackModel(saved,mental,person,formData){
     {label:'BMI',value:Number.isFinite(bmi)?bmi.toFixed(1):'—',detail:feedbackBmiLabel(bmi)},
     {label:'รอบเอว',value:Number.isFinite(waist)?`${waist.toFixed(1)} ซม.`:'—',detail:feedbackWaistLabel(waist,person.gender)},
     {label:'ความดัน',value:Number.isFinite(sbp)&&Number.isFinite(dbp)?`${sbp}/${dbp}`:'—',detail:saved.bp_status||'รอผล'},
+    {label:'ชีพจร',value:saved.pulse==null?'ไม่ได้วัด':`${saved.pulse} ครั้ง/นาที`,detail:'ค่าที่วัดโดย อสม.'},
     {label:'น้ำตาล',value:Number.isFinite(glucose)?`${glucose} mg/dL`:'—',detail:saved.glucose_status||'รอผล'},
     {label:'Thai CV Risk',value:saved.cvd_risk_eligible?`${Number(saved.cvd_risk_percent).toFixed(1)}%`:'ไม่ประเมิน',detail:saved.cvd_risk_eligible?thaiCvLevelLabel(saved.cvd_risk_level):thaiCvReasonLabel(saved.cvd_risk_reason)},
     {label:'สุขภาพจิต 2Q',value:mental2QLabel(mentalStatus,mentalResult),detail:mentalStatus==='assessed'?'ประเมินครบ 2 ข้อ':'ไม่ใช้สรุปแทนการประเมิน'}
@@ -1004,10 +1005,10 @@ async function saveHealthScreening(event){
   if(!confirmNcdEntryGuardV2122(form,p)){error.textContent='ยังไม่บันทึก กรุณาตรวจวัด/ตรวจสอบค่าที่แจ้งเตือนอีกครั้ง';setActiveNcdSection('ncd-section-measure',true);return;}
   const bp=bpRepeatStateV2123(form);
   if(bp.highFirst&&!bp.repeatComplete){error.textContent='กรุณาวัดความดันซ้ำครั้งที่ 2 ให้ครบก่อนบันทึก';setActiveNcdSection('ncd-section-measure',true);return;}
-  const payload={p_source_pcucode:p.source_pcucode,p_source_pid:Number(p.source_pid),p_screened_on:d.get('screened_on')||null,p_weight_kg:formNumber(d.get('weight_kg')),p_height_cm:formNumber(d.get('height_cm')),p_waist_cm:formNumber(d.get('waist_cm')),p_sbp:formNumber(d.get('sbp')),p_dbp:formNumber(d.get('dbp')),p_glucose_mg_dl:formNumber(d.get('glucose_mg_dl')),p_glucose_type:glucoseType,p_danger_symptoms:false,p_smoking_frequency:smokingFrequency,p_alcohol_frequency:alcoholFrequency,p_exercise_frequency:d.get('exercise_frequency'),p_note:d.get('note')||'',p_request_id:form.dataset.requestId||requestId(),p_mental_2q_q1:mental.q1,p_mental_2q_q2:mental.q2,p_sbp_repeat:bp.highFirst?bp.s2:null,p_dbp_repeat:bp.highFirst?bp.d2:null};
+  const payload={p_source_pcucode:p.source_pcucode,p_source_pid:Number(p.source_pid),p_screened_on:d.get('screened_on')||null,p_weight_kg:formNumber(d.get('weight_kg')),p_height_cm:formNumber(d.get('height_cm')),p_waist_cm:formNumber(d.get('waist_cm')),p_sbp:formNumber(d.get('sbp')),p_dbp:formNumber(d.get('dbp')),p_pulse:d.get('pulse')===null||String(d.get('pulse')).trim()===''?null:formNumber(d.get('pulse')),p_glucose_mg_dl:formNumber(d.get('glucose_mg_dl')),p_glucose_type:glucoseType,p_danger_symptoms:false,p_smoking_frequency:smokingFrequency,p_alcohol_frequency:alcoholFrequency,p_exercise_frequency:d.get('exercise_frequency'),p_note:d.get('note')||'',p_request_id:form.dataset.requestId||requestId(),p_mental_2q_q1:mental.q1,p_mental_2q_q2:mental.q2,p_sbp_repeat:bp.highFirst?bp.s2:null,p_dbp_repeat:bp.highFirst?bp.d2:null};
   button.disabled=true;
   try{
-    const {data:saved,error:saveError}=await supabase.rpc('save_health_ncd_screening_v5',payload);if(saveError)throw saveError;
+    const {data:saved,error:saveError}=await supabase.rpc('save_health_ncd_screening_v6',payload);if(saveError)throw saveError;
     invalidateHealthWorklistCache();invalidateShared('report-snapshot:');invalidateShared('assignment-summary:');
     // A successful RPC is the commit boundary. Post-save reporting refresh must never turn a saved record into a red error.
     form.dataset.requestId=requestId();form.reset();result.hidden=true;returnToHealthWorklist(saved,p);
