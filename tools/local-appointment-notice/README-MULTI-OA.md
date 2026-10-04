@@ -44,3 +44,15 @@ Production snapshot for Local OSM-PHC appointment reminders.
 - simulated remaining Primary quota 20 with reserve 15 and 10 recipient groups:
   5 routed Primary + 5 routed Backup, 0 blocked
 - No live LINE message was sent during Phase 3.2 validation.
+
+
+## Phase 3.3 Operational Onboarding Rollout
+- Local version: 2.1.87.
+- Manual tracker statuses: pending -> invited -> assisted.
+- dual_ready is never manually set; it is derived from verified Primary + Backup mappings.
+- Printable field kit includes the local Backup OA QR and community roster.
+- Daily aggregate snapshot task: 08:00.
+- Controlled Failover Drill is hard-coded dry-run only, max 2 recipients per community.
+- Validation on 2026-10-04: 5 dual-ready recipients across 5 communities; drill passed 5/5, live_message_sent=false.
+- OSM sent ledger remained 0 and LINE Hub sent count remained 28 during drill validation.
+- Project closure rule: every completed change must report results, current status, risks/pending work, and any next development plan in the same completion report.
