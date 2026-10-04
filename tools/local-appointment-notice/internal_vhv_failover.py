@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from hub_app.api.dependencies import get_db
 from hub_app.line.messaging import LineMessagingClient, NotificationService
 from hub_app.models import LineUser, NotificationDelivery, PatientMapping
+from hub_app.services.osm_vhv_bridge import bridge_stats, issue_osm_bridge_invite, validate_osm_bridge_pid
 
 router = APIRouter(prefix="/api/v1/internal/vhv-failover", tags=["internal-vhv-failover"])
 TOKEN_FILE = Path(r"D:\AppServ\private\osm-vhv-failover.token")
@@ -20,6 +21,12 @@ LINE_API = "https://api.line.me"
 
 class ResolveBody(BaseModel):
     local_patient_refs: list[str] = Field(min_length=1, max_length=500)
+
+
+class OnboardingIssueBody(BaseModel):
+    pid: int = Field(ge=1)
+    dry_run: bool = True
+    ttl_seconds: int = Field(default=1800, ge=300, le=3600)
 
 
 class PushBody(BaseModel):
@@ -141,6 +148,41 @@ def failover_resolve(
     ).all()
     ready = sorted({str(row[0]) for row in rows})
     return {"ready_refs": ready, "ready_count": len(ready)}
+
+
+@router.get("/onboarding/status")
+def onboarding_status(
+    request: Request,
+    x_vhv_failover_token: str = Header(default=""),
+):
+    _assert_internal(request, x_vhv_failover_token)
+    return {
+        "status": "ok",
+        "backup_basic_id": "@601cnwrw",
+        "bridge": bridge_stats(),
+    }
+
+
+@router.post("/onboarding/issue")
+def onboarding_issue(
+    body: OnboardingIssueBody,
+    request: Request,
+    x_vhv_failover_token: str = Header(default=""),
+):
+    _assert_internal(request, x_vhv_failover_token)
+    gateway = request.app.state.appointment_gateway
+    try:
+        if body.dry_run:
+            result = validate_osm_bridge_pid(gateway=gateway, pid=int(body.pid))
+        else:
+            result = issue_osm_bridge_invite(
+                gateway=gateway,
+                pid=int(body.pid),
+                ttl_seconds=int(body.ttl_seconds),
+            )
+    except Exception:
+        raise HTTPException(503, "cannot prepare OSM primary bridge invite") from None
+    return result
 
 
 @router.post("/push")
