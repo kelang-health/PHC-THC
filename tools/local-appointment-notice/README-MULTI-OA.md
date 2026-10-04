@@ -69,3 +69,24 @@ Production snapshot for Local OSM-PHC appointment reminders.
 - Current gate state: closed.
 - Live Failover feature remains disabled and no live drill endpoint exists in Phase 3.4.
 - The dashboard contains aggregate readiness data only; no CID, PID, raw LINE user ID, or message content.
+
+
+## Phase 3.5 OSM Primary Bridge Onboarding
+- Local OSM-PHC version: 2.1.89.
+- Preferred onboarding path now starts from the existing OSM/พระบาท พลัส LINE OA account.
+- Existing coverage: 211/276 VHV are linked to the OSM OA (76.4%).
+- Of those, 5 are already dual-ready and 206 are ready for OSM Primary Bridge onboarding.
+- 65 VHV without an OSM OA link keep the full CID/birth-date registration flow as fallback.
+- Primary-link unusable count validated at 0.
+- Bridge flow:
+  1. OSM identifies the already-linked VHV and JHCIS PID.
+  2. Service Hub resolves/creates a local-only opaque patient ref through the signed read-only connector.
+  3. Hub issues a 30-minute single-use token; only its hash is persisted.
+  4. OSM OA sends a button that opens Backup OA @601cnwrw with a prefilled bridge command.
+  5. Backup OA consumes the token and creates/recognizes the verified mapping without CID/birth-date re-entry.
+- OSM never receives the Backup OA raw LINE user ID.
+- Admin invite batches are capped at 50 recipients, check Primary quota plus a 15-message reserve, and suppress resends for 12 hours unless explicitly overridden.
+- Full dry-run validation passed 206/206 candidates in batches 50+50+50+50+6; 0 blocked and 0 LINE messages sent.
+- Safe token-consume validation against an already dual-ready account returned already_ready, kept verified mappings 18 -> 18, and LINE Hub sent deliveries 28 -> 28.
+- Connector patient refs increased to 236 active refs after preparing the 206 OSM-path candidates; JHCIS remained read-only.
+- Primary quota at final check: @322ozezc, 0/300 used, 300 remaining.
