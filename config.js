@@ -12,7 +12,7 @@ if (typeof window !== 'undefined') {
       await initMyHousesMobile(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initMobileSpatialCards } = await import('./mobile-community-volunteer-cards-v1821.mjs?v=2.0.133-mobile-map-focus&p=2171');
       await initMobileSpatialCards(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initCommunityWorkflow1822 } = await import('./community-workflow-v1822.mjs?v=2.0.138-gps-permission&p=2178');
+      const { initCommunityWorkflow1822 } = await import('./community-workflow-v1822.mjs?v=2.0.139-admin-house-map&p=2179');
       await initCommunityWorkflow1822(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initMobileUIPolish1824 } = await import('./mobile-ui-polish-v1824.mjs?v=2.0.133-mobile-map-focus&p=2171');
       await initMobileUIPolish1824(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
@@ -26,7 +26,7 @@ if (typeof window !== 'undefined') {
       await initCareDashboard1860(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initSystemAboutNote1829 } = await import('./system-about-note-v1829.mjs?v=2.0.124&p=2124');
       initSystemAboutNote1829();
-      const { initCommunityHouseholdQuality1831 } = await import('./community-household-quality-v1831.mjs?v=2.0.133-mobile-map-focus&p=2171');
+      const { initCommunityHouseholdQuality1831 } = await import('./community-household-quality-v1831.mjs?v=2.0.139-admin-house-map&p=2179');
       await initCommunityHouseholdQuality1831(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initPHCFiveFeatures190 } = await import('./phc-five-features-v190.mjs?v=2.0.137-elderly-optin&p=2177');
       await initPHCFiveFeatures190(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
