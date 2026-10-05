@@ -9,7 +9,7 @@ do $patch$
 declare
   ddl text;
   old_text text := 'set ncd_target=(dm_target or ht_target) where source_pcucode is not null and source_pid is not null;';
-  new_text text := 'set ncd_target=(coalesce(age_years,0)>=35 and not coalesce(has_dm,false) and not coalesce(has_ht,false)) where source_pcucode is not null and source_pid is not null;';
+  new_text text := 'set ncd_target=(birth_date is not null and extract(year from age(v_fy_start,birth_date))::int>=35 and not coalesce(has_dm,false) and not coalesce(has_ht,false)) where source_pcucode is not null and source_pid is not null;';
 begin
   select pg_get_functiondef(p.oid) into ddl
   from pg_proc p
@@ -34,7 +34,7 @@ do $patch$
 declare
   ddl text;
   old_text text := 'WHERE COALESCE(b.ncd_base_eligible, b.age_years >= 35 AND NOT (b.has_ht OR b.has_dm)) = true';
-  new_text text := 'WHERE b.age_years >= 35 AND NOT COALESCE(b.has_ht, false) AND NOT COALESCE(b.has_dm, false)';
+  new_text text := 'WHERE b.birth_date IS NOT NULL AND EXTRACT(year FROM age(cfg.period_start::timestamp with time zone, b.birth_date::timestamp with time zone))::integer >= 35 AND NOT COALESCE(b.has_ht, false) AND NOT COALESCE(b.has_dm, false)';
 begin
   select pg_get_viewdef('public.field_work_items_v200'::regclass,true) into ddl;
 
@@ -47,12 +47,14 @@ begin
 
   ddl := replace(ddl, old_text, new_text);
   execute 'create or replace view public.field_work_items_v200 as ' || ddl;
+  execute 'alter view public.field_work_items_v200 set (security_invoker=true)';
 end
 $patch$;
 
 update public.health_screening_target_cache_v2030
 set ncd_target=(
-  coalesce(age_years,0)>=35
+  birth_date is not null
+  and extract(year from age(date '2026-10-01',birth_date))::int>=35
   and not coalesce(has_dm,false)
   and not coalesce(has_ht,false)
 )
