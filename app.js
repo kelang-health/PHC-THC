@@ -61,7 +61,7 @@ const PORTAL_NAV_STORAGE = 'phc.portal.nav-collapsed';
 const PORTAL_VIEW_QUERY_V2059 = 'view';
 const PORTAL_DEFAULT_VIEW_V2059 = 'overview';
 const HEALTH_PAGE_SIZE_V2033 = 50;
-const HEALTH_WORKLIST_CACHE_MS_V2039 = 30000;
+const HEALTH_WORKLIST_CACHE_MS_V2039 = 120000;
 const STAFF_SCOPE_CACHE_MS_V2039 = 300000;
 const HOUSEHOLD_CACHE_MS_V2039 = 30000;
 const HEALTH_COORD_TRACE_MAX_V2040 = 40;
@@ -326,7 +326,7 @@ function bindHealthPerformanceControls(){
   refresh.dataset.bound='1';
   refresh.onclick=async()=>{
     refresh.disabled=true;
-    try{invalidateShared('report-snapshot:');invalidateHealthWorklistCache();await loadHealthSummary();if(healthLoaded){await loadHealthPeople({force:true,trigger:'refresh'});await loadHealthHistory();}}
+    try{invalidateShared('health-history-v2149:');invalidateShared('report-snapshot:');invalidateHealthWorklistCache();await loadHealthSummary();if(healthLoaded){await loadHealthPeople({force:true,trigger:'refresh'});await loadHealthHistory();}}
     catch(e){const box=$('#health-stats');if(box)box.innerHTML=`<article class="stat"><small>รีเฟรชไม่สำเร็จ</small><strong>—</strong></article>`;}
     finally{refresh.disabled=false;}
   };
@@ -544,8 +544,9 @@ async function loadHealthPeople(options={}){
   finally{if(healthLoadPromise===run){healthLoadPromise=null;healthLoadSignature='';}}
 }
 async function loadHealthHistory(){
-  const {data,error}=await supabase.from('health_ncd_history').select('screened_on,display_name,house_no,hcode,ncd_status,severity,source_label,quality_valid,quality_issues,legacy_cvd_risk,recorded_at,mental_2q_status,mental_2q_result,cvd_risk_percent,cvd_risk_level,cvd_risk_eligible,cvd_risk_reason,cvd_model_version,pulse').order('screened_on',{ascending:false}).order('recorded_at',{ascending:false}).limit(50);
-  if(error)throw error;
+  if(portalView!=='health')return;
+  const {data,error}=await sharedCall('health-history-v2149:'+currentProfile?.user_id,()=>supabase.from('health_ncd_history').select('screened_on,display_name,house_no,hcode,ncd_status,severity,source_label,quality_valid,quality_issues,legacy_cvd_risk,recorded_at,mental_2q_status,mental_2q_result,cvd_risk_percent,cvd_risk_level,cvd_risk_eligible,cvd_risk_reason,cvd_model_version,pulse').order('screened_on',{ascending:false}).order('recorded_at',{ascending:false}).limit(50),300000);
+  if(error){invalidateShared('health-history-v2149:');throw error;}
   $('#ncd-history-body').innerHTML=(data||[]).map(r=>{
     const quality=r.quality_valid===false?'<small class="bad">ข้อมูลเดิมต้องตรวจสอบ</small>':'';
     const source=`<span class="source-pill">${esc(r.source_label||'พระบาท พลัส')}</span>${quality}`;
@@ -965,7 +966,7 @@ function bindNcdSectionNav(){
 
 function syncNcdTestResetV208(){const adminTest=Boolean(currentProfile?.role==='admin'&&preGoLiveTestModeV208());const b=$('#ncd-reset-test'),note=$('#ncd-test-mode-note');if(b)b.hidden=!(adminTest&&selectedHealthPerson);if(note)note.hidden=!adminTest;}
 function routeForAgeV208(age){age=Number(age);return age<6?'child_0_5':age<15?'school_6_14':age<35?'youth_15_34':age<60?'ncd_35_59':'elderly_60_plus';}
-async function resetSelectedNcdTestV208(){const p=selectedHealthPerson;if(!p||currentProfile?.role!=='admin'||!preGoLiveTestModeV208())return;if(!confirm(`รีเซทข้อมูลทดสอบของ ${p.display_name}?\n\nหากเป็นผู้สูงอายุ ระบบจะรีเซท NCD ทดสอบและ 9 ด้านของช่วงทดสอบร่วมกัน ประวัติเดิมจาก JHCIS / J-Report / 3Doctor จะไม่ถูกลบ`))return;const b=$('#ncd-reset-test');if(b)b.disabled=true;try{const {error}=await supabase.rpc('admin_reset_person_test_screening_v2022',{p_source_pcucode:p.source_pcucode,p_source_pid:Number(p.source_pid),p_route:routeForAgeV208(p.age_years),p_reason:'ผู้ใช้กดรีเซทข้อมูลทดสอบจากหน้า NCD'});if(error)throw error;$('#ncd-form').reset();$('#ncd-result').hidden=true;closeHealthFeedbackCard();healthFeedbackModel=null;await Promise.all([loadHealthSummary(),loadHealthPeople({trigger:'reset-test'}),loadHealthHistory()]);const fresh=healthPeople.find(x=>personKey(x)===personKey(p));if(fresh){selectedHealthPerson=fresh;renderPreviousPanel(fresh)}alert('รีเซทข้อมูลทดสอบแล้ว');}catch(e){$('#ncd-error').textContent=e.message;}finally{if(b)b.disabled=false;syncNcdTestResetV208();}}
+async function resetSelectedNcdTestV208(){const p=selectedHealthPerson;if(!p||currentProfile?.role!=='admin'||!preGoLiveTestModeV208())return;if(!confirm(`รีเซทข้อมูลทดสอบของ ${p.display_name}?\n\nหากเป็นผู้สูงอายุ ระบบจะรีเซท NCD ทดสอบและ 9 ด้านของช่วงทดสอบร่วมกัน ประวัติเดิมจาก JHCIS / J-Report / 3Doctor จะไม่ถูกลบ`))return;const b=$('#ncd-reset-test');if(b)b.disabled=true;try{const {error}=await supabase.rpc('admin_reset_person_test_screening_v2022',{p_source_pcucode:p.source_pcucode,p_source_pid:Number(p.source_pid),p_route:routeForAgeV208(p.age_years),p_reason:'ผู้ใช้กดรีเซทข้อมูลทดสอบจากหน้า NCD'});if(error)throw error;$('#ncd-form').reset();$('#ncd-result').hidden=true;closeHealthFeedbackCard();healthFeedbackModel=null;invalidateShared('health-history-v2149:');invalidateHealthWorklistCache();await Promise.all([loadHealthSummary(),loadHealthPeople({trigger:'reset-test'}),loadHealthHistory()]);const fresh=healthPeople.find(x=>personKey(x)===personKey(p));if(fresh){selectedHealthPerson=fresh;renderPreviousPanel(fresh)}alert('รีเซทข้อมูลทดสอบแล้ว');}catch(e){$('#ncd-error').textContent=e.message;}finally{if(b)b.disabled=false;syncNcdTestResetV208();}}
 
 async function selectHealthPerson(index,forceNcd=false){
   const p=healthPeople[index]; if(!p)return; if(!forceNcd&&window.PHCFiveFeatures190?.openAgeScreening){const x=healthNcdTargetStateV2117(p),seed={plan_date:p.screening_plan_date||'',age_years:Number(p.age_years),age_months:Number(p.screening_age_months),route:p.screening_route||'',route_label:p.screening_route_label||'',dspm_target_months:p.screening_dspm_target_months??null,latest_screened_on:p.latest_screened_on||'',has_dm:Boolean(p.has_dm),has_ht:Boolean(p.has_ht),dm_target:x.dmTarget,ht_target:x.htTarget};window.PHCFiveFeatures190.openAgeScreening(p.source_pcucode,Number(p.source_pid),p.display_name,seed);return;} await hydratePreviousScreening(p); selectedHealthPerson=p;
@@ -1020,7 +1021,7 @@ function returnToHealthWorklist(saved,person){
   requestAnimationFrame(()=>{list?.scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>document.querySelector('#health-person-body .row-open')?.focus({preventScroll:true}),350);});
 }
 async function refreshHealthAfterSaveV2022(){
-  invalidateHealthWorklistCache();invalidateShared('report-snapshot:');invalidateShared('assignment-summary:');
+  invalidateHealthWorklistCache();invalidateShared('health-history-v2149:');invalidateShared('report-snapshot:');invalidateShared('assignment-summary:');
   try{await loadHealthPeople({force:true,trigger:'post-save'});}catch(e){console.warn('[NCD post-save refresh] รายชื่อ',e);}
   setTimeout(()=>loadHealthHistory().catch(e=>console.warn('[NCD post-save refresh] ประวัติ',e)),1400+Math.floor(Math.random()*1200));
   if(portalView==='work')setTimeout(()=>loadHealthSummary().catch(e=>console.warn('[NCD post-save refresh] สรุปผลงาน',e)),500+Math.floor(Math.random()*700));
@@ -1045,7 +1046,7 @@ async function saveHealthScreening(event){
   form.dataset.saving='1';button.disabled=true;button.textContent='กำลังบันทึก…';
   try{
     const {data:saved,error:saveError}=await supabase.rpc('save_health_ncd_screening_v6',payload);if(saveError)throw saveError;
-    invalidateHealthWorklistCache();invalidateShared('report-snapshot:');invalidateShared('assignment-summary:');
+    invalidateHealthWorklistCache();invalidateShared('health-history-v2149:');invalidateShared('report-snapshot:');invalidateShared('assignment-summary:');
     // A successful RPC is the commit boundary. Post-save reporting refresh must never turn a saved record into a red error.
     form.dataset.requestId=requestId();form.reset();result.hidden=true;returnToHealthWorklist(saved,p);
     setTimeout(()=>{refreshHealthAfterSaveV2022().catch(e=>console.warn('[NCD post-save refresh]',e));},Number(p?.age_years)>=60?1200:80);

@@ -9,7 +9,7 @@ const GO_LIVE_V208='2026-10-01';
 const thaiDayV208=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Bangkok'});
 const preGoLiveV208=()=>thaiDayV208()<GO_LIVE_V208;
 
-const ADMIN_WORK_CACHE_MS_V2057=60000;
+const ADMIN_WORK_CACHE_MS_V2057=120000;
 let adminWorkLoadSeqV2057=0;
 function adminWorkAliveV2057(root,seq){return seq===adminWorkLoadSeqV2057&&document.body.contains(root)&&isPortalViewActive('work');}
 function renderAdminWorkShellV2057(root){
@@ -268,32 +268,31 @@ function watchAdminMemberQueueV2147(body){
     if(!body.isConnected)return;
     try{
       if(!document.hidden){
-        const {data,error}=await supabase.rpc('admin_pending_member_requests_v2109');
+        const {data,error}=await sharedCall('admin-work-member-v2109',()=>supabase.rpc('admin_pending_member_requests_v2109'),120000);
         if(!error&&Array.isArray(data)&&body.isConnected){
           const pending=new Set(data.map(r=>String(r.id)));
-          watchAdminMemberQueueV2147(body);
-  body.querySelectorAll('[data-admin-request]').forEach(card=>{
+          body.querySelectorAll('[data-admin-request]').forEach(card=>{
             if(!pending.has(card.dataset.adminRequest))card.remove();
           });
           if(!body.querySelector('[data-admin-request]')){
             body.querySelector('.phc190-request-list').textContent='ไม่มีคำขอรอตรวจ';
           }
-          invalidateShared('admin-work-member-v2109');
         }
       }
-    }catch{}finally{if(body.isConnected)timer=setTimeout(check,30000);}
+    }catch{}finally{if(body.isConnected)timer=setTimeout(check,120000);}
   };
-  timer=setTimeout(check,30000);
+  timer=setTimeout(check,120000);
   return()=>clearTimeout(timer);
 }
 
 async function renderAdminMemberQueue(){
   const body=openModal('คำขอเพิ่มสมาชิกที่รอตรวจ','แสดงเฉพาะคำขอที่ยังต้องตัดสินใจ เมื่อยืนยัน ส่งกลับแก้ไข หรือยกเลิกแล้ว รายการจะออกจากคิว แต่ยังเก็บประวัติไว้');
   body.innerHTML='<div class="phc190-note">กำลังโหลด…</div>';
-  const {data,error}=await supabase.rpc('admin_pending_member_requests_v2109');
+  const {data,error}=await sharedCall('admin-work-member-v2109',()=>supabase.rpc('admin_pending_member_requests_v2109'),120000);
   if(error){body.innerHTML=`<div class="phc190-error">${esc(friendlyError(error))}</div>`;return}
   const rows=data||[];
   body.innerHTML=`<div class="phc190-request-list">${rows.map(r=>`<article class="phc190-request" data-admin-request="${esc(r.id)}"><strong>${esc(r.full_name)}</strong><small>บ้าน ${esc(r.house_no)} · ${esc(r.community)} · ${esc(r.masked_citizen_id)} · เกิด ${esc(fmt(r.birth_date))}</small><small class="phc190-requester">ผู้แจ้ง: <strong>${esc(r.requester_name||'ไม่ระบุ')}</strong> · ชุมชนผู้แจ้ง: <strong>${esc(r.requester_community||'ไม่ระบุ')}</strong></small>${r.requester_line_connected&&r.requester_user_id?'<button type="button" class="phc190-secondary phc190-line-contact" data-line-contact>ติดต่อผู้แจ้งทาง LINE</button>':'<small class="phc190-line-unavailable">ผู้แจ้งยังไม่เชื่อม LINE</small>'}<div data-line-compose></div><div class="phc190-actions"><button class="phc190-secondary" data-sensitive>ดูเลขเพื่อเทียบ</button><button class="phc190-secondary" data-match>ค้นหาบุคคลเดิม</button></div><div class="phc190-actions"><button class="phc190-primary" data-verify>ยืนยันข้อมูล / รอ Sync</button><button class="phc190-secondary" data-correct>ขอแก้ไข</button></div><button class="phc190-secondary phc190-danger" data-cancel>ยกเลิกคำขอ</button><div data-detail></div></article>`).join('')||'<div class="phc190-note">ไม่มีคำขอรอตรวจ</div>'}</div>`;
+  watchAdminMemberQueueV2147(body);
   body.querySelectorAll('[data-admin-request]').forEach(card=>{
     const id=card.dataset.adminRequest,box=card.querySelector('[data-detail]');
      const item=rows.find(r=>String(r.id)===id);
