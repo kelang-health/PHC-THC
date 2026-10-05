@@ -228,9 +228,9 @@
             <p id="ncd-previous-behavior" class="previous-behavior" hidden></p>
           </section>
 
-          <form id="ncd-form" class="ncd-mobile-form">
+          <form id="ncd-form" class="ncd-mobile-form" novalidate>
             <section id="ncd-section-measure" class="ncd-form-section">
-              <div class="ncd-section-title"><span>1</span><div><strong>ค่าที่วัดวันนี้</strong><small>แตะตัวเลขเพื่อพิมพ์ กด −/+ หรือเลื่อนแถบได้ · ไม่ดึง BP/น้ำตาลเดิมมาบันทึกอัตโนมัติ</small></div></div>
+              <div class="ncd-section-title"><span>1</span><div><strong>ค่าที่วัดวันนี้</strong><small>แตะช่องเพื่อกรอกตัวเลขที่วัดจริง · ไม่ดึง BP/น้ำตาลเดิมมาบันทึกอัตโนมัติ</small></div></div>
               <label class="screen-date">วันที่ตรวจ<input name="screened_on" type="date" required></label>
               <button id="ncd-use-previous-body" type="button" class="previous-fill" hidden>ใช้ส่วนสูง น้ำหนัก และรอบเอวครั้งก่อน</button>
               <div class="measure-grid">
@@ -267,7 +267,7 @@
               <label>หมายเหตุ<input name="note" maxlength="1000" placeholder="ใส่เฉพาะข้อมูลที่จำเป็น"></label>
             </section>
 
-            <div class="ncd-save-bar"><p id="ncd-submit-hint" class="ncd-submit-hint">กรอกข้อมูลที่จำเป็นใน ค่าที่วัด และพฤติกรรม ให้ครบก่อนบันทึก</p><button id="ncd-submit" class="primary" disabled aria-disabled="true">บันทึกผลคัดกรอง</button><button id="ncd-reset-test" type="button" class="secondary" hidden>รีเซทข้อมูลทดสอบ</button><p id="ncd-error" class="error"></p></div><p id="ncd-test-mode-note" class="clinical-note" hidden>ก่อน 1 ต.ค. 2569 เป็นโหมดทดสอบ ผลใหม่ไม่ถูกนับเป็นผลงานจริง และการรีเซทจะไม่ลบประวัติเดิมจาก JHCIS / J-Report / 3Doctor</p>
+            <div class="ncd-save-bar"><p id="ncd-submit-hint" class="ncd-submit-hint">กรอกข้อมูลที่จำเป็นใน ค่าที่วัด และพฤติกรรม ให้ครบก่อนบันทึก</p><button id="ncd-submit" class="primary" type="submit" aria-disabled="false">บันทึกผลคัดกรอง</button><button id="ncd-reset-test" type="button" class="secondary" hidden>รีเซทข้อมูลทดสอบ</button><p id="ncd-error" class="error"></p></div><p id="ncd-test-mode-note" class="clinical-note" hidden>ก่อน 1 ต.ค. 2569 เป็นโหมดทดสอบ ผลใหม่ไม่ถูกนับเป็นผลงานจริง และการรีเซทจะไม่ลบประวัติเดิมจาก JHCIS / J-Report / 3Doctor</p>
           </form>
           <div id="ncd-result" class="notice compact-result" hidden></div>
           <section id="health-feedback-card" class="health-feedback-card" aria-labelledby="health-feedback-title" hidden>
@@ -310,7 +310,7 @@
   <script type="module" src="./auth-security.mjs?v=2.0.134-field-house-history&p=2174"></script>
   <script type="module" src="./line-login-v201.mjs?v=2.0.134-field-house-history&p=2174"></script>
   <script type="module" src="./line-login-settings-v2013.mjs?v=2.0.134-field-house-history&p=2174"></script>
-  <script type="module" src="./app.js?v=2.0.145-direct-measurement&p=2185"></script>
+  <script type="module" src="./app.js?v=2.0.148-ncd-save-feedback&p=2188"></script>
   <script type="module" src="./my-houses-mobile-v1820.mjs?v=2.0.138-gps-permission&p=2178"></script>
   <script type="module" src="./field-request-corrections-v2122.mjs?v=2.0.138-gps-permission&p=2178"></script>
 </body>

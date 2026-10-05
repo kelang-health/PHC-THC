@@ -1,0 +1,14 @@
+const fs=require('fs'),assert=require('assert/strict');
+const {chromium}=require('C:/Users/acer/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+(async()=>{const browser=await chromium.launch({channel:'msedge',headless:true});try{
+const page=await browser.newPage({viewport:{width:390,height:844}}),source=fs.readFileSync('app.js','utf8');
+await page.setContent('<form id="ncd-form" novalidate><section id="measure"><label>ชีพจร<input name="pulse" required type="number" min="20" max="250"></label></section><button id="ncd-submit">บันทึก</button><p id="ncd-error"></p><div id="ncd-result" hidden></div></form>');
+const validation=source.slice(source.indexOf('function ncdFirstInvalidField('),source.indexOf('function syncNcdSubmitState('));
+const save=source.slice(source.indexOf('async function saveHealthScreening('),source.indexOf('async function loadHealthModule('));
+await page.addScriptTag({content:`const $=s=>document.querySelector(s);let selectedHealthPerson={source_pid:1,source_pcucode:'test'};let calls=0;const setActiveNcdSection=()=>{};const syncNcdSubmitState=f=>{$('#ncd-submit').disabled=f.dataset.saving==='1';};const ncdRequiredComplete=f=>f.checkValidity();const evaluateMental2Q=()=>({});const confirmNcdEntryGuardV2122=()=>true;const bpRepeatStateV2123=()=>({highFirst:false});const formNumber=v=>Number(v);const requestId=()=> 'stable-request';const supabase={rpc:async()=>{calls++;await new Promise(r=>setTimeout(r,100));throw new Error('network test');}};${validation}\n${save}\n$('#ncd-form').onsubmit=saveHealthScreening;window.calls=()=>calls;`});
+await page.locator('#ncd-submit').click();assert((await page.locator('#ncd-error').textContent()).includes('ชีพจร'));assert.equal(await page.evaluate(()=>window.calls()),0);assert.equal(await page.locator('[name=pulse]').evaluate(e=>e===document.activeElement),true);
+await page.locator('[name=pulse]').fill('72');
+await page.evaluate(()=>{for(const [name,value] of Object.entries({glucose_type:'random',smoking_state:'no',alcohol_state:'no',exercise_frequency:'เพียงพอ'})){const e=document.createElement('input');e.name=name;e.value=value;document.querySelector('form').append(e);}document.querySelector('form').requestSubmit();document.querySelector('form').requestSubmit();});
+await page.waitForTimeout(150);assert.equal(await page.evaluate(()=>window.calls()),1);assert((await page.locator('#ncd-error').textContent()).includes('network test'));assert.equal(await page.locator('#ncd-submit').isEnabled(),true);assert.equal(await page.locator('[name=pulse]').inputValue(),'72');console.log('Missing pulse focuses field; duplicate submit blocked; RPC failure retains data and enables retry passed');
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
+

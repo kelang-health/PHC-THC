@@ -687,11 +687,22 @@ function ncdRequiredComplete(form){
   if(alcohol==='yes'&&!form.querySelector('[name="alcohol_frequency"]:checked'))return false;
   return form.checkValidity();
 }
+function ncdFirstInvalidField(form){
+  return [...form.elements].find(el=>el.willValidate&&!el.validity.valid)||null;
+}
+function ncdShowInvalidField(form){
+  const field=ncdFirstInvalidField(form);
+  if(field){
+    const label=field.labels?.[0]?.textContent?.trim()||field.closest('fieldset')?.querySelector('legend')?.textContent||field.name;
+    $('#ncd-error').textContent='กรุณากรอก/ตรวจสอบ '+label+' ก่อนบันทึก';
+    setActiveNcdSection(field.closest('section')?.id,true);field.focus();field.reportValidity();
+  }else{$('#ncd-error').textContent='กรุณาเลือกสถานะน้ำตาลและพฤติกรรมสุขภาพให้ครบก่อนบันทึก';}
+}
 function syncNcdSubmitState(form=$('#ncd-form')){
   const button=$('#ncd-submit'),hint=$('#ncd-submit-hint');if(!button||!form)return;
   const ready=ncdRequiredComplete(form);
-  button.disabled=!ready;
-  button.setAttribute('aria-disabled',String(!ready));
+  button.disabled=form.dataset.saving==='1';
+  button.setAttribute('aria-disabled',String(button.disabled));
   if(hint){
     const guard=ncdEntryGuardV2122(form,selectedHealthPerson),warnings=[...guard.verify,...guard.clinical];
     hint.textContent=warnings.length?'ต้องตรวจสอบก่อนบันทึก: '+warnings.join(' · '):(ready?'ข้อมูลที่จำเป็นครบแล้ว · ตรวจสอบแล้วกดบันทึก':'กรอกข้อมูลที่จำเป็นใน ค่าที่วัด และพฤติกรรม ให้ครบก่อนบันทึก');
@@ -1015,9 +1026,9 @@ async function refreshHealthAfterSaveV2022(){
   if(portalView==='work')setTimeout(()=>loadHealthSummary().catch(e=>console.warn('[NCD post-save refresh] สรุปผลงาน',e)),500+Math.floor(Math.random()*700));
 }
 async function saveHealthScreening(event){
-  event.preventDefault(); const form=event.currentTarget,error=$('#ncd-error'),result=$('#ncd-result'),button=$('#ncd-submit');
+  event.preventDefault(); const form=event.currentTarget;if(form.dataset.saving==='1')return;const error=$('#ncd-error'),result=$('#ncd-result'),button=$('#ncd-submit');
   error.textContent=''; result.hidden=true; if(!selectedHealthPerson){error.textContent='กรุณาเลือกประชาชนจากรายการงาน';return;}
-  syncNcdSubmitState(form);if(!ncdRequiredComplete(form)){error.textContent='กรุณากรอกข้อมูลที่จำเป็นให้ครบก่อนบันทึก';form.reportValidity();return;}
+  syncNcdSubmitState(form);if(!ncdRequiredComplete(form)){ncdShowInvalidField(form);return;}
   if(!form.reportValidity())return;
   const d=new FormData(form),p=selectedHealthPerson;
   const smokeState=d.get('smoking_state'),alcoholState=d.get('alcohol_state'),glucoseType=d.get('glucose_type');
@@ -1031,14 +1042,14 @@ async function saveHealthScreening(event){
   const bp=bpRepeatStateV2123(form);
   if(bp.highFirst&&!bp.repeatComplete){error.textContent='กรุณาวัดความดันซ้ำครั้งที่ 2 ให้ครบก่อนบันทึก';setActiveNcdSection('ncd-section-measure',true);return;}
   const payload={p_source_pcucode:p.source_pcucode,p_source_pid:Number(p.source_pid),p_screened_on:d.get('screened_on')||null,p_weight_kg:formNumber(d.get('weight_kg')),p_height_cm:formNumber(d.get('height_cm')),p_waist_cm:formNumber(d.get('waist_cm')),p_sbp:formNumber(d.get('sbp')),p_dbp:formNumber(d.get('dbp')),p_pulse:d.get('pulse')===null||String(d.get('pulse')).trim()===''?null:formNumber(d.get('pulse')),p_glucose_mg_dl:formNumber(d.get('glucose_mg_dl')),p_glucose_type:glucoseType,p_danger_symptoms:false,p_smoking_frequency:smokingFrequency,p_alcohol_frequency:alcoholFrequency,p_exercise_frequency:d.get('exercise_frequency'),p_note:d.get('note')||'',p_request_id:form.dataset.requestId||requestId(),p_mental_2q_q1:mental.q1,p_mental_2q_q2:mental.q2,p_sbp_repeat:bp.highFirst?bp.s2:null,p_dbp_repeat:bp.highFirst?bp.d2:null};
-  button.disabled=true;
+  form.dataset.saving='1';button.disabled=true;button.textContent='กำลังบันทึก…';
   try{
     const {data:saved,error:saveError}=await supabase.rpc('save_health_ncd_screening_v6',payload);if(saveError)throw saveError;
     invalidateHealthWorklistCache();invalidateShared('report-snapshot:');invalidateShared('assignment-summary:');
     // A successful RPC is the commit boundary. Post-save reporting refresh must never turn a saved record into a red error.
     form.dataset.requestId=requestId();form.reset();result.hidden=true;returnToHealthWorklist(saved,p);
     setTimeout(()=>{refreshHealthAfterSaveV2022().catch(e=>console.warn('[NCD post-save refresh]',e));},Number(p?.age_years)>=60?1200:80);
-  }catch(e){error.textContent=e.message;}finally{button.disabled=false;}
+  }catch(e){error.textContent='ยังบันทึกไม่สำเร็จ: '+(e.message||'การเชื่อมต่อขัดข้อง กรุณาลองอีกครั้ง');error.scrollIntoView({block:'center'});}finally{delete form.dataset.saving;button.textContent='บันทึกผลคัดกรอง';syncNcdSubmitState(form);}
 }
 async function loadHealthModule(){
   const focus=$('#health-community-focus');focus.hidden=!healthCommunityFocus;focus.querySelector('strong').textContent=healthCommunityFocus||'';
