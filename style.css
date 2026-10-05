@@ -385,3 +385,6 @@ tr.staff-assignment-row--direct>td:first-child{box-shadow:inset 4px 0 #5b9c72}
 .community-pager button:disabled{opacity:.46;cursor:not-allowed}
 .community-pager [data-page-status]{flex:1 1 auto;min-width:0;color:#506a60;text-align:center;font-size:.84rem;line-height:1.5}
 @media(max-width:390px){.community-pager{gap:4px}.community-pager button{padding:7px 8px;font-size:.8rem}.community-pager [data-page-status]{font-size:.74rem}}
+
+/* NCD measurements: type the measured value; no touch slider or step buttons. */
+#ncd-form .measure-control{display:block}#ncd-form input[type=number]{appearance:textfield;-moz-appearance:textfield}#ncd-form input[type=number]::-webkit-inner-spin-button,#ncd-form input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
