@@ -262,6 +262,31 @@ async function renderAdminPendingHouseQueueV2070(){
   });
 }
 
+function watchAdminMemberQueueV2147(body){
+  let timer;
+  const check=async()=>{
+    if(!body.isConnected)return;
+    try{
+      if(!document.hidden){
+        const {data,error}=await supabase.rpc('admin_pending_member_requests_v2109');
+        if(!error&&Array.isArray(data)&&body.isConnected){
+          const pending=new Set(data.map(r=>String(r.id)));
+          watchAdminMemberQueueV2147(body);
+  body.querySelectorAll('[data-admin-request]').forEach(card=>{
+            if(!pending.has(card.dataset.adminRequest))card.remove();
+          });
+          if(!body.querySelector('[data-admin-request]')){
+            body.querySelector('.phc190-request-list').textContent='ไม่มีคำขอรอตรวจ';
+          }
+          invalidateShared('admin-work-member-v2109');
+        }
+      }
+    }catch{}finally{if(body.isConnected)timer=setTimeout(check,30000);}
+  };
+  timer=setTimeout(check,30000);
+  return()=>clearTimeout(timer);
+}
+
 async function renderAdminMemberQueue(){
   const body=openModal('คำขอเพิ่มสมาชิกที่รอตรวจ','แสดงเฉพาะคำขอที่ยังต้องตัดสินใจ เมื่อยืนยัน ส่งกลับแก้ไข หรือยกเลิกแล้ว รายการจะออกจากคิว แต่ยังเก็บประวัติไว้');
   body.innerHTML='<div class="phc190-note">กำลังโหลด…</div>';
