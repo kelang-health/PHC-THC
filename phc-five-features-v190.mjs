@@ -214,16 +214,18 @@ async function cancelMemberRequestV2070(id,label){
   }catch(e){showPhcToast(friendlyError(e),'warn',4500)}
 }
 
+function openHouseRequestsV2146(records){
+  return (Array.isArray(records)?records:[]).filter(h=>h&&String(h.verification_status||'').trim().toLowerCase()!=='verified_jhcis');
+}
+
 async function renderAdminPendingHouseQueueV2070(){
-  const body=openModal('จัดการบ้านที่ อสม. เพิ่ม','แสดงทั้งบ้านที่ยังรอและบ้านที่ยืนยันกับ JHCIS แล้ว · ยกเลิกได้เฉพาะบ้านที่ยังไม่ยืนยันและไม่มีคำขอสมาชิกค้าง');
+  const body=openModal('จัดการบ้านที่ อสม. เพิ่ม','แสดงเฉพาะคำขอที่ยังไม่เสร็จ · บ้านที่ยืนยัน JHCIS แล้วอยู่ในทะเบียนบ้านตามเดิม');
   body.innerHTML='<div class="phc190-note">กำลังตรวจประวัติบ้านที่ อสม. เพิ่ม…</div>';
   const {data,error}=await supabase.rpc('admin_cancellable_field_houses_v2163');
   if(error){body.innerHTML='<div class="phc190-error">'+esc(friendlyError(error))+'</div>';return;}
-  const rows=data||[];
-  const verifiedCount=rows.filter(h=>h.verification_status==='verified_jhcis').length;
-  const pendingCount=rows.length-verifiedCount;
+  const rows=openHouseRequestsV2146(data);
   const statusText=s=>s==='verified_jhcis'?'ยืนยัน JHCIS แล้ว':s==='pending_jhcis_create'?'รอบันทึก/ยืนยัน JHCIS':s==='pending_jhcis_update'?'รอยืนยันข้อมูลเดิมใน JHCIS':s==='review_required'?'ต้องตรวจเพิ่มเติม':String(s||'—');
-  body.innerHTML='<div class="phc190-note"><strong>บ้านที่ อสม. เพิ่ม '+rows.length+' หลัง</strong><br>รอยืนยัน '+pendingCount+' · ยืนยัน JHCIS แล้ว '+verifiedCount+'</div>'+
+  body.innerHTML='<div class="phc190-note"><strong>คำขอเพิ่มบ้านที่ยังต้องดำเนินการ '+rows.length+' หลัง</strong></div>'+
     '<div class="phc190-request-list">'+rows.map(h=>
     '<article class="phc190-request" data-admin-field-cancel="'+esc(h.id)+'">'+
     '<strong>บ้านเลขที่ '+esc(h.house_no||'ไม่ระบุ')+'</strong>'+
@@ -239,7 +241,7 @@ async function renderAdminPendingHouseQueueV2070(){
       ?'<div class="phc190-note">ยกเลิกบ้านไม่ได้: มีคำขอหรือสมาชิกที่เชื่อมทะเบียนอยู่ โปรดตรวจรายการก่อน</div><button type="button" class="phc190-secondary" data-manage-members>ดูคำขอที่ยังจัดการได้</button>'
       :'<button type="button" class="phc190-secondary phc190-danger" data-cancel-house>ยกเลิกคำขอเพิ่มบ้าน</button>')+
     '</article>').join('')+
-    (rows.length?'':'<div class="phc190-note">ยังไม่มีบ้านที่ อสม. เพิ่มในระบบ</div>')+'</div>';
+    (rows.length?'':'<div class="phc190-note">ไม่มีคำขอเพิ่มบ้านที่ยังต้องดำเนินการ</div>')+'</div>';
   body.querySelectorAll('[data-admin-field-cancel]').forEach(card=>{
     const h=rows.find(row=>String(row.id)===card.dataset.adminFieldCancel);
     card.querySelector('[data-manage-members]')?.addEventListener('click',renderAdminMemberQueue);
