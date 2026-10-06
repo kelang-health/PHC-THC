@@ -2,7 +2,7 @@
   "schema": 2,
   "hash_mode": "sha256_lf_normalized",
   "latest_version": "20261006062000",
-  "migration_count": 232,
+  "migration_count": 235,
   "migrations": [
     {
       "version": "20260908121831",
@@ -1389,6 +1389,24 @@
       "name": "ncd_pulse_cloud_local",
       "filename": "20261004080138_ncd_pulse_cloud_local.sql",
       "sha256": "995632b6b2dc7d1c36e36a9cc901338a0894df240035831aa8a19e0bee31167e"
+    },
+    {
+      "version": "20261005130500",
+      "name": "canonical_ncd_target_alignment_v2190",
+      "filename": "20261005130500_canonical_ncd_target_alignment_v2190.sql",
+      "sha256": "4890fa89322bc2e4d7f89d82eb6e92323ab25d972a0df33f19f9ac650e06dd79"
+    },
+    {
+      "version": "20261005130800",
+      "name": "restore_field_work_security_invoker_v2191",
+      "filename": "20261005130800_restore_field_work_security_invoker_v2191.sql",
+      "sha256": "910f3a5730d7263af9f711726169f2819d52ec039357e584626c1b905a5ae82b"
+    },
+    {
+      "version": "20261005131200",
+      "name": "canonical_ncd_fiscal_reference_v2192",
+      "filename": "20261005131200_canonical_ncd_fiscal_reference_v2192.sql",
+      "sha256": "e74d0f6b635342e1b57e1ada567904878e81b01a26510363ea7d2144002baf9f"
     },
     {
       "version": "20261006062000",
