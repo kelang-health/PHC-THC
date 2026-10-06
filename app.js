@@ -166,6 +166,10 @@ function setHealthIntentV2058(intent={}){
   return true;
 }
 window.PHCSetHealthIntentV2058=setHealthIntentV2058;
+window.PHCRefreshHealthWorklistV2194=async()=>{
+  invalidateHealthWorklistCache();
+  if(portalView==='health')await loadHealthPeople({force:true,trigger:'elderly9-complete'});
+};
 function configurePortalNav(role){
   const labels={admin:{communities:'ชุมชนทั้งหมด',volunteers:'ทะเบียน อสม.'},staff:{communities:'ชุมชนที่ดูแล',houses:'บ้านและงานดูแลแทน'},user:{communities:'ชุมชนของฉัน',houses:'บ้านของฉัน'}};
   const mobileLabels={overview:'ภาพรวม',communities:'ชุมชน',volunteers:'อสม.',houses:'บ้าน',health:'สุขภาพ',work:'ผลงาน'};
@@ -435,33 +439,59 @@ function healthNcdTargetStateV2117(row){
   const htScreened=Boolean(row?.ht_screened_current_fy);
   return {hasDm,hasHt,dmTarget,htTarget,dmDue:dmTarget&&!dmScreened,htDue:htTarget&&!htScreened};
 }
+function healthElderlyStateV2194(row){
+  const route=String(row?.screening_route||'');
+  const rawCount=Number(row?.elderly9_completed_domains_current_fy||0);
+  const count=Math.max(0,Math.min(9,Number.isFinite(rawCount)?rawCount:0));
+  const status=String(row?.elderly9_status_current_fy||'');
+  const complete=route==='elderly_60_plus'&&(row?.elderly9_completed_current_fy===true||status==='complete');
+  const inProgress=route==='elderly_60_plus'&&!complete&&(status==='in_progress'||count>0);
+  return {route,status,complete,inProgress,count,date:String(row?.latest_elderly9_screened_on||'').slice(0,10)};
+}
 function healthNcdActionLabelV2117(row){
-  const x=healthNcdTargetStateV2117(row),route=String(row?.screening_route||'');
-  if(route==='elderly_60_plus'&&!x.dmTarget&&!x.htTarget)return 'ประเมินผู้สูงอายุ 9 ด้าน';
+  const x=healthNcdTargetStateV2117(row),e=healthElderlyStateV2194(row),route=e.route;
   if(x.dmDue&&x.htDue)return 'คัดกรอง DM/HT';
   if(x.dmDue)return 'คัดกรอง DM';
   if(x.htDue)return 'คัดกรอง HT';
-  if(route==='elderly_60_plus')return 'ประเมินผู้สูงอายุ 9 ด้าน';
+  if(route==='elderly_60_plus'){
+    if(e.complete)return 'ดูผล 9 ด้าน';
+    if(e.inProgress)return `ทำ 9 ด้านต่อ (${e.count}/9)`;
+    return 'ประเมินผู้สูงอายุ 9 ด้าน';
+  }
   return 'ดูข้อมูล';
 }
 function healthNcdStatusLabelV2117(row){
-  const x=healthNcdTargetStateV2117(row);
-  if(x.hasDm&&x.hasHt)return 'ผู้ป่วยเดิม DM + HT';
+  const x=healthNcdTargetStateV2117(row),e=healthElderlyStateV2194(row);
   if(x.hasDm&&x.htDue)return 'DM เดิม · ต้องคัดกรอง HT';
   if(x.hasHt&&x.dmDue)return 'HT เดิม · ต้องคัดกรอง DM';
   if(x.dmDue&&x.htDue)return 'ต้องคัดกรอง DM + HT';
   if(x.dmDue)return 'ต้องคัดกรอง DM';
   if(x.htDue)return 'ต้องคัดกรอง HT';
+  if(e.route==='elderly_60_plus'){
+    if(e.complete)return 'คัดกรองผู้สูงอายุ 9 ด้านครบแล้ว';
+    if(e.inProgress)return `คัดกรอง 9 ด้านแล้ว ${e.count}/9`;
+    return 'รอคัดกรองผู้สูงอายุ 9 ด้าน';
+  }
+  if(x.hasDm&&x.hasHt)return 'ผู้ป่วยเดิม DM + HT';
   return row?.latest_ncd_status||(row?.known_ncd?'มีข้อมูลโรคเดิม':'ยังไม่มีผล');
+}
+function healthStatusDateV2194(row){
+  const e=healthElderlyStateV2194(row);
+  if(e.route==='elderly_60_plus'&&(e.complete||e.inProgress)&&e.date)return e.date;
+  return String(row?.latest_screened_on||'').slice(0,10);
 }
 function healthFieldQueuePendingV2042(row){
   if(!row)return false;
   const route=String(row.screening_route||'');
   const latest=String(row.latest_screened_on||'').slice(0,10);
+  const x=healthNcdTargetStateV2117(row);
   if(route==='ncd_35_59'){
-    const x=healthNcdTargetStateV2117(row);
     if(!x.dmDue&&!x.htDue)return false;
     return !latest||latest!==localDate();
+  }
+  if(route==='elderly_60_plus'){
+    const e=healthElderlyStateV2194(row);
+    return x.dmDue||x.htDue||!e.complete;
   }
   if(Boolean(row.screened_current_fy))return false;
   return !latest||latest!==localDate();
@@ -531,7 +561,7 @@ async function loadHealthPeople(options={}){
     const status=healthNcdStatusLabelV2117(p),action=healthNcdActionLabelV2117(p);
     const fallback=p.assignment_status==='staff_fallback';
     const assignment=fallback?`<small class="assignment-fallback">${esc(p.assignment_label||'ยังไม่มีผู้รับผิดชอบ · Staff ดูแลชั่วคราว')}</small>`:(currentProfile?.role==='staff'&&careScopeMode==='community'&&p.assignment_status==='assigned'?'<small class="assignment-ok">มีผู้รับผิดชอบ</small>':'');
-    return `<tr><td><button type="button" class="health-person-name" data-health-person="${i}">${esc(p.display_name)}</button><small>${p.known_ncd?`โรคเดิม: ${p.has_ht?'HT ':''}${p.has_dm?'DM':''}`:'ยังไม่พบ DM/HT ใน personchronic'}</small></td><td>${esc(p.age_years??'—')} ปี<small>${esc(p.life_stage||'—')}</small></td><td>บ้าน ${esc(p.house_no||p.hcode)}<small>หมู่ ${esc(p.moo||'—')} · ${esc(p.community||'—')}</small>${assignment}</td><td class="${healthClass(p.latest_severity)}">${esc(status)}<small>${p.latest_screened_on?esc(healthDateLabel(p.latest_screened_on)):''}</small></td><td><button type="button" class="row-open" data-phc190-screen data-pcucode="${esc(p.source_pcucode)}" data-pid="${esc(p.source_pid)}" data-name="${esc(p.display_name)}" data-plan-date="${esc(p.screening_plan_date||'')}" data-age-years="${esc(p.age_years??'')}" data-age-months="${esc(p.screening_age_months??'')}" data-screen-route="${esc(p.screening_route||'')}" data-route-label="${esc(p.screening_route_label||'')}" data-dspm-target="${esc(p.screening_dspm_target_months??'')}" data-latest-screened="${esc(p.latest_screened_on||'')}" data-has-dm="${Boolean(p.has_dm)}" data-has-ht="${Boolean(p.has_ht)}" data-dm-target="${Boolean(healthNcdTargetStateV2117(p).dmTarget)}" data-ht-target="${Boolean(healthNcdTargetStateV2117(p).htTarget)}">${esc(action)}</button></td></tr>`;
+    return `<tr><td><button type="button" class="health-person-name" data-health-person="${i}">${esc(p.display_name)}</button><small>${p.known_ncd?`โรคเดิม: ${p.has_ht?'HT ':''}${p.has_dm?'DM':''}`:'ยังไม่พบ DM/HT ใน personchronic'}</small></td><td>${esc(p.age_years??'—')} ปี<small>${esc(p.life_stage||'—')}</small></td><td>บ้าน ${esc(p.house_no||p.hcode)}<small>หมู่ ${esc(p.moo||'—')} · ${esc(p.community||'—')}</small>${assignment}</td><td class="${healthClass(p.latest_severity)}">${esc(status)}<small>${healthStatusDateV2194(p)?esc(healthDateLabel(healthStatusDateV2194(p))):''}</small></td><td><button type="button" class="row-open" data-phc190-screen data-pcucode="${esc(p.source_pcucode)}" data-pid="${esc(p.source_pid)}" data-name="${esc(p.display_name)}" data-plan-date="${esc(p.screening_plan_date||'')}" data-age-years="${esc(p.age_years??'')}" data-age-months="${esc(p.screening_age_months??'')}" data-screen-route="${esc(p.screening_route||'')}" data-route-label="${esc(p.screening_route_label||'')}" data-dspm-target="${esc(p.screening_dspm_target_months??'')}" data-latest-screened="${esc(p.latest_screened_on||'')}" data-has-dm="${Boolean(p.has_dm)}" data-has-ht="${Boolean(p.has_ht)}" data-dm-target="${Boolean(healthNcdTargetStateV2117(p).dmTarget)}" data-ht-target="${Boolean(healthNcdTargetStateV2117(p).htTarget)}">${esc(action)}</button></td></tr>`;
   }).join('')||'<tr><td colspan="5">ไม่พบประชาชนตามตัวกรอง</td></tr>';
   const fallbackNote=healthAssignmentFilter==='fallback'?' · แสดงเฉพาะประชาชนที่ Staff ต้องดูแลแทน':healthAssignmentFilter==='unresolved'?' · คิวไม่ทราบชุมชนสำหรับ Admin ตรวจสอบ':'';
   const queueNote=filter==='field_targets'?' · แสดงผู้ที่ยังไม่ได้คัดกรองในรอบงานก่อน':'';
@@ -969,7 +999,7 @@ function routeForAgeV208(age){age=Number(age);return age<6?'child_0_5':age<15?'s
 async function resetSelectedNcdTestV208(){const p=selectedHealthPerson;if(!p||currentProfile?.role!=='admin'||!preGoLiveTestModeV208())return;if(!confirm(`รีเซทข้อมูลทดสอบของ ${p.display_name}?\n\nหากเป็นผู้สูงอายุ ระบบจะรีเซท NCD ทดสอบและ 9 ด้านของช่วงทดสอบร่วมกัน ประวัติเดิมจาก JHCIS / J-Report / 3Doctor จะไม่ถูกลบ`))return;const b=$('#ncd-reset-test');if(b)b.disabled=true;try{const {error}=await supabase.rpc('admin_reset_person_test_screening_v2022',{p_source_pcucode:p.source_pcucode,p_source_pid:Number(p.source_pid),p_route:routeForAgeV208(p.age_years),p_reason:'ผู้ใช้กดรีเซทข้อมูลทดสอบจากหน้า NCD'});if(error)throw error;$('#ncd-form').reset();$('#ncd-result').hidden=true;closeHealthFeedbackCard();healthFeedbackModel=null;invalidateShared('health-history-v2149:');invalidateHealthWorklistCache();await Promise.all([loadHealthSummary(),loadHealthPeople({trigger:'reset-test'}),loadHealthHistory()]);const fresh=healthPeople.find(x=>personKey(x)===personKey(p));if(fresh){selectedHealthPerson=fresh;renderPreviousPanel(fresh)}alert('รีเซทข้อมูลทดสอบแล้ว');}catch(e){$('#ncd-error').textContent=e.message;}finally{if(b)b.disabled=false;syncNcdTestResetV208();}}
 
 async function selectHealthPerson(index,forceNcd=false){
-  const p=healthPeople[index]; if(!p)return; if(!forceNcd&&window.PHCFiveFeatures190?.openAgeScreening){const x=healthNcdTargetStateV2117(p),seed={plan_date:p.screening_plan_date||'',age_years:Number(p.age_years),age_months:Number(p.screening_age_months),route:p.screening_route||'',route_label:p.screening_route_label||'',dspm_target_months:p.screening_dspm_target_months??null,latest_screened_on:p.latest_screened_on||'',has_dm:Boolean(p.has_dm),has_ht:Boolean(p.has_ht),dm_target:x.dmTarget,ht_target:x.htTarget};window.PHCFiveFeatures190.openAgeScreening(p.source_pcucode,Number(p.source_pid),p.display_name,seed);return;} await hydratePreviousScreening(p); selectedHealthPerson=p;
+  const p=healthPeople[index]; if(!p)return; if(!forceNcd&&window.PHCFiveFeatures190?.openAgeScreening){const x=healthNcdTargetStateV2117(p),seed={plan_date:p.screening_plan_date||'',age_years:Number(p.age_years),age_months:Number(p.screening_age_months),route:p.screening_route||'',route_label:p.screening_route_label||'',dspm_target_months:p.screening_dspm_target_months??null,latest_screened_on:p.latest_screened_on||'',has_dm:Boolean(p.has_dm),has_ht:Boolean(p.has_ht),dm_target:x.dmTarget,ht_target:x.htTarget,dm_screened_current_fy:Boolean(p.dm_screened_current_fy),ht_screened_current_fy:Boolean(p.ht_screened_current_fy),elderly9_status_current_fy:p.elderly9_status_current_fy||'',elderly9_completed_current_fy:Boolean(p.elderly9_completed_current_fy),elderly9_completed_domains_current_fy:Number(p.elderly9_completed_domains_current_fy||0),latest_elderly9_screened_on:p.latest_elderly9_screened_on||''};window.PHCFiveFeatures190.openAgeScreening(p.source_pcucode,Number(p.source_pid),p.display_name,seed);return;} await hydratePreviousScreening(p); selectedHealthPerson=p;
   $('#ncd-person-summary').innerHTML=`<strong>${esc(p.display_name)}</strong><span>${esc(p.age_years??'—')} ปี · ${esc(p.gender)} · ${esc(p.community||'—')}</span>`;
   const conditions=[];if(p.has_ht)conditions.push('<span class="condition-badge disease">มีประวัติ HT</span>');if(p.has_dm)conditions.push('<span class="condition-badge disease">มีประวัติ DM</span>');if(!p.known_ncd)conditions.push('<span class="condition-badge clear">ยังไม่พบ DM/HT ใน JHCIS</span>');if(p.has_cvd)conditions.push('<span class="condition-badge disease">มีประวัติ CVD · ไม่ใช้ Thai CV Risk</span>');else if(p.cvd_population_eligible&&Number(p.age_years)>=35&&Number(p.age_years)<=70)conditions.push('<span class="condition-badge clear">Thai CV Risk คำนวณอัตโนมัติ</span>');$('#ncd-condition-badges').innerHTML=conditions.join('');
   const card=$('#ncd-screen-card'); card.hidden=!(Number(p.age_years)>=18); syncNcdTestResetV208(); if(card.hidden){return;}
