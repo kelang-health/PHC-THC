@@ -380,3 +380,9 @@
 - Telegram: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_CHAT_IDS`, `APP_BASE_URL`
 - LINE: `LINE_CHANNEL_SECRET`, `LINE_CHANNEL_ACCESS_TOKEN`, `APP_BASE_URL`
 - Supabase Edge Functions use server-provided `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; service-role key must never be exposed in frontend
+# 2026-10-06 — Elderly 9-domain basic health gate v2140
+
+- ผู้สูงอายุที่มีทั้ง DM และ HT ต้องบันทึกส่วนสูง น้ำหนัก รอบเอว ความดัน ชีพจร อัตราหายใจ และอุณหภูมิที่วัดวันนี้ ก่อนเริ่มคัดกรอง 9 ด้าน
+- แสดงค่าตรวจครั้งก่อนเพื่อเทียบเท่านั้น ไม่เติมแทนค่าปัจจุบันอัตโนมัติ และเตือนให้ทบทวนค่าผิดปกติก่อนยืนยัน
+- ผู้ที่ไม่ได้มีทั้งสองโรคยังใช้ข้อมูลตรวจร่างกายจาก NCD Screening เดิมได้
+- เพิ่ม RLS, RPC ที่ตรวจสิทธิ์ และ trigger ป้องกันการข้ามขั้นตอนจากหลายเครื่องหรือการเรียก API โดยตรง

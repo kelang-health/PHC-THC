@@ -559,11 +559,54 @@ function collectElderlyAnswersV207(step,code){
   if(code==='oral'){const a=boolFromStepV207(step,'chewing_hard_problem'),b=boolFromStepV207(step,'oral_pain');if(a===null||b===null)return{ok:false,error:'กรุณาตอบสุขภาพช่องปากทั้ง 2 ข้อ'};return{ok:true,answers:{chewing_hard_problem:a,oral_pain:b}}}
   return{ok:false,error:'ไม่รู้จักแบบคัดกรองด้านนี้'};
 }
+function elderlyBothDmHtV2140(s){return Boolean(s?.has_dm&&s?.has_ht)}
+function elderlyBasicHealthNumberV2140(form,name){const raw=form.querySelector(`[name="${name}"]`)?.value;return raw===''||raw===undefined?null:Number(raw)}
+function elderlyBasicHealthWarningsV2140(v){
+  const out=[];
+  if(v.pulse<50||v.pulse>120)out.push(`ชีพจร ${v.pulse} ครั้ง/นาที อยู่นอกช่วงทบทวน 50–120`);
+  if(v.respiratory_rate<12||v.respiratory_rate>24)out.push(`หายใจ ${v.respiratory_rate} ครั้ง/นาที อยู่นอกช่วงทบทวน 12–24`);
+  if(v.temperature_c<35||v.temperature_c>38)out.push(`อุณหภูมิ ${v.temperature_c} °C อยู่นอกช่วงทบทวน 35–38`);
+  if(v.sbp<90||v.sbp>139||v.dbp<60||v.dbp>89)out.push(`ความดัน ${v.sbp}/${v.dbp} mmHg ควรทบทวนก่อนบันทึก`);
+  return out;
+}
+function elderlyBasicHealthFormV2140(previous={}){
+  const field=(name,label,unit,min,max,step='1')=>`<label>${label}<div class="phc2140-health-input"><input name="${name}" type="number" inputmode="decimal" min="${min}" max="${max}" step="${step}" required><span>${unit}</span></div>${previous[name]!=null?`<small>ครั้งก่อน ${esc(previous[name])} ${unit} · ใช้เพื่อเทียบเท่านั้น</small>`:''}</label>`;
+  return `<div class="phc2140-basic-health"><div class="phc190-note phc190-warning"><strong>ผู้รับบริการมีทั้งเบาหวานและความดัน</strong><br>กรุณาวัดและบันทึกค่าของวันนี้ก่อนคัดกรอง 9 ด้าน ไม่ดึงค่าครั้งก่อนมาแทนอัตโนมัติ</div><form data-elderly-basic-health><div class="phc2140-health-grid">${field('height_cm','ส่วนสูง','ซม.',80,250,'0.1')}${field('weight_kg','น้ำหนัก','กก.',10,400,'0.1')}${field('waist_cm','รอบเอว','ซม.',30,250,'0.1')}${field('sbp','ความดันบน','mmHg',70,260)}${field('dbp','ความดันล่าง','mmHg',40,180)}${field('pulse','ชีพจร','ครั้ง/นาที',20,250)}${field('respiratory_rate','อัตราหายใจ','ครั้ง/นาที',1,100)}${field('temperature_c','อุณหภูมิ','°C',25,45,'0.1')}</div><label class="phc2140-confirm"><input type="checkbox" data-basic-confirm> ยืนยันว่าเป็นค่าที่วัดและทบทวนวันนี้</label><div class="phc190-error" data-basic-error></div><div class="phc190-note phc190-warning" data-basic-warning hidden></div><div class="phc190-actions"><button type="submit" class="phc190-primary">บันทึกตรวจสุขภาพ แล้วทำ 9 ด้าน</button></div></form></div>`;
+}
+async function loadElderlyBasicHealthV2140(root,s){
+  const progress=root.querySelector('[data-elderly-progress]'),host=root.querySelector('[data-elderly-wizard]');
+  progress.textContent='ตรวจสุขภาพเบื้องต้นก่อนคัดกรองผู้สูงอายุ 9 ด้าน';
+  const {data:existing,error}=await supabase.from('elderly9_basic_health_checks_v2140').select('height_cm,weight_kg,waist_cm,sbp,dbp,pulse,respiratory_rate,temperature_c,measured_on').eq('session_id',s.session_id).maybeSingle();
+  if(error)throw error;
+  if(existing){s.elderly_basic_health_complete=true;await loadElderlyWizardV207(root,s);return}
+  const {data:person,error:personError}=await supabase.from('health_persons').select('previous_screened_on,previous_height_cm,previous_weight_kg,previous_waist_cm,previous_sbp,previous_dbp').eq('source_pcucode',s.source_pcucode).eq('source_pid',Number(s.source_pid)).maybeSingle();
+  if(personError)throw personError;
+  const previous={height_cm:person?.previous_height_cm,weight_kg:person?.previous_weight_kg,waist_cm:person?.previous_waist_cm,sbp:person?.previous_sbp,dbp:person?.previous_dbp};
+  host.innerHTML=elderlyBasicHealthFormV2140(previous);
+  const form=host.querySelector('[data-elderly-basic-health]'),err=host.querySelector('[data-basic-error]'),warning=host.querySelector('[data-basic-warning]');
+  form.onsubmit=async ev=>{
+    ev.preventDefault();err.textContent='';warning.hidden=true;
+    const v={height_cm:elderlyBasicHealthNumberV2140(form,'height_cm'),weight_kg:elderlyBasicHealthNumberV2140(form,'weight_kg'),waist_cm:elderlyBasicHealthNumberV2140(form,'waist_cm'),sbp:elderlyBasicHealthNumberV2140(form,'sbp'),dbp:elderlyBasicHealthNumberV2140(form,'dbp'),pulse:elderlyBasicHealthNumberV2140(form,'pulse'),respiratory_rate:elderlyBasicHealthNumberV2140(form,'respiratory_rate'),temperature_c:elderlyBasicHealthNumberV2140(form,'temperature_c')};
+    if(Object.values(v).some(x=>x===null||!Number.isFinite(x))){err.textContent='กรุณากรอกค่าที่วัดวันนี้ให้ครบทุกช่อง';return}
+    if(v.sbp<=v.dbp){err.textContent='ความดันบนต้องมากกว่าความดันล่าง กรุณาตรวจค่าซ้ำ';return}
+    if(!form.querySelector('[data-basic-confirm]').checked){err.textContent='กรุณายืนยันว่าเป็นค่าที่วัดและทบทวนวันนี้';return}
+    const warnings=elderlyBasicHealthWarningsV2140(v);
+    if(warnings.length&&!form.dataset.warningConfirmed){warning.innerHTML=`<strong>พบค่าที่ควรทบทวน</strong><br>${warnings.map(esc).join('<br>')}<br>ตรวจซ้ำแล้วกดบันทึกอีกครั้งเพื่อยืนยัน`;warning.hidden=false;form.dataset.warningConfirmed='true';return}
+    const btn=form.querySelector('button[type="submit"]');btn.disabled=true;
+    try{
+      const {error:saveError}=await supabase.rpc('save_elderly9_basic_health_v2140',{p_session_id:s.session_id,p_height_cm:v.height_cm,p_weight_kg:v.weight_kg,p_waist_cm:v.waist_cm,p_sbp:v.sbp,p_dbp:v.dbp,p_pulse:v.pulse,p_respiratory_rate:v.respiratory_rate,p_temperature_c:v.temperature_c});
+      if(saveError)throw saveError;
+      s.elderly_basic_health_complete=true;showPhcToast('บันทึกการตรวจสุขภาพเบื้องต้นแล้ว');await loadElderlyWizardV207(root,s);
+    }catch(e){err.textContent=friendlyError(e);btn.disabled=false}
+  };
+  form.querySelectorAll('input[type="number"]').forEach(input=>input.addEventListener('input',()=>{delete form.dataset.warningConfirmed;warning.hidden=true}));
+}
 async function renderElderlyRoute(root,s,personName){
   const ready=['complete','not_required'].includes(String(s.ncd_status||''));
   const noNcdTarget=s.ncd_status==='not_required'||(!s.dm_target&&!s.ht_target);
+  const bothDmHt=elderlyBothDmHtV2140(s);
   const state=noNcdTarget
-    ?'🟢 มี DM + HT เดิม · ไม่ต้องคัดกรอง NCD ซ้ำ'
+    ?'🟡 มี DM + HT เดิม · ต้องตรวจสุขภาพเบื้องต้นวันนี้ก่อน 9 ด้าน'
     :s.ncd_status==='complete'
       ?'🟢 NCD เรียบร้อยแล้ว'
       :'🟡 '+ncdRequirementTextV2117(s)+' ก่อน';
@@ -617,7 +660,7 @@ async function renderElderlyRoute(root,s,personName){
   root.innerHTML=`<section class="phc190-step"><h3>ขั้นที่ 1 · NCD Screening</h3><p data-ncd-state>${esc(state)}</p>${ready?'':`<button class="phc190-primary" data-open-ncd>${esc(ncdActionLabelV2117(s))}</button><button class="phc190-secondary" data-check-ncd>ตรวจสอบ NCD ที่บันทึกในปีงบประมาณนี้</button>`}</section>
   <section class="phc190-step" data-elderly-choice ${ready?'':'hidden'}>
     <h3>${doneCount?'คัดกรองผู้สูงอายุ 9 ด้านต่อหรือไม่?':'จะคัดกรองผู้สูงอายุ 9 ด้านต่อหรือไม่?'}</h3>
-    <div class="phc190-note">งาน 9 ด้านใช้เวลาเพิ่มเติมในภาคสนาม สามารถเลือกพักไว้ก่อนและกลับมาทำภายหลังได้ โดยผลที่บันทึกแล้วจะไม่หาย</div>
+    <div class="phc190-note">${bothDmHt?'มีทั้งเบาหวานและความดัน: ระบบจะให้บันทึกตรวจสุขภาพเบื้องต้นของวันนี้ก่อนเริ่ม 9 ด้าน':'ใช้ค่าตรวจร่างกายจาก NCD ที่บันทึกวันนี้ แล้วเริ่มคัดกรอง 9 ด้านได้'} สามารถพักไว้ก่อนและกลับมาทำภายหลังได้</div>
     ${doneCount? `<div class="phc190-note"><strong>ทำแล้ว ${doneCount}/9 ด้าน</strong> · กด “ทำต่อ” เพื่อทำจากจุดเดิม</div>`:''}
     <div class="phc190-actions">
       <button type="button" class="phc190-primary" data-elderly-continue>${doneCount?`ทำ 9 ด้านต่อ (${doneCount}/9)`:'ทำ 9 ด้านต่อเลย'}</button>
@@ -662,7 +705,8 @@ async function renderElderlyRoute(root,s,personName){
       const section=root.querySelector('[data-elderly]');
       if(choice)choice.hidden=true;
       if(section)section.hidden=false;
-      await loadElderlyWizardV207(root,s);
+      if(bothDmHt)await loadElderlyBasicHealthV2140(root,s);
+      else await loadElderlyWizardV207(root,s);
     }catch(e){
       showPhcToast(friendlyError(e),'warn',3200);
       btn.disabled=false;
