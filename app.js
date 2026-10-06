@@ -79,7 +79,7 @@ function configureCloudBrandLogo(){
   const image=$('#cloud-login-logo');if(!image)return;
   const fallback='./logo.svg?v=2.0.59';
   image.onerror=()=>{image.onerror=null;image.src=fallback;};
-  image.src=`${CLOUD_BRAND_LOGO_URL}?t=${Math.floor(Date.now()/300000)}`;
+  image.src=CLOUD_BRAND_LOGO_URL;
 }
 function enforceCloudReleaseVersion(){
   const footer=$('.login-version');if(!footer)return;
