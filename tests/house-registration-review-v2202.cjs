@@ -1,6 +1,6 @@
 const fs=require('fs'),path=require('path'),assert=require('node:assert/strict');
 const {chromium}=require('C:/Users/acer/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
-const source=fs.readFileSync(path.join(__dirname,'..','house-registration-review-v2202.mjs'),'utf8').replace(/^import .*\n/,'').replaceAll('export ','');
+const source=fs.readFileSync(path.join(__dirname,'..','house-registration-review-v2202.mjs'),'utf8').replace(/^import[^\n]*\n/,'').replaceAll('export ','');
 (async()=>{const browser=await chromium.launch({channel:'msedge',headless:true});const page=await browser.newPage({viewport:{width:390,height:844}});try{
  await page.setContent('<div data-portal-panel="communities"></div><div data-portal-panel="houses"><button data-myh-house-pick="a">บ้าน 1</button><button data-myh-house-pick="outside">บ้านอื่น</button><button data-hq-house="b">บ้าน 2</button></div>');
  await page.addScriptTag({content:`let calls=[],mutations=0,duplicate=false;const records=[{id:'a',hcode:'1',house_no:'1',moo:'2',community:'ชุมชน ก',house_id_11:'123',updated_at:'2026-10-06T00:00:00Z',needs_id11:true,can_edit:true},{id:'b',hcode:'2',house_no:'2',moo:'2',needs_id11:true,unassigned_village:true,can_edit:true}];
