@@ -78,7 +78,7 @@ function injectStyle(){if($('#phc190-style'))return;const s=document.createEleme
 @media(max-width:700px){.phc190-overlay{padding:0;overflow-x:hidden}.phc190-modal{width:100%;max-width:100vw;min-height:100vh;border-radius:0;margin:0;padding:12px 10px max(22px,env(safe-area-inset-bottom));overflow-x:hidden}.phc190-actions,.phc190-grow{grid-template-columns:1fr}.phc190-primary,.phc190-secondary,.phc190-screen-button{min-height:62px;font-size:1.04rem}.phc190-state-row{grid-template-columns:1fr}.phc190-state{min-height:56px}.phc190-kpis{grid-template-columns:1fr 1fr}.phc190-head h2{font-size:1.25rem}[data-phc190-body],.phc190-route,.phc190-step,.phc207-wizard,.phc207-question{width:100%;max-width:100%;overflow-x:hidden}.phc207-stepbar{margin-left:0;margin-right:0;width:100%;max-width:100%;overflow:hidden}.phc207-step-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;overflow:visible;padding:2px 0 6px}.phc207-step-tab{width:100%;min-width:0;min-height:46px;border-radius:11px;font-size:1rem;padding:4px}.phc207-step-title{align-items:flex-start;min-width:0}.phc207-step-title .icon{flex:0 0 auto}.phc207-choice-row,.phc207-choice-grid,.phc207-timer{grid-template-columns:1fr}.phc207-nav{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);width:100%;max-width:100%;gap:7px}.phc207-nav button{font-size:.96rem}}
 `;document.head.appendChild(s)}
 
-function friendlyError(e){const m=String(e?.message||e||'');const map={INVALID_THAI_CITIZEN_ID:'เลขประจำตัวประชาชนไม่ถูกต้อง กรุณาตรวจสอบ 13 หลัก',DUPLICATE_MEMBER_REQUEST:'มีคำขอของบุคคลนี้อยู่ระหว่างตรวจสอบแล้ว',PERSON_ALREADY_EXISTS_REVIEW_LINK:'พบบุคคลนี้ในทะเบียนแล้ว กรุณาให้ผู้ดูแลระบบตรวจสอบการเชื่อม',FIRST_NAME_REQUIRED:'กรุณากรอกชื่อ',LAST_NAME_REQUIRED:'กรุณากรอกนามสกุล',HOUSE_OUT_OF_SCOPE:'บัญชีนี้ไม่มีสิทธิ์ดำเนินการกับบ้านนี้',ADMIN_REQUIRED:'ต้องใช้สิทธิ์ผู้ดูแลระบบ',NCD_SCREENING_REQUIRED_FIRST:'ต้องบันทึก NCD Screening ก่อนจึงทำ 9 ด้านต่อได้',NCD_SCREENING_REQUIRED_SAME_DAY:'ยังไม่พบ NCD Screening ของวันนี้ กรุณาบันทึก NCD ก่อน'};return map[m]||(/permission|rls|not authorized/i.test(m)?'ไม่มีสิทธิ์ดำเนินการในข้อมูลนี้':m.replace(/^.*?error:\s*/i,'')||'เกิดข้อผิดพลาด กรุณาลองใหม่')}
+function friendlyError(e){const m=String(e?.message||e||'');if(m.includes('ELDERLY_BASIC_HEALTH_REQUIRED_FIRST'))return 'กรุณาบันทึกตรวจสุขภาพเบื้องต้นก่อนทำ 9 ด้าน โดยปิดแล้วเปิดรายการนี้ใหม่';if(m.includes('ELDERLY_BASIC_HEALTH_NOT_REQUIRED'))return 'สถานะโรคมีการเปลี่ยนแปลง กรุณาปิดแล้วเปิดรายการใหม่';const map={INVALID_THAI_CITIZEN_ID:'เลขประจำตัวประชาชนไม่ถูกต้อง กรุณาตรวจสอบ 13 หลัก',DUPLICATE_MEMBER_REQUEST:'มีคำขอของบุคคลนี้อยู่ระหว่างตรวจสอบแล้ว',PERSON_ALREADY_EXISTS_REVIEW_LINK:'พบบุคคลนี้ในทะเบียนแล้ว กรุณาให้ผู้ดูแลระบบตรวจสอบการเชื่อม',FIRST_NAME_REQUIRED:'กรุณากรอกชื่อ',LAST_NAME_REQUIRED:'กรุณากรอกนามสกุล',HOUSE_OUT_OF_SCOPE:'บัญชีนี้ไม่มีสิทธิ์ดำเนินการกับบ้านนี้',ADMIN_REQUIRED:'ต้องใช้สิทธิ์ผู้ดูแลระบบ',NCD_SCREENING_REQUIRED_FIRST:'ต้องบันทึก NCD Screening ก่อนจึงทำ 9 ด้านต่อได้',NCD_SCREENING_REQUIRED_SAME_DAY:'ยังไม่พบ NCD Screening ของวันนี้ กรุณาบันทึก NCD ก่อน'};return map[m]||(/permission|rls|not authorized/i.test(m)?'ไม่มีสิทธิ์ดำเนินการในข้อมูลนี้':m.replace(/^.*?error:\s*/i,'')||'เกิดข้อผิดพลาด กรุณาลองใหม่')}
 function cidValid(cid){const v=String(cid||'').replace(/\s/g,'');if(!/^\d{13}$/.test(v))return false;let sum=0;for(let i=0;i<12;i++)sum+=Number(v[i])*(13-i);return ((11-(sum%11))%10)===Number(v[12])}
 function statusLabel(s){return({pending:'🟡 กำลังตรวจสอบ',verified:'🟢 ตรวจสอบแล้ว',needs_correction:'🟠 กรุณาตรวจสอบข้อมูล',rejected:'🔴 ไม่สามารถเพิ่มได้'})[s]||s}
 
@@ -575,6 +575,9 @@ function elderlyBasicHealthFormV2140(previous={}){
 }
 async function loadElderlyBasicHealthV2140(root,s){
   const progress=root.querySelector('[data-elderly-progress]'),host=root.querySelector('[data-elderly-wizard]');
+  const {data:session,error:sessionError}=await supabase.from('screening_sessions').select('screening_date').eq('id',s.session_id).single();
+  if(sessionError)throw sessionError;
+  if(session.screening_date<'2026-10-06'){await loadElderlyWizardV207(root,s);return}
   progress.textContent='ตรวจสุขภาพเบื้องต้นก่อนคัดกรองผู้สูงอายุ 9 ด้าน';
   const {data:existing,error}=await supabase.from('elderly9_basic_health_checks_v2140').select('height_cm,weight_kg,waist_cm,sbp,dbp,pulse,respiratory_rate,temperature_c,measured_on').eq('session_id',s.session_id).maybeSingle();
   if(error)throw error;
@@ -705,9 +708,13 @@ async function renderElderlyRoute(root,s,personName){
       const section=root.querySelector('[data-elderly]');
       if(choice)choice.hidden=true;
       if(section)section.hidden=false;
-      if(bothDmHt)await loadElderlyBasicHealthV2140(root,s);
+      if(elderlyBothDmHtV2140(s))await loadElderlyBasicHealthV2140(root,s);
       else await loadElderlyWizardV207(root,s);
     }catch(e){
+      const choice=root.querySelector('[data-elderly-choice]');
+      const section=root.querySelector('[data-elderly]');
+      if(choice)choice.hidden=false;
+      if(section)section.hidden=true;
       showPhcToast(friendlyError(e),'warn',3200);
       btn.disabled=false;
     }

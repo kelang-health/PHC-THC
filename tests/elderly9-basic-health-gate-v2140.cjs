@@ -8,7 +8,7 @@ const sql = fs.readFileSync(path.join(root, 'supabase', 'migrations', '202610061
 
 assert.match(ui, /elderlyBothDmHtV2140\(s\)/, 'UI must distinguish people with both DM and HT');
 assert.match(ui, /save_elderly9_basic_health_v2140/, 'UI must save a same-session basic health exam');
-assert.match(ui, /if\(bothDmHt\)await loadElderlyBasicHealthV2140/, 'both-disease route must pass the basic health gate');
+assert.match(ui, /if\(elderlyBothDmHtV2140\(s\)\)await loadElderlyBasicHealthV2140/, 'both-disease route must pass the basic health gate');
 assert.match(ui, /else await loadElderlyWizardV207/, 'other elderly routes must continue using the existing NCD flow');
 assert.match(ui, /กรุณากรอกค่าที่วัดวันนี้ให้ครบทุกช่อง/, 'all basic measurements must be required');
 assert.match(ui, /ชีพจร.*50–120/, 'pulse warning range must be visible');
