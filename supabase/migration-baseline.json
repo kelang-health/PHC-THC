@@ -1,8 +1,8 @@
 {
   "schema": 2,
   "hash_mode": "sha256_lf_normalized",
-  "latest_version": "20261006062000",
-  "migration_count": 235,
+  "latest_version": "20261006065447",
+  "migration_count": 236,
   "migrations": [
     {
       "version": "20260908121831",
@@ -1413,6 +1413,12 @@
       "name": "elderly9_fiscal_status_v2194",
       "filename": "20261006062000_elderly9_fiscal_status_v2194.sql",
       "sha256": "eac7169b6ce37c8a14d205d9b650a1ef35839bc1ba2ca36443a9aeb905932b74"
+    },
+    {
+      "version": "20261006065447",
+      "name": "optimize_elderly9_report_enqueue_v2195",
+      "filename": "20261006065447_optimize_elderly9_report_enqueue_v2195.sql",
+      "sha256": "5d4d93ea9237eb1d87e718effd530017bac43578f6ff2c992d980554c3839f3d"
     }
   ]
 }
