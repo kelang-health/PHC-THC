@@ -1,8 +1,8 @@
 {
   "schema": 2,
   "hash_mode": "sha256_lf_normalized",
-  "latest_version": "20261004080138",
-  "migration_count": 231,
+  "latest_version": "20261006062000",
+  "migration_count": 232,
   "migrations": [
     {
       "version": "20260908121831",
@@ -1389,6 +1389,12 @@
       "name": "ncd_pulse_cloud_local",
       "filename": "20261004080138_ncd_pulse_cloud_local.sql",
       "sha256": "995632b6b2dc7d1c36e36a9cc901338a0894df240035831aa8a19e0bee31167e"
+    },
+    {
+      "version": "20261006062000",
+      "name": "elderly9_fiscal_status_v2194",
+      "filename": "20261006062000_elderly9_fiscal_status_v2194.sql",
+      "sha256": "eac7169b6ce37c8a14d205d9b650a1ef35839bc1ba2ca36443a9aeb905932b74"
     }
   ]
 }
