@@ -6,6 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Push validation remains parent-relative; historical migration backfills are never bypassed.
+
 PATTERN = re.compile(r"^(\d{14})_([A-Za-z0-9_]+)\.sql$")
 
 
