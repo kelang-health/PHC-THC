@@ -171,6 +171,10 @@ revoke all on function public.screening_followup_count_v2195(text,bigint) from p
 revoke all on function public.screening_followup_worklist_v2195(text,bigint,integer,integer) from public;
 revoke all on function public.report_snapshot_care_v2195(text,bigint) from public;
 
+revoke execute on function public.screening_followup_count_v2195(text,bigint) from anon;
+revoke execute on function public.screening_followup_worklist_v2195(text,bigint,integer,integer) from anon;
+revoke execute on function public.report_snapshot_care_v2195(text,bigint) from anon;
+
 grant execute on function public.screening_followup_count_v2195(text,bigint) to authenticated,service_role;
 grant execute on function public.screening_followup_worklist_v2195(text,bigint,integer,integer) to authenticated,service_role;
 grant execute on function public.report_snapshot_care_v2195(text,bigint) to authenticated,service_role;
