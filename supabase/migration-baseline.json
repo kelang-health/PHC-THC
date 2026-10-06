@@ -1,8 +1,8 @@
 {
   "schema": 2,
   "hash_mode": "sha256_lf_normalized",
-  "latest_version": "20261006065447",
-  "migration_count": 236,
+  "latest_version": "20261006151000",
+  "migration_count": 239,
   "migrations": [
     {
       "version": "20260908121831",
@@ -1419,6 +1419,24 @@
       "name": "optimize_elderly9_report_enqueue_v2195",
       "filename": "20261006065447_optimize_elderly9_report_enqueue_v2195.sql",
       "sha256": "5d4d93ea9237eb1d87e718effd530017bac43578f6ff2c992d980554c3839f3d"
+    },
+    {
+      "version": "20261006144644",
+      "name": "elderly9_basic_health_gate_v2140",
+      "filename": "20261006144644_elderly9_basic_health_gate_v2140.sql",
+      "sha256": "47fda1bf6c092c740b8b3b9cdbd2818d8961a5d5eeb44eb5e0324d165934fd59"
+    },
+    {
+      "version": "20261006150000",
+      "name": "elderly9_basic_health_measured_by_index_v2140",
+      "filename": "20261006150000_elderly9_basic_health_measured_by_index_v2140.sql",
+      "sha256": "c5d5c7e92145a67b8e3850cd3c98dcbb5cdf6a2764bc0066978d4e3bc67b08d5"
+    },
+    {
+      "version": "20261006151000",
+      "name": "elderly9_basic_health_legacy_guard_v2140",
+      "filename": "20261006151000_elderly9_basic_health_legacy_guard_v2140.sql",
+      "sha256": "c22b750560178efd0fb60420f4d181a4f53e9967009e445c9a6cdf931db8739e"
     }
   ]
 }
