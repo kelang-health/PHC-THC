@@ -22,7 +22,7 @@ if (typeof window !== 'undefined') {
       await initTrainingDashboardV2077(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initInteractionFeedback1827 } = await import('./interaction-feedback-v1827.mjs?v=1.8.28');
       await initInteractionFeedback1827();
-      const { initCareDashboard1860 } = await import('./care-dashboard-v1860.mjs?v=2.0.135-special-care-list&p=2175');
+      const { initCareDashboard1860 } = await import('./care-dashboard-v1860.mjs?v=2.0.135-followup-v2195&p=2195');
       await initCareDashboard1860(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initSystemAboutNote1829 } = await import('./system-about-note-v1829.mjs?v=2.0.124&p=2124');
       initSystemAboutNote1829();
