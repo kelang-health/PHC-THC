@@ -1,8 +1,8 @@
 {
   "schema": 2,
   "hash_mode": "sha256_lf_normalized",
-  "latest_version": "20261006151000",
-  "migration_count": 239,
+  "latest_version": "20261006155620",
+  "migration_count": 242,
   "migrations": [
     {
       "version": "20260908121831",
@@ -1437,6 +1437,24 @@
       "name": "elderly9_basic_health_legacy_guard_v2140",
       "filename": "20261006151000_elderly9_basic_health_legacy_guard_v2140.sql",
       "sha256": "c22b750560178efd0fb60420f4d181a4f53e9967009e445c9a6cdf931db8739e"
+    },
+    {
+      "version": "20261006155044",
+      "name": "house_registration_review_v2202",
+      "filename": "20261006155044_house_registration_review_v2202.sql",
+      "sha256": "bc7d6a2099b70764cca0bc7b852df06378922007900070e57de5c2d12b11dc16"
+    },
+    {
+      "version": "20261006155210",
+      "name": "house_id11_audit_cohort_v2202",
+      "filename": "20261006155210_house_id11_audit_cohort_v2202.sql",
+      "sha256": "1d550e099b9a9e171444d657a82a4334a8c149a7628f0a43e6eed887e78bc2aa"
+    },
+    {
+      "version": "20261006155620",
+      "name": "house_review_scope_guard_v2202",
+      "filename": "20261006155620_house_review_scope_guard_v2202.sql",
+      "sha256": "410e529db2ab0d6eff6749f4a63cf9c7061d8cd670becf774726d530f827f691"
     }
   ]
 }
