@@ -2,7 +2,7 @@
   "schema": 2,
   "hash_mode": "sha256_lf_normalized",
   "latest_version": "20261007060500",
-  "migration_count": 248,
+  "migration_count": 249,
   "migrations": [
     {
       "version": "20260908121831",
@@ -1479,6 +1479,12 @@
       "name": "elderly_prior_ncd_v2206",
       "filename": "20261007015001_elderly_prior_ncd_v2206.sql",
       "sha256": "6f875f05346e3117f8a12dfcae81eac7738bda2a424dddb7ad0115f234c40edf"
+    },
+    {
+      "version": "20261007020343",
+      "name": "house_owner_id11_v2207",
+      "filename": "20261007020343_house_owner_id11_v2207.sql",
+      "sha256": "a9fc177121b46a719dbc5b15a27ec8571d1feaa5d9bf7f8e42287998d5d82065"
     },
     {
       "version": "20261007060000",
