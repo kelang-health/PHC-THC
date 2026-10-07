@@ -57,7 +57,10 @@
 
 ## การกู้คืนและสิ่งที่ยังค้าง
 
-- ตรวจถอดรหัส/hash/จำนวนแถวและอ่าน archive แล้ว แต่ยังไม่ทดสอบ restore เข้าฐานข้อมูลใหม่จริง
+- 8 ต.ค. 2026: ทดสอบกู้ TABLE DATA จาก PostgreSQL custom archive ลง PostgreSQL 17.11 แยกบนเครื่องแล้ว Kelang 118 ตาราง 62,368 แถว; Med-device 108 ตาราง 3,216 แถว ค่า COPY ของทุกช่องตรงกัน รวมแถวซ้ำและ NULL โดยใช้ตาราง staging คอลัมน์ text จึงยังไม่ยืนยันชนิดข้อมูล constraints/RLS/functions/extensions หรือบริการ Supabase ครบชุด
+- การทดสอบนี้ใช้ archive PostgreSQL วันที่ 7 ต.ค. จำนวนตาราง/แถวเป็นขอบเขตของ archive นี้ ไม่ใช่จำนวนจาก CSV snapshot ที่สร้างคนละเวลา ผลอยู่ D:/AppServ/private/supabase-free-backups/data-restore-drill-20261008.json และเครื่องมือ D:/AppServ/private/tools/test_data_restore.py
+- ลบฐานข้อมูลทดลองและปิด PostgreSQL ทดลองแล้ว; ยังต้องทดสอบ full restore ในสภาพแวดล้อม Supabase ที่ตรงกัน
+- งาน GitHub ที่ค้างส่งขึ้นสำเร็จแล้ว; PHC-THC Migration Integrity และ Pages ของ commit 67ba29f ผ่าน การตรวจนี้ไม่แก้ migration parity เก่าที่ระบุด้านล่าง
 - PostgreSQL archive ครอบคลุม schema แอปที่ระบุ พร้อม auth/storage/cron/migrations; ไม่ได้สำรอง secret/config ของ Dashboard หรือ source ของ Edge Functions ผ่าน pg_dump ให้เก็บ source/config ที่ควบคุมเวอร์ชันแยกด้วย
 - ไฟล์ Storage ต้องกู้คืนจาก archive ไฟล์แยก; database dump มีเพียง metadata ของไฟล์
 - Database snapshot กับการดาวน์โหลด Storage ไม่ใช่ snapshot เดียวกัน หากมีการแก้ไฟล์ระหว่าง backup ต้องตรวจความสอดคล้อง
