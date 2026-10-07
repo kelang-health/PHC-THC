@@ -31,7 +31,12 @@ def fetch_remote_history(root: Path, project_ref: str):
         print(stdout, file=sys.stderr)
         print(stderr, file=sys.stderr)
         raise RuntimeError("failed to read production migration history")
-    return json.loads(stdout)
+    result = json.loads(stdout)
+    if isinstance(result, dict):
+        result = result.get("rows")
+    if not isinstance(result, list):
+        raise RuntimeError("unexpected Supabase CLI migration query response")
+    return result
 def scan_local(root: Path):
     rows = {}
     errors = []
