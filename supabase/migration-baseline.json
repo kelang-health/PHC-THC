@@ -2,7 +2,7 @@
   "schema": 2,
   "hash_mode": "sha256_lf_normalized",
   "latest_version": "20261007060500",
-  "migration_count": 250,
+  "migration_count": 251,
   "migrations": [
     {
       "version": "20260908121831",
@@ -1491,6 +1491,12 @@
       "name": "show_original_house_id11_v2208",
       "filename": "20261007020646_show_original_house_id11_v2208.sql",
       "sha256": "da5b38dc79ac499a624207d42898d27ca448dcba3d2547411c7bafe63ae78487"
+    },
+    {
+      "version": "20261007021006",
+      "name": "reopen_house_review_v2209",
+      "filename": "20261007021006_reopen_house_review_v2209.sql",
+      "sha256": "bd077ca10a5f96cc8c5def62661e236eb48b6824859a4e6d8d55e9b896580b75"
     },
     {
       "version": "20261007060000",
