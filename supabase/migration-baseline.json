@@ -1,8 +1,8 @@
 {
   "schema": 2,
   "hash_mode": "sha256_lf_normalized",
-  "latest_version": "20261007060500",
-  "migration_count": 251,
+  "latest_version": "20261007144457",
+  "migration_count": 253,
   "migrations": [
     {
       "version": "20260908121831",
@@ -1509,6 +1509,18 @@
       "name": "care_followup_revoke_anon_v2196",
       "filename": "20261007060500_care_followup_revoke_anon_v2196.sql",
       "sha256": "ea49c5b0701a9c510cb1a5e8eba68efefd1aed46161ba04f17f668ac509dce6e"
+    },
+    {
+      "version": "20261007143237",
+      "name": "harden_null_authorization_free_plan",
+      "filename": "20261007143237_harden_null_authorization_free_plan.sql",
+      "sha256": "907276e03fbc137f1ef25af095c2a1493a53ea293ebf875775c6ec95c8eb1b24"
+    },
+    {
+      "version": "20261007144457",
+      "name": "add_foreign_key_indexes_and_cache_primary_key",
+      "filename": "20261007144457_add_foreign_key_indexes_and_cache_primary_key.sql",
+      "sha256": "4f25ea00c5e05733ac51b67ae6d7a47faed13e4bae39a6d5179d4c4ca1d0774b"
     }
   ]
 }
