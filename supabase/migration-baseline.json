@@ -1,8 +1,8 @@
 {
   "schema": 2,
   "hash_mode": "sha256_lf_normalized",
-  "latest_version": "20261006155620",
-  "migration_count": 242,
+  "latest_version": "20261007060500",
+  "migration_count": 245,
   "migrations": [
     {
       "version": "20260908121831",
@@ -1455,6 +1455,24 @@
       "name": "house_review_scope_guard_v2202",
       "filename": "20261006155620_house_review_scope_guard_v2202.sql",
       "sha256": "410e529db2ab0d6eff6749f4a63cf9c7061d8cd670becf774726d530f827f691"
+    },
+    {
+      "version": "20261007000239",
+      "name": "ncd_field_followup_v2203",
+      "filename": "20261007000239_ncd_field_followup_v2203.sql",
+      "sha256": "3aa41f7960ab17b756569c111656c15ad207c2e2fb5f2a9383d7862d13dcb3ab"
+    },
+    {
+      "version": "20261007060000",
+      "name": "care_followup_overview_v2195",
+      "filename": "20261007060000_care_followup_overview_v2195.sql",
+      "sha256": "c53c5f226b4355de433e66eec6b50b9dcf420021031a446771d6e0b71512e7b5"
+    },
+    {
+      "version": "20261007060500",
+      "name": "care_followup_revoke_anon_v2196",
+      "filename": "20261007060500_care_followup_revoke_anon_v2196.sql",
+      "sha256": "ea49c5b0701a9c510cb1a5e8eba68efefd1aed46161ba04f17f668ac509dce6e"
     }
   ]
 }
