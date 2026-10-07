@@ -605,10 +605,15 @@ async function loadElderlyBasicHealthV2140(root,s){
   form.querySelectorAll('input[type="number"]').forEach(input=>input.addEventListener('input',()=>{delete form.dataset.warningConfirmed;warning.hidden=true}));
 }
 async function renderElderlyRoute(root,s,personName){
+  const {data:reference,error:referenceError}=await supabase.rpc('elderly_ncd_reference_v2206',{p_source_pcucode:s.source_pcucode,p_source_pid:Number(s.source_pid),p_day:thaiDayV208()});
+  if(referenceError)throw referenceError;
+  if(reference?.ncd_screening_id){Object.assign(s,reference);s.ncd_status='complete';s.elderly_prior_ncd=true;}
   const ready=['complete','not_required'].includes(String(s.ncd_status||''));
   const noNcdTarget=s.ncd_status==='not_required'||(!s.dm_target&&!s.ht_target);
-  const bothDmHt=elderlyBothDmHtV2140(s);
-  const state=noNcdTarget
+  const bothDmHt=elderlyBothDmHtV2140(s)&&!s.elderly_prior_ncd;
+  const state=s.elderly_prior_ncd
+    ?'🟢 มีข้อมูล NCD แล้ว · วันที่ '+fmt(s.ncd_reference_date)
+    :noNcdTarget
     ?'🟡 มี DM + HT เดิม · ต้องตรวจสุขภาพเบื้องต้นวันนี้ก่อน 9 ด้าน'
     :s.ncd_status==='complete'
       ?'🟢 NCD เรียบร้อยแล้ว'
@@ -663,7 +668,7 @@ async function renderElderlyRoute(root,s,personName){
   root.innerHTML=`<section class="phc190-step"><h3>ขั้นที่ 1 · NCD Screening</h3><p data-ncd-state>${esc(state)}</p>${ready?'':`<button class="phc190-primary" data-open-ncd>${esc(ncdActionLabelV2117(s))}</button><button class="phc190-secondary" data-check-ncd>ตรวจสอบ NCD ที่บันทึกในปีงบประมาณนี้</button>`}</section>
   <section class="phc190-step" data-elderly-choice ${ready?'':'hidden'}>
     <h3>${doneCount?'คัดกรองผู้สูงอายุ 9 ด้านต่อหรือไม่?':'จะคัดกรองผู้สูงอายุ 9 ด้านต่อหรือไม่?'}</h3>
-    <div class="phc190-note">${bothDmHt?'มีทั้งเบาหวานและความดัน: ระบบจะให้บันทึกตรวจสุขภาพเบื้องต้นของวันนี้ก่อนเริ่ม 9 ด้าน':'ใช้ค่าตรวจร่างกายจาก NCD ที่บันทึกวันนี้ แล้วเริ่มคัดกรอง 9 ด้านได้'} สามารถพักไว้ก่อนและกลับมาทำภายหลังได้</div>
+    <div class="phc190-note">${bothDmHt?'มีทั้งเบาหวานและความดัน และยังไม่มีข้อมูล NCD: บันทึกตรวจสุขภาพเบื้องต้นวันนี้ก่อนเริ่ม 9 ด้าน':`ใช้ข้อมูล NCD ที่เคยบันทึก${s.ncd_reference_date?' วันที่ '+esc(fmt(s.ncd_reference_date)):''} ทำ 9 ด้านต่อได้แม้คนละวัน`} สามารถพักไว้ก่อนและกลับมาทำภายหลังได้</div>
     ${doneCount? `<div class="phc190-note"><strong>ทำแล้ว ${doneCount}/9 ด้าน</strong> · กด “ทำต่อ” เพื่อทำจากจุดเดิม</div>`:''}
     <div class="phc190-actions">
       <button type="button" class="phc190-primary" data-elderly-continue>${doneCount?`ทำ 9 ด้านต่อ (${doneCount}/9)`:'ทำ 9 ด้านต่อเลย'}</button>
@@ -698,9 +703,10 @@ async function renderElderlyRoute(root,s,personName){
     const btn=e.currentTarget;
     btn.disabled=true;
     try{
+      const referenceId=s.elderly_prior_ncd?s.ncd_screening_id:null;
       await ensureScreeningSessionV2023(s);
-      if(s.ncd_status==='complete'&&s.ncd_screening_id){
-        const {data,error}=await supabase.rpc('attach_ncd_to_screening_session_v190',{p_session_id:s.session_id,p_ncd_screening_id:s.ncd_screening_id});
+      if(referenceId||(s.ncd_status==='complete'&&s.ncd_screening_id)){
+        const {data,error}=await supabase.rpc('attach_ncd_to_screening_session_v190',{p_session_id:s.session_id,p_ncd_screening_id:referenceId||s.ncd_screening_id});
         if(error)throw error;
         Object.assign(s,data||{});
       }
@@ -708,7 +714,7 @@ async function renderElderlyRoute(root,s,personName){
       const section=root.querySelector('[data-elderly]');
       if(choice)choice.hidden=true;
       if(section)section.hidden=false;
-      if(elderlyBothDmHtV2140(s))await loadElderlyBasicHealthV2140(root,s);
+      if(elderlyBothDmHtV2140(s)&&!s.elderly_prior_ncd)await loadElderlyBasicHealthV2140(root,s);
       else await loadElderlyWizardV207(root,s);
     }catch(e){
       const choice=root.querySelector('[data-elderly-choice]');

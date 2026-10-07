@@ -2,7 +2,7 @@
   "schema": 2,
   "hash_mode": "sha256_lf_normalized",
   "latest_version": "20261007060500",
-  "migration_count": 245,
+  "migration_count": 248,
   "migrations": [
     {
       "version": "20260908121831",
@@ -1461,6 +1461,24 @@
       "name": "ncd_field_followup_v2203",
       "filename": "20261007000239_ncd_field_followup_v2203.sql",
       "sha256": "3aa41f7960ab17b756569c111656c15ad207c2e2fb5f2a9383d7862d13dcb3ab"
+    },
+    {
+      "version": "20261007001304",
+      "name": "ncd_field_local_report_v2204",
+      "filename": "20261007001304_ncd_field_local_report_v2204.sql",
+      "sha256": "d9f04bcd4ac9927c5fece582ff7200dca7d7bd09e88932cfd7549073e2d21e81"
+    },
+    {
+      "version": "20261007013824",
+      "name": "local_clinical_delta_v2205",
+      "filename": "20261007013824_local_clinical_delta_v2205.sql",
+      "sha256": "f8401918728f4d2d32b11f48389a04bbf3439c44ee60222581c66d71ef8b9b63"
+    },
+    {
+      "version": "20261007015001",
+      "name": "elderly_prior_ncd_v2206",
+      "filename": "20261007015001_elderly_prior_ncd_v2206.sql",
+      "sha256": "6f875f05346e3117f8a12dfcae81eac7738bda2a424dddb7ad0115f234c40edf"
     },
     {
       "version": "20261007060000",
