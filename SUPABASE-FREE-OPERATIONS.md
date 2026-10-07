@@ -65,10 +65,21 @@
 - ไฟล์ Storage ต้องกู้คืนจาก archive ไฟล์แยก; database dump มีเพียง metadata ของไฟล์
 - Database snapshot กับการดาวน์โหลด Storage ไม่ใช่ snapshot เดียวกัน หากมีการแก้ไฟล์ระหว่าง backup ต้องตรวจความสอดคล้อง
 - การ restore จริงควรทำบน Supabase/Postgres สภาพแวดล้อมแยกที่มี extensions/roles/schema ที่ตรงกัน ห้ามลอง restore ทับ production เพื่อพิสูจน์ว่า backup ใช้ได้
-- ยังไม่ยืนยัน MAU/egress, paid addons และ Billing ก่อน downgrade ให้ดู Organization Billing/Usage ตรวจ 2 active projects และ addons แล้วอ่านผลกระทบบนหน้าลดแพ็กเกจ
+- ภาพ Usage ที่ผู้ใช้ส่ง 8 ต.ค. ยืนยันรอบ 5 ต.ค.–5 พ.ย.: MAU 141, Storage 0.047 GB, Egress 1.265 GB, Cached Egress 0.093 GB, Edge invocations 1,126 แต่ยังไม่ครบเดือนและยังไม่ยืนยัน paid addons/Billing ทั้งหมด; Egress ใช้ประมาณ 25.3% ของ Free 5 GB แล้ว ไม่คาดการณ์ยอดทั้งเดือนจากข้อมูลช่วงสั้น
 - คำเตือน SECURITY DEFINER 149 รายการยังอยู่ เพราะ RPC ใช้สิทธิ์เจ้าของฟังก์ชัน การแก้ NULL ไม่ทำให้ชนิดฟังก์ชันเปลี่ยน ยังไม่ได้รับรองฟังก์ชันทั้ง 149 รายการว่าปลอดภัยครบทุกเส้นทาง
 - คำเตือน RLS ไม่มี policy 27/28 ตาราง และ unused index ยังอยู่ตามการใช้งาน backend/สถิติ อย่าลบ index ใหม่ทันทีเพราะยังไม่มีสถิติใช้งาน
 - งานนี้ไม่ได้เปลี่ยนแพ็กเกจจริงและไม่รับรองว่าไม่มีบิลค้างจากรอบ Pro เดิม
 - ประวัติ migration เก่าของ PHC-THC ยังมี remote-only 29 รายการ และ historical-local-only 20 รายการจากก่อนงานนี้ เครื่องมือตรวจพบและป้องกัน db push; migration ใหม่ของงานนี้ตรงกับ Production แล้ว ต้องทบทวน/เก็บสำเนารายการเก่าก่อนปรับ parity ไม่แก้ประวัติฐานข้อมูลจริงเพื่อกลบความต่าง
 - ผลสำรองที่ตรวจครบ: kelang-health 120 ตาราง 77,461 แถว และ Storage 523 ไฟล์; med-device-sharing 110 ตาราง 3,409 แถว และ Storage 75 ไฟล์ มี PostgreSQL custom archives ที่อ่านทุกส่วนผ่านและ data/Storage archives ที่ตรวจ hash/จำนวนแถวผ่าน
 - รอบทดสอบ cache ใช้ไฟล์เดิมครบ 523/75 ไฟล์ ลดการดาวน์โหลดไฟล์ที่ไม่เปลี่ยน แต่ยังมี egress ของข้อมูลฐานข้อมูลและ metadata ในแต่ละรอบ
+
+## ผลดำเนินการเพิ่มเติม 8 ต.ค. 2026
+
+- ทดสอบ pre-data → data → post-data บน PostgreSQL 17.11 แยก: Med-device ผ่านทั้งสามขั้น กู้ 108 ตาราง/3,216 แถวตามชนิดข้อมูลจริง และเปรียบเทียบค่า COPY ทุกช่องตรงกับ archive; ไม่ได้กู้ owners/grants จึงยังไม่ยืนยันพฤติกรรม RLS ภายใต้สิทธิ์จริงหรือบริการ Supabase Auth/Storage
+- Kelang หยุดที่ pre-data เพราะไม่มีชนิด extensions.geometry ของ PostGIS ในเครื่องทดสอบ ไม่ใช่ข้อผิดพลาด checksum ของ backup; ต้องใช้สภาพแวดล้อมแยกที่มีส่วนเสริมตรงกันก่อนทดสอบต่อ ห้ามสร้างชนิดข้อมูลปลอมเพื่อให้ restore ผ่าน
+- เพิ่ม backup_recovery_catalog.py และเรียกก่อน backup ใน run_supabase_free_backup.ps1: เก็บ extensions, roles, role memberships, schema owners/ACL และเวอร์ชันเซิร์ฟเวอร์แบบเข้ารหัส ตรวจถอดรหัสผ่าน Kelang 8 extensions/31 roles; Med-device 7 extensions/32 roles ไม่เก็บ role passwords หรือ Dashboard secrets และรายการ roles ไม่ใช่คำสั่งให้สร้างสิทธิ์สูงบนเครื่องอื่นโดยอัตโนมัติ
+- ตรวจ inventory public SECURITY DEFINER ที่ authenticated เรียกได้ 149 ฟังก์ชัน: anon เรียกไม่ได้ทั้ง 149; พบ 9 ตัวที่ไม่มีข้อความตรวจสิทธิ์โดยตรง ตรวจ source แล้ว 8 ตัวส่งต่อไปฟังก์ชันอื่น และอีก 1 ตัวเป็น API เก่าที่ raise exception โดยไม่มีการอ่าน/เขียนข้อมูล
+- ทดสอบ RPC ที่ส่งต่อ 6 ตัวด้วย JWT ไม่มี active profile ใน transaction read-only: ปฏิเสธครบ 6 ตัว ส่วน wrapper พิกัดอีก 2 ตัวปฏิเสธ input NULL ก่อนถึง authorization จึงไม่นับเป็นการผ่านทดสอบสิทธิ์ missing-profile; source ของฟังก์ชันปลายทางมีการปฏิเสธ current_role NULL แต่ยังต้องทดสอบขอบเขตสิทธิ์ด้วยข้อมูล/บทบาทครบ
+- ไม่รับรองว่า RPC ทั้ง 149 ปลอดภัยครบทุกเส้นทางจากการค้นข้อความหรือการทดสอบกลุ่มนี้ ยังต้องทดสอบต่างเจ้าของ/ต่างชุมชน/บัญชีถูกปิดและบทบาทที่อนุญาต
+- ผลทดสอบ: D:/AppServ/private/supabase-free-backups/schema-restore-drill-20261008.json และ rpc-audit-summary-20261008.json; log/schema inventory/RPC definitions เก็บเข้ารหัส แยกจากเอกสารสาธารณะ
+- ลบฐานข้อมูลทดลองหลังทุกการทดสอบและปิดเซิร์ฟเวอร์ทดลองแล้ว ไม่เปลี่ยน schema/data/Billing ของ production ในรอบนี้; ที่เก็บนอกเครื่องรอผู้ใช้แจ้งเวลา 09.00 น.
