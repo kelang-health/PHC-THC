@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "generated_date": "2026-09-25",
+  "purpose": "metadata-only production schema parity target for future isolated replay",
+  "recorded_migrations": 191,
+  "contract_objects": 852,
+  "categories": {
+    "table": 59,
+    "constraint": 254,
+    "function": 181,
+    "policy": 42,
+    "index": 158,
+    "grant": 158
+  },
+  "contract_sha256": "8dc4c4aeed9d96fe63c12a06db138b1b1071d4ac79ec7b0e2093b52b3cc7b935",
+  "contains_object_names": false,
+  "contains_sql_bodies": false,
+  "contains_policy_expressions": false,
+  "contains_default_expressions": false,
+  "contains_personal_data": false,
+  "release_rule": "A future real migration release must replay in isolation, generate the same metadata contract algorithm, and pass parity plus role/API regression before Production approval."
+}
