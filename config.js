@@ -42,4 +42,4 @@ if (typeof window !== 'undefined') {
 if(typeof window!=="undefined") import("./house-registration-review-v2202.mjs?v=2.0.158-original-number&p=2208").then(m=>m.initHouseRegistrationReview2202(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY)).catch(()=>{});
 
 // Independent NCD field capture; overview and existing follow-up work remain usable.
-if(typeof window!=="undefined") import("./ncd-field-followup-v2203.mjs?v=2213").then(m=>m.initNcdFieldFollowup2203(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY)).catch(()=>{});
+if(typeof window!=="undefined") import("./ncd-field-followup-v2203.mjs?v=2.0.162-ncd-exclusion&p=2215").then(m=>m.initNcdFieldFollowup2203(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY)).catch(()=>{});

@@ -1,8 +1,8 @@
 {
   "schema": 2,
   "hash_mode": "sha256_lf_normalized",
-  "latest_version": "20261007144457",
-  "migration_count": 253,
+  "latest_version": "20261012073646",
+  "migration_count": 254,
   "migrations": [
     {
       "version": "20260908121831",
@@ -1521,6 +1521,12 @@
       "name": "add_foreign_key_indexes_and_cache_primary_key",
       "filename": "20261007144457_add_foreign_key_indexes_and_cache_primary_key.sql",
       "sha256": "4f25ea00c5e05733ac51b67ae6d7a47faed13e4bae39a6d5179d4c4ca1d0774b"
+    },
+    {
+      "version": "20261012073646",
+      "name": "ncd_followup_exclude_diagnosed_v2215",
+      "filename": "20261012073646_ncd_followup_exclude_diagnosed_v2215.sql",
+      "sha256": "b9af25f51efa05b0cf2b9d37e64394ff235420cef1070949dd01d98095bfb1fc"
     }
   ]
 }
