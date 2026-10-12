@@ -1,4 +1,4 @@
-import { openFollowupCenter } from './screening-followup-center-v2213.mjs?v=2213';
+import { openFollowupCenter } from './screening-followup-center-v2213.mjs?v=2214';
 import { getSharedSupabase, getSharedProfile, sharedCall, bindPortalActivation, isPortalViewActive } from './shared-runtime-v2035.mjs?v=2.0.35';
 const VERSION='2.0.59';
 const PAGE_SIZE=50;
