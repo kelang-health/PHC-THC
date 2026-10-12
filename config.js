@@ -22,7 +22,7 @@ if (typeof window !== 'undefined') {
       await initTrainingDashboardV2077(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initInteractionFeedback1827 } = await import('./interaction-feedback-v1827.mjs?v=1.8.28');
       await initInteractionFeedback1827();
-      const { initCareDashboard1860 } = await import('./care-dashboard-v1860.mjs?v=2.0.160-followup-center&p=2213');
+      const { initCareDashboard1860 } = await import('./care-dashboard-v1860.mjs?v=2.0.161-staff-alerts&p=2214');
       await initCareDashboard1860(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initSystemAboutNote1829 } = await import('./system-about-note-v1829.mjs?v=2.0.124&p=2124');
       initSystemAboutNote1829();
@@ -30,7 +30,7 @@ if (typeof window !== 'undefined') {
       await initCommunityHouseholdQuality1831(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initPHCFiveFeatures190 } = await import('./phc-five-features-v190.mjs?v=2.0.156-elderly-prior-ncd&p=2206');
       await initPHCFiveFeatures190(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initFieldWorkReportingV200 } = await import('./field-work-reporting-v200.mjs?v=2213');
+      const { initFieldWorkReportingV200 } = await import('./field-work-reporting-v200.mjs?v=2214');
       await initFieldWorkReportingV200(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initCoordinateAuditV2132 } = await import('./coordinate-audit-v2132.mjs?v=2.0.133-mobile-map-focus&p=2171');
       await initCoordinateAuditV2132(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
