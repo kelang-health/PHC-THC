@@ -1,4 +1,4 @@
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.155-field-followup&p=2203';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.163-supabase-load&p=2216';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 import { getSharedSupabase, setSharedSession, setSharedProfile, clearSharedAuth, sharedCall, invalidateShared, ensureSharedSession, refreshSharedSession, isSharedAuthError } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
 
@@ -1325,6 +1325,8 @@ function summarizeMyHousesV2029(rows,fallbackCommunity=''){
 }
 
 async function getProfile(userId){
+  // Combine only concurrent profile reads; preserve fresh checks and existing retry behavior.
+  return sharedCall('portal-profile:'+userId, async()=>{
   let lastError=null;
   for(let attempt=0;attempt<2;attempt++){
     const {data,error}=await supabase.from('profiles').select('user_id,display_name,role,community,volunteer_pid,active,must_change_password').eq('user_id',userId).maybeSingle();
@@ -1335,6 +1337,7 @@ async function getProfile(userId){
     await new Promise(resolve=>setTimeout(resolve,220));
   }
   throw lastError||new Error('ไม่สามารถอ่านโปรไฟล์ได้');
+  },0);
 }
 
 function renderVolunteerRowsV2116(rows){
