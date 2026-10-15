@@ -292,6 +292,7 @@ function watchAdminMemberQueueV2147(body){
           body.querySelectorAll('[data-admin-request]').forEach(card=>{
             if(!pending.has(card.dataset.adminRequest))card.remove();
           });
+          renumberMemberQueue(body);
           if(!body.querySelector('[data-admin-request]')){
             body.querySelector('.phc190-request-list').textContent='ไม่มีคำขอรอตรวจ';
           }
@@ -303,13 +304,25 @@ function watchAdminMemberQueueV2147(body){
   return()=>clearTimeout(timer);
 }
 
+export function sortMemberRequestsFIFO(rows){
+  const time=r=>{const n=Date.parse(r.created_at||'');return Number.isFinite(n)?n:Infinity;};
+  return [...rows].sort((a,b)=>{const x=time(a),y=time(b);return (x===y?0:x<y?-1:1)||String(a.id||'').localeCompare(String(b.id||''));});
+}
+export function memberSubmittedAt(value){
+  const date=new Date(value||'');
+  return Number.isFinite(date.getTime())?new Intl.DateTimeFormat('th-TH',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Bangkok'}).format(date):'ไม่ระบุเวลาส่ง';
+}
+function renumberMemberQueue(body){
+  body.querySelectorAll('[data-admin-request]').forEach((card,i)=>{const rank=card.querySelector('[data-member-rank]');if(rank)rank.textContent='คิวที่ '+(i+1);});
+  const total=body.querySelector('[data-member-queue-total]');if(total)total.textContent=String(body.querySelectorAll('[data-admin-request]').length);
+}
 async function renderAdminMemberQueue(){
   const body=openModal('คำขอเพิ่มสมาชิกที่รอตรวจ','แสดงเฉพาะคำขอที่ยังต้องตัดสินใจ เมื่อยืนยัน ส่งกลับแก้ไข หรือยกเลิกแล้ว รายการจะออกจากคิว แต่ยังเก็บประวัติไว้');
   body.innerHTML='<div class="phc190-note">กำลังโหลด…</div>';
   const {data,error}=await sharedCall('admin-work-member-v2109',()=>supabase.rpc('admin_pending_member_requests_v2109'),120000);
   if(error){body.innerHTML=`<div class="phc190-error">${esc(friendlyError(error))}</div>`;return}
-  const rows=data||[];
-  body.innerHTML=`<div class="phc190-request-list">${rows.map(r=>`<article class="phc190-request" data-admin-request="${esc(r.id)}"><strong>${esc(r.full_name)}</strong><small>บ้าน ${esc(r.house_no)} · ${esc(r.community)} · ${esc(r.masked_citizen_id)} · เกิด ${esc(fmt(r.birth_date))}</small><small class="phc190-requester">ผู้แจ้ง: <strong>${esc(r.requester_name||'ไม่ระบุ')}</strong> · ชุมชนผู้แจ้ง: <strong>${esc(r.requester_community||'ไม่ระบุ')}</strong></small>${r.requester_line_connected&&r.requester_user_id?'<button type="button" class="phc190-secondary phc190-line-contact" data-line-contact>ติดต่อผู้แจ้งทาง LINE</button>':'<small class="phc190-line-unavailable">ผู้แจ้งยังไม่เชื่อม LINE</small>'}<div data-line-compose></div><div class="phc190-actions"><button class="phc190-secondary" data-sensitive>ดูเลขเพื่อเทียบ</button><button class="phc190-secondary" data-match>ค้นหาบุคคลเดิม</button></div><div class="phc190-actions"><button class="phc190-primary" data-verify>ยืนยันข้อมูล / รอ Sync</button><button class="phc190-secondary" data-correct>ขอแก้ไข</button></div><button class="phc190-secondary phc190-danger" data-cancel>ยกเลิกคำขอ</button><div data-detail></div></article>`).join('')||'<div class="phc190-note">ไม่มีคำขอรอตรวจ</div>'}</div>`;
+  const rows=sortMemberRequestsFIFO(data||[]);
+  body.innerHTML=`<div class="phc190-note">เรียงตามเวลาส่งก่อน → หลัง · รอตรวจ <strong data-member-queue-total>${rows.length}</strong> รายการ</div><div class="phc190-request-list">${rows.map((r,index)=>`<article class="phc190-request" data-admin-request="${esc(r.id)}"><div class="phc190-note"><strong data-member-rank>คิวที่ ${index+1}</strong> · ส่งเมื่อ ${esc(memberSubmittedAt(r.created_at))}</div><strong>${esc(r.full_name)}</strong><small>บ้าน ${esc(r.house_no)} · ${esc(r.community)} · ${esc(r.masked_citizen_id)} · เกิด ${esc(fmt(r.birth_date))}</small><small class="phc190-requester">ผู้แจ้ง: <strong>${esc(r.requester_name||'ไม่ระบุ')}</strong> · ชุมชนผู้แจ้ง: <strong>${esc(r.requester_community||'ไม่ระบุ')}</strong></small>${r.requester_line_connected&&r.requester_user_id?'<button type="button" class="phc190-secondary phc190-line-contact" data-line-contact>ติดต่อผู้แจ้งทาง LINE</button>':'<small class="phc190-line-unavailable">ผู้แจ้งยังไม่เชื่อม LINE</small>'}<div data-line-compose></div><div class="phc190-actions"><button class="phc190-secondary" data-sensitive>ดูเลขเพื่อเทียบ</button><button class="phc190-secondary" data-match>ค้นหาบุคคลเดิม</button></div><div class="phc190-actions"><button class="phc190-primary" data-verify>ยืนยันข้อมูล / รอ Sync</button><button class="phc190-secondary" data-correct>ขอแก้ไข</button></div><button class="phc190-secondary phc190-danger" data-cancel>ยกเลิกคำขอ</button><div data-detail></div></article>`).join('')||'<div class="phc190-note">ไม่มีคำขอรอตรวจ</div>'}</div>`;
   watchAdminMemberQueueV2147(body);
   body.querySelectorAll('[data-admin-request]').forEach(card=>{
     const id=card.dataset.adminRequest,box=card.querySelector('[data-detail]');

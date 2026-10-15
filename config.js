@@ -28,7 +28,7 @@ if (typeof window !== 'undefined') {
       initSystemAboutNote1829();
       const { initCommunityHouseholdQuality1831 } = await import('./community-household-quality-v1831.mjs?v=2.0.159-hide-residence-menu&p=2212');
       await initCommunityHouseholdQuality1831(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initPHCFiveFeatures190 } = await import('./phc-five-features-v190.mjs?v=2.0.164-admin-house-count&p=2217');
+      const { initPHCFiveFeatures190 } = await import('./phc-five-features-v190.mjs?v=2.0.165-member-fifo&p=2218');
       await initPHCFiveFeatures190(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initFieldWorkReportingV200 } = await import('./field-work-reporting-v200.mjs?v=2214');
       await initFieldWorkReportingV200(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
