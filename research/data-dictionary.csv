@@ -1,0 +1,26 @@
+study_id,variable_name,label_th,definition,data_type,allowed_values_or_format,unit_of_analysis,proposed_source,privacy_class,approval_note
+ALL,study_record_code,รหัสระเบียนวิจัย,รหัสสุ่มไม่ฝัง PID HN หรือรหัสบ้านจริง,text,ไม่ซ้ำในโครงการ,ระเบียน,สร้างโดยทีมวิจัย,pseudonymous,แยกเก็บกุญแจเชื่อมโยง
+ALL,period_code,รหัสช่วงเวลา,ช่วงก่อนหลังหรือเดือน/ไตรมาส,text,PRE POST หรือ YYYY-MM,ช่วงเวลา,โครงร่างวิจัย,low,กำหนดก่อนเก็บ
+R1,workflow_name,กระบวนงาน,กระบวนงานที่อยู่ในขอบเขตประเมิน,category,ตามคู่มือวิจัย,กระบวนงาน,OSM-PHC หรือบันทึกงาน,low,กำหนดรายการ
+R1,task_type,ประเภทภารกิจ,ชนิดภารกิจที่วัดเวลาและความครบถ้วน,category,คัดกรอง มอบหมาย ติดตาม เยี่ยมบ้าน อื่นๆ,ภารกิจ,บันทึกงาน,low,กำหนดรายการ
+R1,target_group_code,กลุ่มเป้าหมาย,รหัสหมวดไม่มีตัวระบุบุคคล,category,ตามเกณฑ์ที่อนุมัติ,ระเบียน,ทะเบียนที่ได้รับอนุญาต,sensitive-derived,ทบทวนจริยธรรม
+R1/R3,community_code,รหัสชุมชน,อ่านช่องชุมชนของบ้าน JHCIS ที่ตรวจแล้วเท่านั้น,text,ใช้รหัสแทนชื่อเมื่อเหมาะสม,ชุมชน,house.communityno เชื่อม villagecommunity.communityno,potentially identifying,ห้ามอนุมานจากชื่อหมู่และระวังกลุ่มขนาดเล็ก
+R1/R3,assigned_role_code,บทบาทผู้รับผิดชอบ,รหัสบทบาทไม่ใช้ชื่อบุคลากรหรือ อสม.,category,เจ้าหน้าที่ อสม. ทีมร่วม,ผู้รับผิดชอบ,OSM-PHC,low,กำหนดรายการ
+R1,assigned_date/due_date/completed_date,วันที่งาน,วันมอบหมาย ครบกำหนด และเสร็จงาน,date,YYYY-MM-DD,งาน,OSM-PHC log,low,ตรวจ timestamp และนิยาม
+R1,status,สถานะงาน,สถานะเมื่อถึงเวลาตัดข้อมูล,category,คงค้าง เสร็จ ยกเลิก รอตรวจ,งาน,OSM-PHC,low,กำหนดวันตัดข้อมูล
+R1,data_complete,ข้อมูลครบ,ผลตรวจฟิลด์จำเป็นครบตามเกณฑ์,boolean,Y/N/NA,งาน,ตรวจแบบบันทึก,low,กำหนดฟิลด์จำเป็น
+R1,duplicate_or_rework,งานซ้ำหรือแก้ซ้ำ,มีรายการซ้ำหรือทำงานซ้ำตามนิยาม,boolean,Y/N/NA,งาน,ระบบหรือการตรวจทาน,low,นิยามก่อนเริ่ม
+R1,issue_category,หมวดปัญหา,ปัญหาในกระบวนการโดยไม่บรรยายตัวบุคคล,category,ข้อมูลไม่ครบ ซ้ำ ล่าช้า ระบบ อื่นๆ,งาน,บันทึกปัญหา,low,กำหนดรายการ
+R2,age_band,ช่วงอายุ,จัดกลุ่มอายุไม่เก็บวันเกิดเต็ม,category,"35-44;45-54;55-59;60-69;70-79;80+",บุคคล,ทะเบียนที่ได้รับอนุญาต,sensitive-derived,ปรับตามนิยามวิจัย
+R2,target_eligible,เข้าเกณฑ์,เข้าเกณฑ์คัดกรองตามนิยามที่อนุมัติ,boolean,Y/N/NA,บุคคล,เกณฑ์บริการและวิจัย,sensitive,ยืนยันเกณฑ์
+R2,screening_due_date/screening_date,วันคัดกรอง,วันที่กำหนดและวันที่คัดกรองจริง,date,YYYY-MM-DD,บุคคล,บริการหรือ OSM-PHC,sensitive,ยืนยันรอบบริการ
+R2,screening_status,สถานะคัดกรอง,ผลการคัดกรองตามนิยามวิจัย,category,ครบ ยังไม่ครบ ปฏิเสธ ติดต่อไม่ได้ NA,บุคคล,บันทึกบริการ,sensitive,นิยามในโครงร่าง
+R2,risk_category,ระดับความเสี่ยง,หมวดผลตามแนวทางโดยลดรายละเอียดผลตรวจเท่าที่ทำได้,category,ปกติ เสี่ยง สูง ประเมินเพิ่ม NA,บุคคล,ผลที่ได้รับอนุญาต,sensitive,ผู้เชี่ยวชาญกำหนด
+R2,followup_due_date/followup_date,วันติดตาม,วันครบกำหนดและวันที่ติดตามจริง,date,YYYY-MM-DD,บุคคล,บริการหรือ OSM-PHC,sensitive,กำหนดเกณฑ์
+R2,followup_status,สถานะติดตาม,ผลการติดตาม,category,เสร็จ คงค้าง ติดต่อไม่ได้ ส่งต่อ NA,บุคคล,บริการหรือ OSM-PHC,sensitive,กำหนดรายการ
+R2/R3,referral_indicated/referral_completed,การส่งต่อ,มีข้อบ่งชี้และส่งต่อสำเร็จตามนิยามหรือไม่,boolean,Y/N/NA,กรณีดูแล,บันทึกส่งต่อ,sensitive,กำหนดหลักฐาน
+R3,household_group_code,รหัสกลุ่มครัวเรือน,รหัสสุ่มไม่ใช้ HCODE HID เลขที่บ้านหรือพิกัด,text,สุ่มและไม่ย้อนกลับ,ครัวเรือน,สร้างโดยทีมวิจัย,potentially identifying,ห้ามเก็บกุญแจใน Sheet
+R3,assigned_date/visit_due_date/visit_date,วันเยี่ยมบ้าน,วันมอบหมาย กำหนดเยี่ยม และวันเยี่ยมจริง,date,YYYY-MM-DD,งาน,OSM-PHC หรือบันทึกบริการ,sensitive,ยืนยัน timestamp
+R3,visit_status,สถานะเยี่ยม,ผลการดำเนินงานเยี่ยมบ้าน,category,เสร็จ คงค้าง ติดต่อไม่ได้ เลื่อน NA,งาน,OSM-PHC,sensitive,กำหนดนิยาม
+R3,assessment_complete,ประเมินครบ,ครบองค์ประกอบตามแบบประเมินหรือไม่,boolean,Y/N/NA,งาน,แบบประเมิน,sensitive,กำหนดองค์ประกอบ
+R3,followup_needed/followup_completed,ติดตามต่อ,จำเป็นต้องติดตามและติดตามเสร็จตามนิยามหรือไม่,boolean,Y/N/NA,งาน,OSM-PHC หรือบริการ,sensitive,กำหนดช่วงเวลา
