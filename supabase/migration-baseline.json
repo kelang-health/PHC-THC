@@ -1,8 +1,8 @@
 {
   "schema": 2,
   "hash_mode": "sha256_lf_normalized",
-  "latest_version": "20261012073646",
-  "migration_count": 254,
+  "latest_version": "20261018041756",
+  "migration_count": 257,
   "migrations": [
     {
       "version": "20260908121831",
@@ -1527,6 +1527,24 @@
       "name": "ncd_followup_exclude_diagnosed_v2215",
       "filename": "20261012073646_ncd_followup_exclude_diagnosed_v2215.sql",
       "sha256": "b9af25f51efa05b0cf2b9d37e64394ff235420cef1070949dd01d98095bfb1fc"
+    },
+    {
+      "version": "20261018040723",
+      "name": "member_request_end_to_end_visibility_v2215",
+      "filename": "20261018040723_member_request_end_to_end_visibility_v2215.sql",
+      "sha256": "f55fa944c3ca8e05ba84696a3c46448b1d35b4e466b9d80cda1cc16ae983915e"
+    },
+    {
+      "version": "20261018041250",
+      "name": "member_request_worklist_column_qualification_v2215",
+      "filename": "20261018041250_member_request_worklist_column_qualification_v2215.sql",
+      "sha256": "4e15e56ab531306ac584150bf5d79e2cb5255f1079fa45ad0d430dd16b78207c"
+    },
+    {
+      "version": "20261018041756",
+      "name": "member_request_v2215_revoke_anonymous_execution",
+      "filename": "20261018041756_member_request_v2215_revoke_anonymous_execution.sql",
+      "sha256": "feb47447783c1cd986edeec7e3da83985a769650f06914d00b9b28424f7162dd"
     }
   ]
 }
