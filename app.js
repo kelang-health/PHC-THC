@@ -1649,11 +1649,22 @@ $('#login-form').addEventListener('submit', async e => {
   e.target.reset(); setLoginPasswordVisibility(false); await applyAuthSession(data.session);
 });
 
+function cloudPasswordPolicyError(role,password){
+  if(['user','staff'].includes(role))return /^[0-9]{6}$/.test(password)?'':'PIN ต้องเป็นตัวเลข 6 หลัก';
+  return password.length>=12?'':'รหัสผ่านต้องมีอย่างน้อย 12 ตัวอักษร';
+}
+
 $('#change-password').addEventListener('click', ()=>{
   passwordPanelOpen = true;
   authRequestId += 1;
   $('#password-title').textContent = 'เปลี่ยนรหัสผ่าน';
-  $('#password-help').textContent = currentProfile?.role==='user' ? 'กำหนด PIN ตัวเลข 6–12 หลัก' : 'กำหนดรหัสผ่านใหม่อย่างน้อย 12 ตัวอักษร';
+  const usePin=['user','staff'].includes(currentProfile?.role);
+  $('#password-help').textContent = usePin ? 'กำหนด PIN ตัวเลข 6 หลัก' : 'กำหนดรหัสผ่านใหม่อย่างน้อย 12 ตัวอักษร';
+  for(const input of $('#password-form').querySelectorAll('input')){
+    input.minLength=usePin?6:12;input.maxLength=usePin?6:128;
+    input.inputMode=usePin?'numeric':'text';
+    if(usePin)input.setAttribute('pattern','[0-9]{6}');else input.removeAttribute('pattern');
+  }
   $('#password-error').textContent = '';
   renderAuthView('password'); show($('#cancel-password'), true);
 });
@@ -1662,7 +1673,8 @@ $('#password-form').addEventListener('submit', async e => {
   e.preventDefault();
   const f = new FormData(e.target), password = String(f.get('password') || ''), confirmPassword = String(f.get('confirm_password') || '');
   $('#password-error').textContent = '';
-  if(currentProfile?.role==='user'){ if(!/^\d{6,12}$/.test(password)){ $('#password-error').textContent='PIN ต้องเป็นตัวเลข 6–12 หลัก'; return; } } else if(password.length < 12){ $('#password-error').textContent='รหัสผ่านต้องมีอย่างน้อย 12 ตัวอักษร'; return; }
+  const policyError=cloudPasswordPolicyError(currentProfile?.role,password);
+  if(policyError){$('#password-error').textContent=policyError;return;}
   if(password !== confirmPassword){ $('#password-error').textContent = 'ยืนยันรหัสผ่านไม่ตรงกัน'; return; }
   const { error } = await supabase.auth.updateUser({ password });
   if(error){ $('#password-error').textContent = error.message; return; }
