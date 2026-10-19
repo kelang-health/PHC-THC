@@ -212,7 +212,7 @@ function configureHealthAdminUI(role){
   if(adminIntro)adminIntro.hidden=role!=='admin';
   if(targetAdmin)targetAdmin.hidden=role!=='admin';
   const allOption=$('#health-filter option[value="all"]');
-  if(allOption){allOption.hidden=role!=='admin';allOption.disabled=role!=='admin';}
+  if(allOption){allOption.hidden=false;allOption.disabled=false;allOption.textContent='รายชื่อทั้งหมดในสิทธิ์ / ประเมินซ้ำ';}
   bindHealthPerformanceControls();
   bindPerformanceScopeControls();
   bindHealthTargetAdminV2026();
@@ -543,7 +543,7 @@ async function loadHealthPeople(options={}){
   if(!allowInactive&&portalView!=='health'){traceHealthCoordV2040('load-skip:inactive',{},trigger);return;}
   if(!append)healthPageOffset=0;
   let filter=$('#health-filter').value;
-  if(filter==='all'&&currentProfile?.role!=='admin'){filter='field_targets';$('#health-filter').value=filter;}
+  // The worklist RPC enforces each user's existing person/community scope, including all-history searches.
   syncHealthTargetButtons();syncHealthAssignmentControl();
   const stage=$('#health-stage').value,raw=$('#health-search').value.trim(),requestArgs=healthWorklistArgsV2040(filter,stage,raw,healthPageOffset);
   const signature=JSON.stringify({mode:append?'append':'base',...requestArgs});traceHealthCoordV2040('load',requestArgs,trigger);
@@ -583,7 +583,7 @@ async function loadHealthPeople(options={}){
     return `<tr><td><button type="button" class="health-person-name" data-health-person="${i}">${esc(p.display_name)}</button><small>${p.known_ncd?`โรคเดิม: ${p.has_ht?'HT ':''}${p.has_dm?'DM':''}`:'ยังไม่พบ DM/HT ใน personchronic'}</small></td><td>${esc(p.age_years??'—')} ปี<small>${esc(p.life_stage||'—')}</small></td><td>บ้าน ${esc(p.house_no||p.hcode)}<small>หมู่ ${esc(p.moo||'—')} · ${esc(p.community||'—')}</small>${assignment}</td><td class="${healthClass(p.latest_severity)}">${esc(status)}<small>${healthStatusDateV2194(p)?esc(healthDateLabel(healthStatusDateV2194(p))):''}</small></td><td><button type="button" class="row-open" data-phc190-screen data-pcucode="${esc(p.source_pcucode)}" data-pid="${esc(p.source_pid)}" data-name="${esc(p.display_name)}" data-plan-date="${esc(p.screening_plan_date||'')}" data-age-years="${esc(p.age_years??'')}" data-age-months="${esc(p.screening_age_months??'')}" data-screen-route="${esc(p.screening_route||'')}" data-route-label="${esc(p.screening_route_label||'')}" data-dspm-target="${esc(p.screening_dspm_target_months??'')}" data-latest-screened="${esc(p.latest_screened_on||'')}" data-has-dm="${Boolean(p.has_dm)}" data-has-ht="${Boolean(p.has_ht)}" data-dm-target="${Boolean(healthNcdTargetStateV2117(p).dmTarget)}" data-ht-target="${Boolean(healthNcdTargetStateV2117(p).htTarget)}">${esc(action)}</button></td></tr>`;
   }).join('')||'<tr><td colspan="5">ไม่พบประชาชนตามตัวกรอง</td></tr>';
   const fallbackNote=healthAssignmentFilter==='fallback'?' · แสดงเฉพาะประชาชนที่ Staff ต้องดูแลแทน':healthAssignmentFilter==='unresolved'?' · คิวไม่ทราบชุมชนสำหรับ Admin ตรวจสอบ':'';
-  const queueNote=filter==='elderly_due'?' · ผู้สูงอายุที่ยังคัดกรอง 9 ด้านไม่ครบปีงบฯ นี้ รวมผู้มี DM/HT เดิม':filter==='field_targets'?' · แสดงผู้ที่ยังไม่ได้คัดกรองในรอบงานก่อน':'';
+  const queueNote=filter==='all'?' · รายชื่อทั้งหมดในขอบเขตสิทธิ์ รวมผู้ที่คัดกรองแล้ว':filter==='elderly_due'?' · ผู้สูงอายุที่ยังคัดกรอง 9 ด้านไม่ครบปีงบฯ นี้ รวมผู้มี DM/HT เดิม':filter==='field_targets'?' · แสดงผู้ที่ยังไม่ได้คัดกรองในรอบงานก่อน':'';
   $('#health-list-note').textContent=`แสดง ${num(healthPeople.length)} ราย · โหลดครั้งละ ${HEALTH_PAGE_SIZE_V2033} ราย${queueNote}${fallbackNote}`;
   const more=$('#health-load-more');if(more){more.hidden=!healthHasMore;more.disabled=false;more.textContent='โหลดรายชื่อเพิ่ม';}
   document.querySelectorAll('[data-health-person]').forEach(b=>b.onclick=()=>selectHealthPerson(Number(b.dataset.healthPerson)));
@@ -1121,6 +1121,7 @@ async function loadHealthModule(){
   bindHealthPerformanceControls();
   $('#health-clear-community').onclick=async()=>{healthCommunityFocus='';focus.hidden=true;await scheduleHealthPeopleLoad(160,'community-focus');};
   $('#health-view-linked-targets').onclick=()=>setHealthTargetFilter('field_targets'); $('#health-view-all-targets').onclick=()=>setHealthTargetFilter('targets'); $('#health-view-elderly9-targets').onclick=()=>setHealthTargetFilter('elderly_due');
+  $('#health-view-history')?.addEventListener('click',()=>setHealthTargetFilter('all'));
   $('#health-filter').onchange=()=>{syncHealthTargetButtons();return scheduleHealthPeopleLoad(160,'filter');}; $('#health-stage').onchange=()=>scheduleHealthPeopleLoad(160,'stage');
   const assignmentSelect=$('#health-assignment');if(assignmentSelect)assignmentSelect.onchange=()=>{healthAssignmentFilter=assignmentSelect.value||'all';return scheduleHealthPeopleLoad(160,'assignment');};
   const loadMore=$('#health-load-more');if(loadMore)loadMore.onclick=async()=>{loadMore.disabled=true;loadMore.textContent='กำลังโหลด…';try{await loadHealthPeople({append:true,trigger:'pagination'});}catch(e){$('#health-list-note').textContent=e.message;loadMore.disabled=false;}};

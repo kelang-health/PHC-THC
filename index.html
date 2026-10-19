@@ -2,14 +2,14 @@
 <html lang="th">
 <head>
   <meta charset="utf-8">
-  <meta name="phc-release" content="2.0.173">
+  <meta name="phc-release" content="2.0.174">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#f4f7f5">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>พระบาท พลัส | PRB-PHC</title>
-  <link rel="stylesheet" href="./style.css?v=2.0.173-elderly-due&prev=2.0.146-elderly-basic-health">
+  <link rel="stylesheet" href="./style.css?v=2.0.174-elderly-due&prev=2.0.146-elderly-basic-health">
   <link rel="stylesheet" href="./cloud-announcements-v2083.css?v=2.0.96">
   <link rel="stylesheet" href="./login-theme-v2081.css?v=2.0.81">
 <style>#cloud-announcements-v2083{display:none!important}</style>  <script type="module" src="./leaflet-touch-layers-v2211.mjs?v=2211"></script>
@@ -35,7 +35,7 @@
         <span>ระบบบริหารจัดการงานสุขภาพชุมชน</span>
         <small>พระบาท พลัส · เทศบาลเมืองเขลางค์นคร</small>
       </div>
-      <span class="login-version phc-login-version" aria-label="เวอร์ชันระบบ">Cloud v2.0.173</span>
+      <span class="login-version phc-login-version" aria-label="เวอร์ชันระบบ">Cloud v2.0.174</span>
     </header>
 
     <section id="login-card" class="card auth-card login-card">
@@ -185,7 +185,8 @@
           <p id="report-snapshot-status" class="muted" aria-live="polite">ตัวเลขสรุปประมวลผลอัตโนมัติเมื่อข้อมูลเปลี่ยนและเวลา 00:05 น.</p>
         </section>
         <div class="health-toolbar">
-          <label>งานที่ต้องดู<select id="health-filter"><option value="field_targets">เป้าหมายพร้อมคัดกรอง</option><option value="due">NCD ยังไม่คัดกรอง</option><option value="targets">เป้าหมาย NCD 35+</option><option value="elderly_due">สูงอายุ 9 ด้านยังไม่ครบ</option><option value="known">ผู้มี DM/HT เดิม</option><option value="all">ประชาชนทั้งหมดในสิทธิ์ (Admin)</option></select></label>
+          <button type="button" id="health-view-history" class="secondary">ค้นผู้คัดกรองแล้ว / ประเมินซ้ำ</button>
+          <label>งานที่ต้องดู<select id="health-filter"><option value="field_targets">เป้าหมายพร้อมคัดกรอง</option><option value="due">NCD ยังไม่คัดกรอง</option><option value="targets">เป้าหมาย NCD 35+</option><option value="elderly_due">สูงอายุ 9 ด้านยังไม่ครบ</option><option value="known">ผู้มี DM/HT เดิม</option><option value="all">รายชื่อทั้งหมดในสิทธิ์ / ประเมินซ้ำ</option></select></label>
           <label>กลุ่มวัย<select id="health-stage"><option value="">ทุกกลุ่มวัย</option><option>เด็กปฐมวัย</option><option>เด็กวัยเรียน</option><option>วัยรุ่นและเยาวชน</option><option>วัยทำงาน</option><option>ผู้สูงอายุ</option></select></label>
           <label id="health-assignment-wrap" hidden>ผู้รับผิดชอบ<select id="health-assignment"><option value="all">ทั้งหมดตามสิทธิ์</option><option value="assigned">มี อสม./บัญชีใช้งานดูแล</option><option value="fallback">Staff ดูแลแทน · ยังไม่มีผู้รับผิดชอบ</option><option value="unresolved">ไม่ทราบชุมชน · Admin ตรวจสอบ</option></select></label>
           <label class="health-search">ค้นหาชื่อ<input id="health-search" type="search" placeholder="พิมพ์ชื่อประชาชน"></label>
@@ -311,7 +312,7 @@
   <script type="module" src="./auth-security.mjs?v=2.0.134-field-house-history&p=2174"></script>
   <script type="module" src="./line-login-v201.mjs?v=2.0.134-field-house-history&p=2174"></script>
   <script type="module" src="./line-login-settings-v2013.mjs?v=2.0.134-field-house-history&p=2174"></script>
-  <script type="module" src="./app.js?v=2.0.173-elderly-due"></script>
+  <script type="module" src="./app.js?v=2.0.174-elderly-due"></script>
   <script type="module" src="./my-houses-mobile-v1820.mjs?v=2.0.138-gps-permission&p=2178"></script>
   <script type="module" src="./field-request-corrections-v2122.mjs?v=2.0.138-gps-permission&p=2178"></script>
   <script type="module" src="./member-work-bridge-v2215.mjs?v=2215"></script>
