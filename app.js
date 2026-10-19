@@ -794,11 +794,11 @@ function renderNcdPreview(){
     ((bp.anyGrade3?'ระดับ 3/อันตราย':
     sbp>=160||dbp>=100?'สูงระดับ 2':
     sbp>=140||dbp>=90?'สูงระดับ 1':
-    sbp>=130||dbp>=80?'BP at risk':
+    sbp>=130||dbp>=80?'เริ่มสูง':
     sbp<90||dbp<60?'ต่ำ':
-    sbp<120&&dbp<80?'Optimal':'Normal')+(bp.repeatComplete?' · เฉลี่ย 2 ครั้ง':''));
+    sbp<120&&dbp<80?'เหมาะสม':'ปกติ')+(bp.repeatComplete?' · เฉลี่ย 2 ครั้ง':''));
   $('#preview-glucose').textContent=!g?'รอกรอก':g<70?'ต่ำ':
-    gt==='fasting'?(g>=126?'สงสัยเบาหวาน · ต้องยืนยัน':g>=100?'กลุ่มเสี่ยง/IFG':'ช่วงปกติ'):
+    gt==='fasting'?(g>=126?'สงสัยเบาหวาน · ต้องยืนยัน':g>=100?'น้ำตาลเริ่มสูง':'ช่วงปกติ'):
     gt==='random'?(g>=200?'สูงมาก · ต้องยืนยัน':g>=110?'ควรตรวจ FPG/FCBG ซ้ำ':'ช่วงปกติ'):
     'เลือกสถานะก่อนตรวจ';
   const limit=selectedHealthPerson.gender==='ชาย'?90:selectedHealthPerson.gender==='หญิง'?80:null;
