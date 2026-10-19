@@ -1,0 +1,22 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const source=fs.readFileSync('app.js','utf8');
+const context={};vm.createContext(context);
+for(const [start,end] of [['function healthElderlyStateV2194(', 'function healthNcdActionLabelV2117('],['async function loadElderly9DuePage(', 'async function loadScopedHealthPeopleV2033(']])vm.runInContext(source.slice(source.indexOf(start),source.indexOf(end)),context);
+(async()=>{
+ const rows=Array.from({length:240},(_,i)=>({source_pid:i+1,screening_route:'elderly_60_plus',has_dm:true,has_ht:true,elderly9_completed_current_fy:i%3===0,elderly9_status_current_fy:i%3===0?'complete':i%3===1?'in_progress':'not_started',elderly9_completed_domains_current_fy:i%3===1?4:0}));
+ const calls=[];
+ const fetch=async args=>{calls.push(args);return {data:{rows:rows.slice(args.p_offset,args.p_offset+100),has_more:args.p_offset+100<rows.length}};};
+ const args={p_scope:'self',p_owner_pid:17161,p_assignment:'all',p_search:null,p_community:'test-community',p_limit:50,p_offset:0};
+ const first=await context.loadElderly9DuePage(args,fetch);
+ assert.equal(first.data.rows.length,50);assert.equal(first.data.has_more,true);
+ assert.ok(first.data.rows.every(r=>r.has_dm&&r.has_ht&&!r.elderly9_completed_current_fy));
+ assert.ok(first.data.rows.some(r=>r.elderly9_status_current_fy==='in_progress'));
+ const last=await context.loadElderly9DuePage({...args,p_offset:150},fetch);
+ assert.equal(last.data.rows.length,10);assert.equal(last.data.has_more,false);
+ assert.ok(last.data.rows.every(r=>!first.data.rows.some(f=>f.source_pid===r.source_pid)));
+ assert.ok(calls.every(c=>c.p_filter==='field_targets'&&c.p_stage==='ผู้สูงอายุ'&&c.p_scope==='self'&&c.p_owner_pid===17161&&c.p_community==='test-community'));
+ const empty=await context.loadElderly9DuePage(args,async()=>({data:{rows:rows.filter(r=>r.elderly9_completed_current_fy).slice(0,80),has_more:false}}));
+ assert.equal(empty.data.rows.length,0);assert.equal(empty.data.has_more,false);
+ await assert.rejects(context.loadElderly9DuePage(args,async()=>({error:new Error('offline')})),/offline/);
+ console.log('PASS: both DM/HT included; complete excluded; partial included; pagination; scope; empty; API errors');
+})().catch(e=>{console.error(e);process.exit(1)});

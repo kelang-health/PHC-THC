@@ -398,3 +398,7 @@ tr.staff-assignment-row--direct>td:first-child{box-shadow:inset 4px 0 #5b9c72}
 .phc2140-confirm{display:flex!important;align-items:flex-start;gap:9px;margin:10px 0;font-weight:700}
 .phc2140-confirm input{width:20px;height:20px;flex:0 0 auto;margin-top:2px}
 @media(max-width:640px){.phc2140-health-grid{grid-template-columns:1fr}.phc2140-health-input input{font-size:16px}}
+
+/* Three field-work shortcuts; keep readable on small screens. */
+.health-target-actions{grid-template-columns:repeat(3,minmax(0,1fr));min-width:min(100%,540px)}
+@media(max-width:760px){.health-target-actions{width:100%;min-width:0}.health-target-actions button{padding:10px 7px;font-size:.85rem;white-space:normal}}
