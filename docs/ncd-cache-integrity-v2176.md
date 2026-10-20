@@ -1,5 +1,7 @@
 # Cloud 2.0.176 — NCD Production evidence and report integrity
 
+Cloud 2.0.177 additionally reloads worklist pages from the server when task/status filters change, resets pagination/counts, and discards stale responses from preceding filters. This prevents a filter from searching only the first 50 loaded rows. Regression: `node tests/ncd-cache-v2176/test-worklist-filters.cjs`.
+
 Production service dates determine fiscal-year completion by `(source_pcucode, source_pid)`. Imported JHCIS history can be newer without hiding Production status or severity. The latest valid Production row uses service date, recorded time, then ID; future-dated and test records are excluded. `previous_*` keeps the newer source measurements. Imported history remains unchanged in `health_persons`.
 
 The full refresh and incremental screening trigger share `private.reconcile_ncd_cache_v2176`. DM and HT retain their existing target and imported measurement rules, but collect valid measurements from **any** Production visit in the fiscal year. Repeated visits and changes of current house/community never create a second person.

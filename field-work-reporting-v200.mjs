@@ -117,8 +117,24 @@ async function openWorkList(filter={}){
   const status=body.querySelector('[data-filter-status]'),task=body.querySelector('[data-filter-task]');status.value=filter.status||'';task.value=filter.task_type||'';
   const renderRows=()=>{const sv=status.value,tv=task.value,filtered=rows.filter(r=>(!sv||r.status===sv)&&(!tv||r.task_type===tv));body.querySelector('[data-field-list-body]').innerHTML=filtered.map(r=>{const owner=r.assignment_status==='staff_fallback'?`<small class="assignment-fallback">${esc(r.assignment_label||'Staff ดูแลชั่วคราว')}</small>`:'';return `<tr><td><strong>${esc(r.display_name)}</strong><small>${num(r.age_years)} ปี</small></td><td>บ้าน ${esc(r.house_no||r.hcode)}<small>${esc(r.community||'—')}</small>${owner}</td><td>${esc(r.task_label)}</td><td><span class="field200-pill ${esc(r.status)}">${esc(statusText(r.status))}</span></td><td>${num(r.progress_percent)}%</td><td><span class="field200-pill ${esc(r.priority)}">${esc(priorityText(r.priority))}</span></td><td>${esc(fmtDate(r.last_activity_at))}</td></tr>`}).join('')||'<tr><td colspan="7" class="field200-empty">ไม่พบรายการ</td></tr>';};
   const more=body.querySelector('[data-field-more]'),count=body.querySelector('[data-field-count]');
-  const loadPage=async()=>{more.disabled=true;more.textContent='กำลังโหลด…';const args={p_scope:effectiveScope(),p_task_type:filter.task_type||'',p_status:filter.status||'',p_volunteer_pid:filter.volunteer_pid??null,p_community:filter.community||'',p_assignment:filter.assignment||'all',p_owner_pid:ownerPid,p_limit:PAGE_SIZE,p_offset:rows.length};let {data,error}=await supabase.rpc('field_work_list_v2033',args);if(error&&filter.assignment!=='fallback'&&effectiveScope()!=='volunteer'){const legacy=await supabase.rpc('field_work_list_v2032',{p_scope:args.p_scope,p_task_type:args.p_task_type,p_status:args.p_status,p_volunteer_pid:args.p_volunteer_pid,p_community:args.p_community,p_assignment:args.p_assignment,p_limit:PAGE_SIZE,p_offset:rows.length});data=legacy.data;error=legacy.error;}if(error){count.textContent=error.message;more.hidden=true;return;}rows.push(...(data||[]));more.hidden=(data||[]).length<PAGE_SIZE;more.disabled=false;more.textContent='โหลดรายการเพิ่ม';count.textContent=`แสดง ${num(rows.length)} ราย · โหลดครั้งละ ${PAGE_SIZE} ราย`;renderRows();};
-  status.onchange=renderRows;task.onchange=renderRows;more.onclick=loadPage;await loadPage();
+  let requestEpoch=0;
+  const loadPage=async(reset=false)=>{
+    const epoch=reset?++requestEpoch:requestEpoch;
+    if(reset){rows.length=0;renderRows();count.textContent='กำลังโหลด…';more.hidden=true;}
+    more.disabled=true;more.textContent='กำลังโหลด…';
+    const args={p_scope:effectiveScope(),p_task_type:task.value,p_status:status.value,p_volunteer_pid:filter.volunteer_pid??null,p_community:filter.community||'',p_assignment:filter.assignment||'all',p_owner_pid:ownerPid,p_limit:PAGE_SIZE,p_offset:rows.length};
+    let {data,error}=await supabase.rpc('field_work_list_v2033',args);
+    if(epoch!==requestEpoch)return;
+    if(error&&filter.assignment!=='fallback'&&effectiveScope()!=='volunteer'){
+      const legacy=await supabase.rpc('field_work_list_v2032',{p_scope:args.p_scope,p_task_type:args.p_task_type,p_status:args.p_status,p_volunteer_pid:args.p_volunteer_pid,p_community:args.p_community,p_assignment:args.p_assignment,p_limit:PAGE_SIZE,p_offset:args.p_offset});
+      data=legacy.data;error=legacy.error;
+    }
+    if(epoch!==requestEpoch||!body.isConnected)return;
+    if(error){count.textContent=error.message;more.hidden=true;return;}
+    rows.push(...(data||[]));more.hidden=(data||[]).length<PAGE_SIZE;more.disabled=false;more.textContent='โหลดรายการเพิ่ม';
+    count.textContent=`แสดง ${num(rows.length)} ราย · โหลดครั้งละ ${PAGE_SIZE} ราย`;renderRows();
+  };
+  status.onchange=()=>loadPage(true);task.onchange=()=>loadPage(true);more.onclick=()=>loadPage();await loadPage(true);
 }
 
 async function openFollowups(){return openFollowupCenter(supabase,{scope:effectiveScope(),ownerPid:effectiveScope()==='volunteer'?ownerPid:null});}
