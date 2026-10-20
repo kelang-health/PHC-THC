@@ -30,7 +30,7 @@ if (typeof window !== 'undefined') {
       await initCommunityHouseholdQuality1831(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initPHCFiveFeatures190 } = await import('./phc-five-features-v190.mjs?v=2.0.165-member-fifo&p=2218');
       await initPHCFiveFeatures190(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initFieldWorkReportingV200 } = await import('./field-work-reporting-v200.mjs?v=2.0.177');
+      const { initFieldWorkReportingV200 } = await import('./field-work-reporting-v200.mjs?v=2.0.178');
       await initFieldWorkReportingV200(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initCoordinateAuditV2132 } = await import('./coordinate-audit-v2132.mjs?v=2.0.133-mobile-map-focus&p=2171');
       await initCoordinateAuditV2132(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
