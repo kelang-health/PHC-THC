@@ -19,6 +19,8 @@ const dir=__dirname;
  const viewStart=migration.indexOf('create or replace view public.health_person_worklist as');
  const snapStart=migration.indexOf('CREATE OR REPLACE FUNCTION private.refresh_report_snapshots_v2031',viewStart);
  await db.exec(migration.slice(0,migration.indexOf("select cron.schedule",snapStart)));
+ await db.exec("alter view public.health_person_worklist set (security_invoker=true)");
+ assert((await db.query("select reloptions from pg_class where oid='public.health_person_worklist'::regclass")).rows[0].reloptions.includes('security_invoker=true'));
  await db.exec(`create trigger cache_sync after insert or update or delete on public.health_ncd_screenings for each row execute function private.sync_screening_target_cache_person_v2030();`);
  const q=async(sql,...params)=>(await db.query(sql,params)).rows;
  const fy=(await q(`select make_date(extract(year from current_date)::int-case when extract(month from current_date)<10 then 1 else 0 end,10,1)::text d`))[0].d;
