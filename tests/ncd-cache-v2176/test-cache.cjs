@@ -1,0 +1,70 @@
+const {PGlite}=require('@electric-sql/pglite');
+const fs=require('fs'),path=require('path'),assert=require('node:assert/strict');
+const dir=__dirname;
+(async()=>{
+ const db=new PGlite();
+ await db.exec(`create schema private; create schema auth; create role anon; create role authenticated;
+ create function auth.role() returns text language sql as $$select 'service_role'::text$$;
+ create function auth.uid() returns uuid language sql as $$select null::uuid$$;
+ create function private.current_role() returns text language sql as $$select 'admin'::text$$;`);
+ await db.exec(fs.readFileSync(path.join(dir,'fixture-schema.sql'),'utf8').replace(/geometry\([^)]*\)/g,'text'));
+ const defs=JSON.parse(fs.readFileSync(path.join(dir,'other-definitions.json'),'utf8'));
+ await db.exec([defs.community_key,defs.field_period_start_v200,defs.field_period_mode_v200].join(';\n')+';');
+ await db.exec(`create table public.volunteers(source_pid bigint,display_name text);
+ alter table public.health_screening_target_cache_v2030 add primary key(source_pcucode,source_pid);
+ alter table private.nightly_snapshot_outcomes_v2077 add primary key(day_bkk);
+ insert into public.report_snapshot_state_v2031(singleton) values(true);`);
+ const migration=fs.readFileSync(path.join(dir,'../../supabase/migrations',fs.readdirSync(path.join(dir,'../../supabase/migrations')).find(x=>x.endsWith('_ncd_production_cache_integrity_v2176.sql'))),'utf8');
+ // Run actual affected functions against synthetic tables. Only the base view and cron use environment services.
+ const viewStart=migration.indexOf('create or replace view public.health_person_worklist as');
+ const snapStart=migration.indexOf('CREATE OR REPLACE FUNCTION private.refresh_report_snapshots_v2031',viewStart);
+ await db.exec(migration.slice(0,migration.indexOf("select cron.schedule",snapStart)));
+ await db.exec(`create trigger cache_sync after insert or update or delete on public.health_ncd_screenings for each row execute function private.sync_screening_target_cache_person_v2030();`);
+ const q=async(sql,...params)=>(await db.query(sql,params)).rows;
+ const fy=(await q(`select make_date(extract(year from current_date)::int-case when extract(month from current_date)<10 then 1 else 0 end,10,1)::text d`))[0].d;
+ const today=(await q('select current_date::text d'))[0].d;
+ await db.exec(`insert into communities(name,moo,active) select 'community-'||i,'1',true from generate_series(1,16)i;
+ insert into health_persons(source_pcucode,source_pid,birth_date,active,service_population_eligible,has_dm,has_ht,previous_screened_on,previous_source,previous_sbp,previous_dbp,previous_glucose_mg_dl)
+ select 'pcu',i,'1970-01-01',true,true,false,false,current_date,'JHCIS',120,80,90 from generate_series(1,16)i;
+ insert into health_screening_target_worklist_v2026(source_pcucode,source_pid,birth_date,age_years,has_dm,has_ht,ncd_target,community,moo,hcode,screening_route,screened_current_fy,previous_screened_on)
+ select 'pcu',i,'1970-01-01',56,false,false,true,'community-'||i,'1',i::text,'adult',false,current_date from generate_series(1,16)i;`);
+ await q('select public.refresh_screening_target_cache_v2030()');
+ const insert=async(pid,date,severity='risk',mode='production',glucose=90,sbp=120,dbp=80)=>q(`insert into health_ncd_screenings(id,source_pcucode,source_pid,screened_on,recorded_at,severity,ncd_status,record_mode,glucose_mg_dl,sbp,dbp) values(gen_random_uuid(),'pcu',$1,$2,now(),$3,'screened',$4,$5,$6,$7)`,pid,date,severity,mode,glucose,sbp,dbp);
+ const get=async pid=>(await q('select * from health_screening_target_cache_v2030 where source_pid=$1',pid))[0];
+ await insert(1,fy,'risk'); let row=await get(1);assert.equal(row.screened_current_fy,true);assert.equal(row.latest_severity,'risk');assert.equal(row.previous_source,'JHCIS');
+ await insert(2,'2025-01-01');assert.equal((await get(2)).screened_current_fy,false);
+ await insert(3,fy);await insert(3,today,'alert');assert.equal((await get(3)).latest_severity,'alert');
+ await insert(3,today,'urgent','test');assert.equal((await get(3)).latest_severity,'alert');
+ await insert(4,today,'urgent','test');assert.equal((await get(4)).screened_current_fy,false);
+ await db.exec('update health_persons set previous_screened_on=null where source_pid in (5,6,7,8,9)');
+ await insert(5,fy,'risk','production',99,null,null);row=await get(5);assert.equal(row.dm_screened_current_fy,true);assert.equal(row.ht_screened_current_fy,false);
+ await insert(6,fy,'alert','production',null,130,80);row=await get(6);assert.equal(row.ht_screened_current_fy,true);assert.equal(row.dm_screened_current_fy,false);
+ await insert(7,fy,'urgent');assert.equal((await get(7)).latest_severity,'urgent');
+ await insert(8,fy,'risk','production',100,null,null);await insert(8,today,'normal','production',null,120,80);row=await get(8);assert.equal(row.dm_screened_current_fy,true);assert.equal(row.ht_screened_current_fy,true);
+ await insert(9,'2099-01-01','urgent');assert.equal((await get(9)).screened_current_fy,false);
+ for(let i=10;i<=16;i++)await insert(i,today);
+ await q('select public.refresh_screening_target_cache_v2030()');
+ let before=await q('select * from health_screening_target_cache_v2030 order by source_pid');
+ await q('select public.refresh_screening_target_cache_v2030()');assert.deepEqual(await q('select * from health_screening_target_cache_v2030 order by source_pid'),before);
+ // Populate unrelated scope fixture data, keeping NCD proof in real cache and Production functions.
+ await db.exec(`insert into houses(source_pcucode,hcode,community,moo,verification_status) select 'pcu',i::text,'community-'||i,'1','verified_jhcis' from generate_series(1,16)i;
+ insert into health_person_worklist_active_v1847(source_pcucode,source_pid,house_pcucode,hcode,life_stage,known_ncd) select 'pcu',i,'pcu',i::text,'วัยทำงาน',false from generate_series(1,16)i;
+ insert into field_work_items_v200(source_pcucode,source_pid,community,task_type,task_label,status,priority,period_mode) select source_pcucode,source_pid,community,'ncd','NCD',case when screened_current_fy then 'complete' else 'due' end,'normal','production' from health_screening_target_cache_v2030;`);
+ await db.exec("update health_persons set house_pcucode='pcu',hcode=source_pid::text,ncd_base_eligible=true");
+ const live=await q('select * from health_person_worklist where source_pid in (1,2,3,4,9) order by source_pid');
+ assert.equal(live[0].latest_severity,'risk');assert.equal(live[0].screened_current_fy,true);assert.equal(live[1].screened_current_fy,false);assert.equal(live[2].latest_severity,'alert');assert.equal(live[3].screened_current_fy,false);assert.equal(live[4].screened_current_fy,false);
+ let snap=(await q("select private.refresh_report_snapshots_v2031('staging') result"))[0].result;assert.equal(snap.ok,true,JSON.stringify(snap));
+ let audit=(await q('select private.ncd_integrity_v2176($1) result',snap.generation))[0].result;assert.equal(audit.passed,true,JSON.stringify(audit));assert.equal(audit.communities.length,16);
+ const generation=snap.generation;
+ await db.exec('update health_screening_target_cache_v2030 set screened_current_fy=false where source_pid=1');
+ snap=(await q("select private.refresh_report_snapshots_v2031('staging_bad_cache') result"))[0].result;assert.equal(snap.ok,false);assert.equal((await q('select current_generation from report_snapshot_state_v2031'))[0].current_generation,generation);
+ await q('select private.reconcile_ncd_cache_v2176()');
+ // Move the current house/community: identity remains one person.
+ await db.exec("update health_screening_target_cache_v2030 set community='community-2',hcode='2' where source_pid=1");
+ assert.equal((await q('select count(*)::int n from health_screening_target_cache_v2030 where source_pid=1'))[0].n,1);
+ await db.exec("update health_screening_target_cache_v2030 set community=null where source_pid=1; update houses set community=null where hcode='1'; update field_work_items_v200 set community=null where source_pid=1;");
+ snap=(await q("select private.refresh_report_snapshots_v2031('staging_unknown_community') result"))[0].result;assert.equal(snap.ok,true,JSON.stringify(snap));
+ audit=(await q('select private.ncd_integrity_v2176($1) result',snap.generation))[0].result;assert.equal(audit.passed,true);assert(audit.communities.some(c=>c.community==='ยังไม่ระบุชุมชน'));
+ await db.exec("delete from health_ncd_screenings where source_pid=7");assert.equal((await get(7)).screened_current_fy,false);
+ console.log(JSON.stringify({passed:true,cases:15,community_scopes:16,unknown_bucket:true,fail_closed:true,idempotent:true}));await db.close();
+})().catch(e=>{console.error(e.message,e.stack);process.exitCode=1});

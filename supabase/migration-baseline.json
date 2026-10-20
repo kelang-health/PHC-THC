@@ -1,8 +1,8 @@
 {
   "schema": 2,
   "hash_mode": "sha256_lf_normalized",
-  "latest_version": "20261018041756",
-  "migration_count": 257,
+  "latest_version": "20261020023312",
+  "migration_count": 258,
   "migrations": [
     {
       "version": "20260908121831",
@@ -1545,6 +1545,12 @@
       "name": "member_request_v2215_revoke_anonymous_execution",
       "filename": "20261018041756_member_request_v2215_revoke_anonymous_execution.sql",
       "sha256": "feb47447783c1cd986edeec7e3da83985a769650f06914d00b9b28424f7162dd"
+    },
+    {
+      "version": "20261020023312",
+      "name": "ncd_production_cache_integrity_v2176",
+      "filename": "20261020023312_ncd_production_cache_integrity_v2176.sql",
+      "sha256": "2aef1a64dbcd3097dc467e48412b5a3966680eb26fc0732c3fcbe50e75182367"
     }
   ]
 }

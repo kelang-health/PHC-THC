@@ -10,6 +10,12 @@ const pct=v=>Number(v||0).toFixed(1)+'%';
 const fmtDate=v=>{if(!v)return'—';try{return new Date(v).toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});}catch{return String(v)}};
 const snapshotLabel=v=>{if(!v)return'';try{return ` · ข้อมูล ณ ${new Date(v).toLocaleString('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'short',timeStyle:'short'})} น.`}catch{return''}};
 const dateTimeLabel=v=>{if(!v)return'—';try{return new Date(v).toLocaleString('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'short',timeStyle:'short'})+' น.'}catch{return String(v)}};
+function renderNcdActivityV2176(d){
+  if(!d.ncd_activity)return '';
+  if(d.ncd_integrity?.passed!==true)return '<p class="field200-data-state bad">รายงาน NCD ยังไม่ผ่านการตรวจสอบยอด</p>';
+  const series=(label,rows,key)=>`<details class="field200-panel"><summary>${esc(label)}</summary><div class="table-wrap"><table class="field200-table"><thead><tr><th>ช่วงวันรับบริการ</th><th>คัดกรองแล้ว (คน)</th><th>เปลี่ยนจากช่วงก่อน (คน)</th></tr></thead><tbody>${rows.map((r,i)=>{const delta=i?Number(r.people)-Number(rows[i-1].people):null;return `<tr><td>${esc(fmtDate(r[key]))}</td><td>${num(r.people)}</td><td>${delta===null?'—':(delta>0?'+':'')+num(delta)}</td></tr>`}).join('')||'<tr><td colspan="3">ยังไม่มีผลงานในรอบนี้</td></tr>'}</tbody></table></div></details>`;
+  return `<section data-ncd-activity-v2176><p class="field200-note">NCD ผ่านการตรวจสอบยอด · ${esc(dateTimeLabel(d.ncd_integrity.checked_at))} · นับคนไม่ซ้ำในแต่ละวัน/สัปดาห์ตามวันรับบริการ คนที่ตรวจซ้ำต่างช่วงอาจปรากฏหลายช่วง</p>${series('เปรียบเทียบ NCD รายวัน',d.ncd_activity.daily||[],'service_day')}${series('เปรียบเทียบ NCD รายสัปดาห์ (เริ่มวันจันทร์)',d.ncd_activity.weekly||[],'week_start')}</section>`;
+}
 function dashboardIntegrity(d){
   const n=v=>Number(v||0);
   const target=n(d.target_tasks),complete=n(d.complete_tasks),partial=n(d.partial_tasks),due=n(d.due_tasks);
@@ -80,6 +86,7 @@ function renderDashboard(d){
 <section class="field200-followup-summary"><div><small>เคสที่ต้องติดตามหลังคัดกรอง</small><strong>${num(d.followup_open)} ราย/เคส</strong><p>เป็นผู้ที่คัดกรองแล้วเละพบความเสี่ยง/ค่าผิดปกติ แยกจาก ${num(remaining)} งานที่ยังไม่เสร็จ</p></div><button type="button" class="secondary" data-field-followup ${profile.role==='user'?'hidden':''}>ดูเคสติดตาม</button></section>
 <div class="field200-data-state ${dataStateClass}">${esc(dataStateText)}</div>
 <div class="field200-note">งานคัดกรองและเคสติดตามเป็นคนละตัวชี้วัด · คนหนึ่งคนอาจมีมากกว่า 1 งานคัดกรอง · ${esc(d.metric_note||'')}</div>
+${renderNcdActivityV2176(d)}
 ${fallbackBlock}
 <div class="field200-actions"><button type="button" class="primary" data-field-list>ดูรายการงาน</button><button type="button" class="secondary" data-field-export>ส่งออก Excel</button></div>
 <section class="field200-panel"><div class="field200-panel-head"><h3>ความก้าวหน้าตามประเภทงาน</h3><small>${num((d.tasks||[]).length)} ประเภท · หน่วย = งาน</small></div><div class="table-wrap"><table class="field200-table"><thead><tr><th>งาน</th><th>เป้าหมาย (งาน)</th><th>เสร็จ (งาน)</th><th>บางส่วน (งาน)</th><th>คงเหลือ (งาน)</th><th>%</th><th></th></tr></thead><tbody>${(d.tasks||[]).map(x=>{const bad=Number(x.target||0)!==Number(x.complete||0)+Number(x.partial||0)+Number(x.due||0);return `<tr class="${bad?'field200-row-mismatch':''}"><td><strong>${esc(x.task_label)}</strong><small>${esc(x.task_type)}</small>${bad?'<small class="integrity">ยอดไม่สมดุล</small>':''}</td><td>${num(x.target)}</td><td>${num(x.complete)}</td><td>${num(x.partial)}</td><td>${num(x.due)}</td><td><strong>${pct(x.percent)}</strong></td><td><button class="field200-open" data-task="${esc(x.task_type)}">เปิด</button></td></tr>`}).join('')||'<tr><td colspan="7" class="field200-empty">ยังไม่มีงานเป้าหมาย</td></tr>'}</tbody></table></div></section>
