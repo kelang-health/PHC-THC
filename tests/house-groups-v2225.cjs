@@ -42,15 +42,16 @@ const css=fs.readFileSync(path.join(__dirname,'..','style.css'),'utf8');
   await page.fill('[data-hg-search]','250');assert.equal(await page.locator('[data-hg-list] [data-hg-open]').count(),1);
   await page.click('[data-hg-open="e"]');await page.waitForSelector('[data-hg-notice]:has-text("4 คน")');
   assert.equal(await page.evaluate(()=>test.calls.filter(c=>c.name.includes('names')).length),0,'no prefetch names');
-  if(role==='user'){assert.equal(await page.locator('[data-hg-names]').count(),0);}
+  if(role==='user'){assert.equal(await page.locator('[data-hg-names]').count(),0);assert.equal(await page.locator('[data-hg-contact-chair]').textContent(),'ต้องการดูรายชื่อ โปรดติดต่อประธาน อสม.');}
   else{
+   assert.equal(await page.locator('[data-hg-contact-chair]').count(),0);
    await page.click('[data-hg-names]');await page.waitForSelector('[data-hg-name-list]:has-text("ชื่อสมมติ")');
    assert.equal(await page.locator('[data-hg-name-list] script').count(),0,'escape names');
    await page.click('[data-hg-names]');assert.equal(await page.locator('[data-hg-name-list]').textContent(),'','clear hidden names');
   }
   await page.keyboard.press('Escape');assert.equal(await page.locator('.hg25-overlay').count(),0);
   assert.equal(await page.locator('[data-group="empty"]').getAttribute('aria-pressed'),'true');assert.equal(await page.locator('[data-hg-search]').inputValue(),'250');
-  await page.fill('[data-hg-search]','');await page.click('[data-hg-open="z"]');await page.waitForSelector('[data-hg-notice]:has-text("ยังไม่ยืนยัน")');assert.equal(await page.locator('[data-hg-names]').count(),0);await page.click('[data-hg-close]');
+  await page.fill('[data-hg-search]','');await page.click('[data-hg-open="z"]');await page.waitForSelector('[data-hg-notice]:has-text("ยังไม่ยืนยัน")');assert.equal(await page.locator('[data-hg-names]').count(),0);assert.equal(await page.locator('[data-hg-contact-chair]').count(),0);await page.click('[data-hg-close]');
   if(role!=='user'){
    await page.evaluate(()=>test.setDelay(true));await page.click('[data-hg-open="e"]');await page.waitForSelector('[data-hg-names]');await page.click('[data-hg-names]');await page.click('[data-hg-close]');await page.evaluate(()=>test.resolve());assert.equal(await page.locator('body').textContent().then(t=>t.includes('LATE PRIVATE NAME')),false);
   }
