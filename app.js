@@ -1,4 +1,4 @@
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.180';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.181';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 import { getSharedSupabase, setSharedSession, setSharedProfile, clearSharedAuth, sharedCall, invalidateShared, ensureSharedSession, refreshSharedSession, isSharedAuthError } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
 
@@ -171,7 +171,8 @@ window.PHCRefreshHealthWorklistV2194=async()=>{
   if(portalView==='health')await loadHealthPeople({force:true,trigger:'elderly9-complete'});
 };
 function configurePortalNav(role){
-  const labels={admin:{communities:'ชุมชนทั้งหมด',volunteers:'ทะเบียน อสม.'},staff:{communities:'ชุมชนที่ดูแล',houses:'บ้านและงานดูแลแทน'},user:{communities:'ชุมชนของฉัน',houses:'บ้านของฉัน'}};
+  const portalNav=document.querySelector('#portal-nav');if(portalNav)portalNav.dataset.visibleCount=role==='admin'?'6':'5';
+  const labels={admin:{communities:'ชุมชนทั้งหมด',volunteers:'ทะเบียน อสม.',houses:'บ้านในพื้นที่'},staff:{communities:'ชุมชนที่ดูแล',houses:'บ้านและงานดูแลแทน'},user:{communities:'ชุมชนของฉัน',houses:'บ้านของฉัน'}};
   const mobileLabels={overview:'ภาพรวม',communities:'ชุมชน',volunteers:'อสม.',houses:'บ้าน',health:'สุขภาพ',work:'ผลงาน'};
   document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>{
     b.hidden=!(b.dataset.roles||'').split(/\s+/).includes(role);

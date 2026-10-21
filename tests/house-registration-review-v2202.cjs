@@ -13,13 +13,13 @@ const source=fs.readFileSync(path.join(__dirname,'..','house-registration-review
  assert.equal(await page.locator('[data-myh-house-pick="outside"].house-review-red').count(),0);
  assert.equal(await page.locator('[data-hq-house="b"].house-review-yellow').count(),1);
  const before=await page.evaluate(()=>mutationCount());await page.waitForTimeout(400);assert.equal(await page.evaluate(()=>mutationCount()),before,'observer must settle');
- await page.click('[data-review-open="a"]');await page.click('[data-edit]');await page.fill('[name=id11]','1234567890');assert.equal(await page.locator('[type=submit]').isDisabled(),true);
+ await page.evaluate(()=>document.dispatchEvent(new CustomEvent('phc:open-house-registration-review',{detail:{houseId:'a'}})));await page.waitForSelector('[name=id11]');await page.fill('[name=id11]','1234567890');assert.equal(await page.locator('[type=submit]').isDisabled(),true);
  await page.fill('[name=id11]','01234567890');await page.evaluate(()=>test.setDuplicate(true));await page.click('[type=submit]');await page.waitForFunction(()=>document.querySelector('[role=alert]').textContent.includes('ซ้ำ'));
  await page.evaluate(()=>test.setDuplicate(false));await page.click('[type=submit]');await page.waitForSelector('.house-review-overlay',{state:'detached'});
  assert.equal(await page.locator('[data-myh-house-pick="a"].house-review-red').count(),0);
  const saved=await page.evaluate(()=>test.calls.filter(c=>c.name.startsWith('correct')));assert.equal(saved.length,2);assert.equal(saved[1].args.p_id11,'01234567890');assert.equal(saved[1].args.p_house_id,'a');
  assert.equal(await page.evaluate(()=>test.reviewColor({needs_id11:true,unassigned_village:true})),'yellow');
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=390),true);
- await page.evaluate(()=>{profile.role='admin';render()});assert.equal(await page.locator('[data-portal-panel="communities"] [data-house-review-section]').count(),1,'Admin uses existing Communities menu');
+ await page.evaluate(()=>{profile.role='admin';render()});assert.equal(await page.locator('[data-portal-panel="houses"] [data-house-review-section]').count(),1,'All roles use Houses menu');assert.equal(await page.locator('[data-portal-panel="communities"] [data-house-review-section]').count(),0);
  console.log('PASS: audited red only, yellow precedence, observer settles, mobile fit, ID11 validation, duplicate recovery, save once, clear warning');
  }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1});
