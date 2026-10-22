@@ -1,8 +1,8 @@
 {
   "schema": 2,
   "hash_mode": "sha256_lf_normalized",
-  "latest_version": "20261022002649",
-  "migration_count": 261,
+  "latest_version": "20261022004632",
+  "migration_count": 262,
   "migrations": [
     {
       "version": "20260908121831",
@@ -1569,6 +1569,12 @@
       "name": "staff_direct_care_house_groups_v2226",
       "filename": "20261022002649_staff_direct_care_house_groups_v2226.sql",
       "sha256": "61f42f4a4e9530de38688aab1bf69b8004d911f1a6fdfb1b3208b9eb0570587c"
+    },
+    {
+      "version": "20261022004632",
+      "name": "house_groups_fast_scope_v2227",
+      "filename": "20261022004632_house_groups_fast_scope_v2227.sql",
+      "sha256": "7e35c251b0146fd76325a11e5cc43449d2a8b27b3ba2cc43642e0f573ccdcace"
     }
   ]
 }
