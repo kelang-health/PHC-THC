@@ -16,6 +16,7 @@ function style(){if(document.getElementById('house-groups-style'))return;const s
 @media(max-width:420px){.hg25-tabs{gap:5px}.hg25-tab{font-size:.87rem}.hg25-tab strong{font-size:1rem}.hg25-dialog{padding:15px}}
 `;document.head.append(s);}
 function renderList(){if(!root)return;const filtered=visibleHouseRows(rows,group,term),shown=filtered.slice(0,limit);root.querySelector('[data-hg-result]').textContent=`${labels[group]} ${num(filtered.length)} หลัง · แสดง ${num(shown.length)} หลัง`;
+ let scopeNote=root.querySelector('[data-hg-scope-note]');if(!scopeNote){scopeNote=document.createElement('div');scopeNote.className='hg25-note';scopeNote.dataset.hgScopeNote='';root.querySelector('[data-hg-result]').before(scopeNote);}scopeNote.hidden=!(profile?.role==='staff'&&group==='care');scopeNote.textContent=scopeNote.hidden?'':'บ้านดูแลแสดงเฉพาะบ้านที่ผูกกับคุณโดยตรง · ดูบ้านทั้งชุมชนได้ที่เมนูชุมชน';
  root.querySelector('[data-hg-list]').innerHTML=shown.map(card).join('')||'<div class="hg25-note">ไม่มีบ้านในกลุ่มนี้ตามคำค้นหา</div>';
  root.querySelector('[data-hg-more]').hidden=shown.length>=filtered.length;
  root.querySelectorAll('[data-hg-open]').forEach(b=>b.onclick=()=>openHouse(rows.find(r=>String(r.id)===b.dataset.hgOpen),b));

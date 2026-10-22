@@ -1,4 +1,4 @@
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.182';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.183';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 import { getSharedSupabase, setSharedSession, setSharedProfile, clearSharedAuth, sharedCall, invalidateShared, ensureSharedSession, refreshSharedSession, isSharedAuthError } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
 
@@ -172,13 +172,13 @@ window.PHCRefreshHealthWorklistV2194=async()=>{
 };
 function configurePortalNav(role){
   const portalNav=document.querySelector('#portal-nav');if(portalNav)portalNav.dataset.visibleCount=role==='admin'?'6':'5';
-  const labels={admin:{communities:'ชุมชนทั้งหมด',volunteers:'ทะเบียน อสม.',houses:'บ้านในพื้นที่'},staff:{communities:'ชุมชนที่ดูแล',houses:'บ้านและงานดูแลแทน'},user:{communities:'ชุมชนของฉัน',houses:'บ้านของฉัน'}};
+  const labels={admin:{communities:'ชุมชนทั้งหมด',volunteers:'ทะเบียน อสม.',houses:'บ้านในพื้นที่'},staff:{communities:'ชุมชนที่ดูแล',houses:'บ้านที่รับผิดชอบ'},user:{communities:'ชุมชนของฉัน',houses:'บ้านของฉัน'}};
   const mobileLabels={overview:'ภาพรวม',communities:'ชุมชน',volunteers:'อสม.',houses:'บ้าน',health:'สุขภาพ',work:'ผลงาน'};
   document.querySelectorAll('#portal-nav [data-portal-view]').forEach(b=>{
     b.hidden=!(b.dataset.roles||'').split(/\s+/).includes(role);
     const label=b.querySelector('.portal-nav-label'),roleLabelText=labels[role]?.[b.dataset.portalView];if(label&&roleLabelText)label.textContent=roleLabelText;
     const mobileLabel=b.querySelector('.portal-nav-mobile-label');if(mobileLabel)mobileLabel.textContent=mobileLabels[b.dataset.portalView]||label?.textContent||'';
-    if(role==='staff'&&b.dataset.portalView==='houses'){const sub=b.querySelector('small');if(sub)sub.textContent='บ้านโดยตรง / บ้านไม่มี อสม.';}
+    if(role==='staff'&&b.dataset.portalView==='houses'){const sub=b.querySelector('small');if(sub)sub.textContent='บ้านดูแลที่ผูกกับคุณโดยตรง';}
     b.onclick=async()=>{
       const wasActive=portalView===b.dataset.portalView;setPortalView(b.dataset.portalView,{historyMode:'push'});
       // Phase 2J: field-work-reporting owns the Work panel snapshot.

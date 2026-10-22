@@ -30,7 +30,7 @@ if (typeof window !== 'undefined') {
       await initCommunityHouseholdQuality1831(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initPHCFiveFeatures190 } = await import('./phc-five-features-v190.mjs?v=2.0.165-member-fifo&p=2218');
       await initPHCFiveFeatures190(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initFieldWorkReportingV200 } = await import('./field-work-reporting-v200.mjs?v=2.0.182');
+      const { initFieldWorkReportingV200 } = await import('./field-work-reporting-v200.mjs?v=2.0.183');
       await initFieldWorkReportingV200(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initCoordinateAuditV2132 } = await import('./coordinate-audit-v2132.mjs?v=2.0.133-mobile-map-focus&p=2171');
       await initCoordinateAuditV2132(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
@@ -39,10 +39,10 @@ if (typeof window !== 'undefined') {
 }
 
 // Isolated registration review: failures do not block existing care workflows.
-if(typeof window!=="undefined") import("./house-registration-review-v2202.mjs?v=2.0.182").then(m=>m.initHouseRegistrationReview2202(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY)).catch(()=>{});
+if(typeof window!=="undefined") import("./house-registration-review-v2202.mjs?v=2.0.183").then(m=>m.initHouseRegistrationReview2202(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY)).catch(()=>{});
 
 // Independent NCD field capture; overview and existing follow-up work remain usable.
 if(typeof window!=="undefined") import("./ncd-field-followup-v2203.mjs?v=2.0.162-ncd-exclusion&p=2215").then(m=>m.initNcdFieldFollowup2203(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY)).catch(()=>{});
 
 // House groups are isolated from health target calculations.
-if(typeof window!=="undefined") import("./house-groups-v2225.mjs?v=2.0.182").then(m=>m.initHouseGroupsV2225(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY)).catch(error=>console.error("House groups unavailable",error));
+if(typeof window!=="undefined") import("./house-groups-v2225.mjs?v=2.0.183").then(m=>m.initHouseGroupsV2225(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY)).catch(error=>console.error("House groups unavailable",error));
