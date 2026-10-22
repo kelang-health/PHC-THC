@@ -1,8 +1,8 @@
 {
   "schema": 2,
   "hash_mode": "sha256_lf_normalized",
-  "latest_version": "20261022004632",
-  "migration_count": 262,
+  "latest_version": "20261022090611",
+  "migration_count": 265,
   "migrations": [
     {
       "version": "20260908121831",
@@ -1575,6 +1575,24 @@
       "name": "house_groups_fast_scope_v2227",
       "filename": "20261022004632_house_groups_fast_scope_v2227.sql",
       "sha256": "7e35c251b0146fd76325a11e5cc43449d2a8b27b3ba2cc43642e0f573ccdcace"
+    },
+    {
+      "version": "20261022085616",
+      "name": "target_cache_explicit_delete_predicate_v2227",
+      "filename": "20261022085616_target_cache_explicit_delete_predicate_v2227.sql",
+      "sha256": "1cf569bafe96a31ab509dbd5d70701809b4ab80b3bbd6f37918804754163c9df"
+    },
+    {
+      "version": "20261022090454",
+      "name": "service_queue_report_refresh_v2228",
+      "filename": "20261022090454_service_queue_report_refresh_v2228.sql",
+      "sha256": "abca085683821ae2523c5bdf7650d8fb99200d3213cc3bb344ebafa75b36cdac"
+    },
+    {
+      "version": "20261022090611",
+      "name": "service_report_queue_privilege_v2229",
+      "filename": "20261022090611_service_report_queue_privilege_v2229.sql",
+      "sha256": "69ebb18437bc849a6c3df9b138e05f384800d6116b38374685a83fbde014a880"
     }
   ]
 }
