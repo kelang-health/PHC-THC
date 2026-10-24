@@ -1,0 +1,39 @@
+# Phase 4 three-part Cloud→Local follow-up — verified work and remaining gates (25 September 2026)
+
+**Status: offline/source-control work completed; production reduction/redeployment BLOCKED.** This PR is DRAFT and contains no live UI, backend, Auth/LINE, JHCIS, migration, default-grant, or Cloud-data changes. No Cloud rows were deleted or overwritten; no online load test was executed.
+
+## 1. Archive restore and independent local file
+
+The existing Local `jreportdb` `jr_cloud_archive_registry_v1` contains 10,380 inactive-person and 94 removed/superseded-house encrypted records, 10,474 in a previously verified archive batch. At this audit the local encrypted payload of **all 10,474** records was independently decrypted in memory with the archive's existing correct key; SHA-256, record identity, PCU, and inactive/removed status validated. No plaintext or patient identifier was written to reports, output, or GitHub.
+
+The **pre-existing** independent encrypted file `cloud_registry_inactive_20260924_v1.enc` failed readback under the currently accessible outer encryption key (Fernet signature mismatch). Preserve it without overwrite: the cause/key history has not been established; it is NOT a verified recovery source.
+
+A **new, distinct encrypted private local backup file** `cloud_registry_inactive_20260925_full_restore_v2.enc` was created atomically in the existing non-web-served private archive-backups directory, using the already present outer encryption key. It occupies 10,933,004 bytes and includes all 10,474 encrypted archive records with their source/key/hash metadata. Verified every saved encrypted token, hash, and batch against the Local DB after reading the new file. A separate fresh Python process with **no database connection** then opened the new file, decrypted every inner archived payload, and validated SHA-256 and identity across all 10,474 records: PASS (10,380 persons; 94 houses). Old encrypted file remains unchanged. No new encryption keys were generated or disclosed.
+
+**Remaining gate:** new file and table share a physical computer; this is NOT off-machine/offsite disaster recovery. An independently protected backup and restore drill on separately approved media is required before any Cloud archival deletion. Preserve both existing keys with controlled access, restoration procedure and rotation history; never expose them to GitHub or a browser. The old unreadable file must not be counted as recoverable.
+
+Previous Cloud/live-Local cohort *identity set* counts/digests matched, but today no full live Cloud-row payload-parity comparison was performed. Local full decrypt proves archive integrity, not that it equals a later-edited Cloud row or JHCIS primary.
+
+## 2. Cloud minimum data contract (DESIGN + disposable tests ONLY)
+
+JHCIS remains the primary authority. Local `jreportdb` is the restricted historical/reporting destination; no direct browser access, no public private-network URL, no Cloud service-role key in the browser. Proposed direction is **Local precompute → vetted, minimal, scoped Cloud read-only view/card output**, but *only after full real-RPC/read-path and concurrency review*. Backend would publish versioned summary deltas through authorized idempotent integration, with recorded source run/version and stale indicator. UI must continue to function with existing permitted current Cloud data if Local/report service is offline.
+
+Proposed currently required Cloud card output includes house ID/PCU/hcode, house number, community and volunteer assignment, verification status; scoped person source ID/PCU, house linkage, display name, DOB/age-dependent screening eligibility, current status and limited indicator needed for today's tasks. Final fields **must be confirmed against real current front-end RPC contracts, not inferred from this sketch**. Existing Auth/role/RLS, required full health/clinical data for ongoing field workflow, booking, audit, history and referential tombstones remain untouched.
+
+Current active `health_screening_target_cache_v2030`, `health_screening_plan_v2023`, `report_snapshot_cache_v2031` have production reader/dependency evidence; leave them unchanged. For person/house archive cohorts, multiple actual foreign keys use CASCADE or RESTRICT. Do not delete/rename/replace those Cloud rows without a separately reviewed FK-preserving, history-preserving source migration and tested rollback/forward fix. No new Cloud projection object/endpoint was deployed.
+
+New synthetic `tests/data-api-cloud-local-card-projection.cjs` exercises 4,700 **fabricated** houses and 8,600 **fabricated** current members, comparing richer fake record JSON against a thin, scoped, UI-card candidate. ADMIN/STAFF/USER/anon role-scope and absence of historical/sensitive fields in simulated card payload PASS. Local report downtime does not add a request to the synthetic baseline house/member card contract. This is not a test of real production RPCs, RLS or local network failure.
+
+## 3. Storage and speed estimates — explicit boundaries
+
+Read-only production baseline from prior inspection: OSM-PHC DB ~95,267,987 bytes (~91 MiB). Relative per-table relation sizes including indexes/TOAST: `health_persons` ~15.3 MB; `houses` ~13.3 MB; `health_screening_target_cache_v2030` ~11.3 MB; `health_screening_plan_v2023` ~7.2 MB; `report_snapshot_cache_v2031` ~5.3 MB. These table sizes are **not** archive-reclaim estimates. Archived 10,474 records are not demonstrably removable due to current FK/reader dependencies. Guaranteed recoverable Cloud bytes from work in this phase: **ZERO**.
+
+Disposable CI fixture *uncompressed* JSON: fake fuller record contract 7,095,618 bytes, fake card projection 3,631,818 bytes; gzip: 205,377 versus 186,324 bytes. Synthetic serialization p95 ~7.09 ms on CI. Results are illustration of a read-card *response-shape* choice, **not real bandwidth, database disk savings, Cloud API request count, app latency or live-user improvement**. Current-production p50/p95 and full client-request-count baseline and post-change comparison **cannot be reported**: no real browser/API changes or load test ran. Preserve two existing primary card calls in proposed integration; do not add separate Local calls to the regular mobile page.
+
+A future storage test must verify row bytes including TOAST/indexes, table/sequence/index bloat and actual disk reclamation after a carefully reviewed nonblocking migration; PostgreSQL DELETE does not necessarily return disk quota immediately. Stress/concurrency should be run only in a disposable Supabase-compatible target with non-identifying data, not production. Record cold/warm p50/p95, failed/offline-Local fallback, request count, payload bytes, Cloud disk before/after, UI page loads, sync consistency, and USER/STAFF/ADMIN scoping; reject any regression. For med-device-sharing, borrower/equipment/audit tables were not archived or altered and must not be folded into OSM-PHC archive policy.
+
+## Stop/go
+
+**STOP** on current live frontend/database/migrations, unverified external or old encrypted backup, source-content mismatch, unfenced double writers, new local-browser dependency, loss of references, missing independent backup, failed cross-role / real-app / latency tests, or Cloud archive deletion without separately approved retention/deployment window.
+
+**Next gates:** arrange approved separately stored encrypted backup and true standalone restore; finish full Cloud/JHCIS/current-row equivalence + FK/RPC read mapping; recover/vet all recorded historical migration SQL; isolated full replay and actual scoped app flow tests; gather real mobile baseline; quantify per-table reclaim after simulated archive and small reversible staging-only pilot; obtain separate approval for any Production change. Keep Data API DEPLOY READINESS failing in the meantime.
