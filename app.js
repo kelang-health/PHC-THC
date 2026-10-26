@@ -1,4 +1,4 @@
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.185';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.186';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 import { getSharedSupabase, setSharedSession, setSharedProfile, clearSharedAuth, sharedCall, invalidateShared, ensureSharedSession, refreshSharedSession, isSharedAuthError } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
 
@@ -724,13 +724,25 @@ function syncBpRepeatUiV2123(form){
   return bpRepeatStateV2123(form);
 }
 
+function syncNcdGlucoseRequirement(form){
+  const optional=form.dataset.glucoseOptional==='true';
+  const glucose=form.elements.glucose_mg_dl;
+  const measured=String(glucose.value||'').trim()!=='';
+  glucose.required=!optional;
+  form.querySelectorAll('[name="glucose_type"]').forEach((el,i)=>{el.required=(!optional||measured)&&i===0;});
+  const notice=form.querySelector('#ncd-dm-glucose-notice');
+  if(notice)notice.hidden=!optional;
+}
+
 function ncdRequiredComplete(form){
   if(!form)return false;
-  const required=['screened_on','weight_kg','height_cm','waist_cm','sbp','dbp','pulse','glucose_mg_dl'];
+  syncNcdGlucoseRequirement(form);
+  const required=['screened_on','weight_kg','height_cm','waist_cm','sbp','dbp','pulse'];
+  if(form.elements.glucose_mg_dl.required)required.push('glucose_mg_dl');
   if(required.some(name=>!String(form.elements[name]?.value||'').trim()))return false;
   const bp=bpRepeatStateV2123(form);
   if(bp.highFirst&&!bp.repeatComplete)return false;
-  if(!form.querySelector('[name="glucose_type"]:checked'))return false;
+  if(String(form.elements.glucose_mg_dl.value||'').trim()&&!form.querySelector('[name="glucose_type"]:checked'))return false;
   const smoke=form.querySelector('[name="smoking_state"]:checked')?.value;
   const alcohol=form.querySelector('[name="alcohol_state"]:checked')?.value;
   if(!smoke||!alcohol||!form.querySelector('[name="exercise_frequency"]:checked'))return false;
@@ -817,7 +829,7 @@ function renderNcdPreview(){
     sbp>=130||dbp>=80?'เริ่มสูง':
     sbp<90||dbp<60?'ต่ำ':
     sbp<120&&dbp<80?'เหมาะสม':'ปกติ')+(bp.repeatComplete?' · เฉลี่ย 2 ครั้ง':''));
-  $('#preview-glucose').textContent=!g?'รอกรอก':g<70?'ต่ำ':
+  $('#preview-glucose').textContent=!g?(selectedHealthPerson.has_dm?'ข้ามการวัดน้ำตาล':'รอกรอก'):g<70?'ต่ำ':
     gt==='fasting'?(g>=126?'สงสัยเบาหวาน · ต้องยืนยัน':g>=100?'น้ำตาลเริ่มสูง':'ช่วงปกติ'):
     gt==='random'?(g>=200?'สูงมาก · ต้องยืนยัน':g>=110?'ควรตรวจ FPG/FCBG ซ้ำ':'ช่วงปกติ'):
     'เลือกสถานะก่อนตรวจ';
@@ -884,7 +896,7 @@ function feedbackDelta(label,current,previous,unit='',digits=0){
 }
 function feedbackActions(saved,mental){
   const actions=[];
-  const sbp=Number(saved?.sbp),dbp=Number(saved?.dbp),glucose=Number(saved?.glucose_mg_dl),gt=String(saved?.glucose_type||'');
+  const sbp=Number(saved?.sbp),dbp=Number(saved?.dbp),glucose=saved?.glucose_mg_dl==null?NaN:Number(saved.glucose_mg_dl),gt=String(saved?.glucose_type||'');
   if(sbp>=180||dbp>=110)actions.push('พักและวัดความดันซ้ำ หากยังตั้งแต่ 180/110 ขึ้นไปหรือมีอาการผิดปกติ ให้ประสานเจ้าหน้าที่เพื่อประเมินเร่งด่วน');
   else if(sbp>=140||dbp>=90)actions.push('วัดความดันซ้ำอย่างถูกวิธี และประสานเจ้าหน้าที่เพื่อตรวจยืนยัน/นัดติดตาม');
   if(glucose<70)actions.push('ตรวจน้ำตาลซ้ำและประเมินอาการทันที โดยเฉพาะผู้ใช้ยาลดน้ำตาลหรืออินซูลิน');
@@ -906,7 +918,8 @@ function buildHealthFeedbackModel(saved,mental,person,formData){
   const bmi=Number(saved.bmi??(w>0&&h>0?w/((h/100)**2):NaN));
   const waist=Number(saved.waist_cm??formData.get('waist_cm'));
   const sbp=Number(saved.sbp??formData.get('sbp')),dbp=Number(saved.dbp??formData.get('dbp'));
-  const glucose=Number(saved.glucose_mg_dl??formData.get('glucose_mg_dl'));
+  const glucoseRaw=saved.glucose_mg_dl??formData.get('glucose_mg_dl');
+  const glucose=glucoseRaw==null||String(glucoseRaw).trim()===''?NaN:Number(glucoseRaw);
   const mentalStatus=saved.mental_2q_status??mental.status,mentalResult=saved.mental_2q_result??mental.result;
   const screenedOn=saved.screened_on||formData.get('screened_on')||localDate();
   const metrics=[
@@ -1023,7 +1036,7 @@ async function selectHealthPerson(index,forceNcd=false){
   $('#ncd-person-summary').innerHTML=`<strong>${esc(p.display_name)}</strong><span>${esc(p.age_years??'—')} ปี · ${esc(p.gender)} · ${esc(p.community||'—')}</span>`;
   const conditions=[];if(p.has_ht)conditions.push('<span class="condition-badge disease">มีประวัติ HT</span>');if(p.has_dm)conditions.push('<span class="condition-badge disease">มีประวัติ DM</span>');if(!p.known_ncd)conditions.push('<span class="condition-badge clear">ยังไม่พบ DM/HT ใน JHCIS</span>');if(p.has_cvd)conditions.push('<span class="condition-badge disease">มีประวัติ CVD · ไม่ใช้ Thai CV Risk</span>');else if(p.cvd_population_eligible&&Number(p.age_years)>=35&&Number(p.age_years)<=70)conditions.push('<span class="condition-badge clear">Thai CV Risk คำนวณอัตโนมัติ</span>');$('#ncd-condition-badges').innerHTML=conditions.join('');
   const card=$('#ncd-screen-card'); card.hidden=!(Number(p.age_years)>=18); syncNcdTestResetV208(); if(card.hidden){return;}
-  const form=$('#ncd-form'); form.reset(); form.elements.screened_on.value=localDate(); form.dataset.requestId=requestId(); $('#ncd-result').hidden=true; healthFeedbackModel=null; closeHealthFeedbackCard(); closeNcdSaveConfirmation(false); $('#ncd-error').textContent=''; setActiveNcdSection('ncd-section-measure',false);
+  const form=$('#ncd-form'); form.reset(); form.dataset.glucoseOptional=String(p.has_dm===true); syncNcdGlucoseRequirement(form); form.elements.screened_on.value=localDate(); form.dataset.requestId=requestId(); $('#ncd-result').hidden=true; healthFeedbackModel=null; closeHealthFeedbackCard(); closeNcdSaveConfirmation(false); $('#ncd-error').textContent=''; setActiveNcdSection('ncd-section-measure',false);
   renderPreviousPanel(p);
   form.elements.height_cm.value=p.previous_height_cm||'';
   setPreviousText('#hint-weight',previousHint(p.previous_weight_kg,'กก.'));setPreviousText('#hint-height',previousHint(p.previous_height_cm,'ซม.'));setPreviousText('#hint-waist',previousHint(p.previous_waist_cm,'ซม.'));setPreviousText('#hint-sbp',previousHint(p.previous_sbp));setPreviousText('#hint-dbp',previousHint(p.previous_dbp));setPreviousText('#hint-glucose',previousHint(p.previous_glucose_mg_dl,'mg/dL'));
@@ -1084,7 +1097,7 @@ async function saveHealthScreening(event){
   const d=new FormData(form),p=selectedHealthPerson;
   const smokeState=d.get('smoking_state'),alcoholState=d.get('alcohol_state'),glucoseType=d.get('glucose_type');
   const mental=evaluateMental2Q(d.get('mental_2q_q1'),d.get('mental_2q_q2'));
-  if(!glucoseType){error.textContent='กรุณาเลือกสถานะก่อนตรวจน้ำตาล';setActiveNcdSection('ncd-section-measure',true);return;}
+  if(String(d.get('glucose_mg_dl')||'').trim()&&!glucoseType){error.textContent='กรุณาเลือกสถานะก่อนตรวจน้ำตาล';setActiveNcdSection('ncd-section-measure',true);return;}
   if(!smokeState||!alcoholState||!d.get('exercise_frequency')){error.textContent='กรุณาเลือกพฤติกรรมสุขภาพให้ครบ';setActiveNcdSection('ncd-section-behavior',true);return;}
   const smokingFrequency=smokeState==='no'?'ไม่สูบ':d.get('smoking_frequency');
   const alcoholFrequency=alcoholState==='no'?'ไม่ดื่ม':d.get('alcohol_frequency');
@@ -1092,7 +1105,7 @@ async function saveHealthScreening(event){
   if(!confirmNcdEntryGuardV2122(form,p)){error.textContent='ยังไม่บันทึก กรุณาตรวจวัด/ตรวจสอบค่าที่แจ้งเตือนอีกครั้ง';setActiveNcdSection('ncd-section-measure',true);return;}
   const bp=bpRepeatStateV2123(form);
   if(bp.highFirst&&!bp.repeatComplete){error.textContent='กรุณาวัดความดันซ้ำครั้งที่ 2 ให้ครบก่อนบันทึก';setActiveNcdSection('ncd-section-measure',true);return;}
-  const payload={p_source_pcucode:p.source_pcucode,p_source_pid:Number(p.source_pid),p_screened_on:d.get('screened_on')||null,p_weight_kg:formNumber(d.get('weight_kg')),p_height_cm:formNumber(d.get('height_cm')),p_waist_cm:formNumber(d.get('waist_cm')),p_sbp:formNumber(d.get('sbp')),p_dbp:formNumber(d.get('dbp')),p_pulse:d.get('pulse')===null||String(d.get('pulse')).trim()===''?null:formNumber(d.get('pulse')),p_glucose_mg_dl:formNumber(d.get('glucose_mg_dl')),p_glucose_type:glucoseType,p_danger_symptoms:false,p_smoking_frequency:smokingFrequency,p_alcohol_frequency:alcoholFrequency,p_exercise_frequency:d.get('exercise_frequency'),p_note:d.get('note')||'',p_request_id:form.dataset.requestId||requestId(),p_mental_2q_q1:mental.q1,p_mental_2q_q2:mental.q2,p_sbp_repeat:bp.highFirst?bp.s2:null,p_dbp_repeat:bp.highFirst?bp.d2:null};
+  const payload={p_source_pcucode:p.source_pcucode,p_source_pid:Number(p.source_pid),p_screened_on:d.get('screened_on')||null,p_weight_kg:formNumber(d.get('weight_kg')),p_height_cm:formNumber(d.get('height_cm')),p_waist_cm:formNumber(d.get('waist_cm')),p_sbp:formNumber(d.get('sbp')),p_dbp:formNumber(d.get('dbp')),p_pulse:d.get('pulse')===null||String(d.get('pulse')).trim()===''?null:formNumber(d.get('pulse')),p_glucose_mg_dl:String(d.get('glucose_mg_dl')||'').trim()===''?null:formNumber(d.get('glucose_mg_dl')),p_glucose_type:String(d.get('glucose_mg_dl')||'').trim()===''?'unknown':glucoseType,p_danger_symptoms:false,p_smoking_frequency:smokingFrequency,p_alcohol_frequency:alcoholFrequency,p_exercise_frequency:d.get('exercise_frequency'),p_note:d.get('note')||'',p_request_id:form.dataset.requestId||requestId(),p_mental_2q_q1:mental.q1,p_mental_2q_q2:mental.q2,p_sbp_repeat:bp.highFirst?bp.s2:null,p_dbp_repeat:bp.highFirst?bp.d2:null};
   form.dataset.saving='1';button.disabled=true;button.textContent='กำลังบันทึก…';
   try{
     const {data:saved,error:saveError}=await supabase.rpc('save_health_ncd_screening_v6',payload);if(saveError)throw saveError;

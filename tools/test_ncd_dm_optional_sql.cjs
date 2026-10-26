@@ -1,0 +1,31 @@
+const fs=require('fs'),assert=require('assert/strict');
+const {PGlite}=require('@electric-sql/pglite');
+(async()=>{
+ const db=new PGlite();
+ const initial=fs.readFileSync('supabase/migrations/20260909090000_health_ncd_module.sql','utf8');
+ const table=initial.match(/create table if not exists public.health_ncd_screenings \([\s\S]*?\n\);/i)[0].replaceAll('extensions.gen_random_uuid()','gen_random_uuid()').replaceAll('references auth.users(id)','');
+ await db.exec(`CREATE SCHEMA auth; CREATE SCHEMA private;
+ CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$SELECT nullif(current_setting('test.uid',true),'')::uuid$$;
+ CREATE FUNCTION private.current_role() RETURNS text LANGUAGE sql AS $$SELECT 'user'::text$$;
+ CREATE FUNCTION private.health_can_access_house(text,text) RETURNS boolean LANGUAGE sql AS $$SELECT current_setting('test.access',true)='yes'$$;
+ CREATE TABLE health_persons(source_pcucode text,source_pid bigint,active boolean,house_pcucode text,hcode text,gender text,birth_date date,has_dm boolean,has_ht boolean,primary key(source_pcucode,source_pid));
+ CREATE TABLE houses(source_pcucode text,hcode text,primary key(source_pcucode,hcode));
+ CREATE TABLE health_audit_log(operator_id uuid,action text,entity text,entity_id text,source_pcucode text,source_pid bigint,hcode text,severity text,details jsonb);`);
+ await db.exec(table);
+ let base=fs.readFileSync('tools/fixtures/ncd_base_live_20261026.sql','utf8');
+ await db.exec(base);
+ await db.exec(fs.readFileSync('supabase/migrations/20261026142142_dm_optional_glucose_v2186.sql','utf8'));
+ await db.exec("INSERT INTO health_persons VALUES('99999',1,true,'99999','1','ชาย','1970-01-01',true,false),('99999',2,true,'99999','2','หญิง','1970-01-01',false,true); INSERT INTO houses VALUES('99999','1'),('99999','2'); SET test.access='yes';");
+ const call=(pid,g,t)=>`select (public.save_health_ncd_screening('99999',${pid},current_date,60,165,80,120,75,${g},${t},false,false,false,true,'',gen_random_uuid())).*`;
+ await assert.rejects(db.query(call(1,'NULL',"'unknown'")),/Not authorized/);
+ await db.exec("SET test.uid='00000000-0000-0000-0000-000000000001'");
+ let r=(await db.query(call(1,'NULL',"NULL"))).rows[0];
+ assert.equal(r.glucose_mg_dl,null);assert.equal(r.glucose_type,'unknown');assert(r.glucose_status.includes('ข้าม'));assert.notEqual(r.severity,'urgent');
+ await assert.rejects(db.query(call(2,'NULL',"'unknown'")),/GLUCOSE_REQUIRED_WITHOUT_DM_HISTORY/);
+ for(const g of [0,19,701])await assert.rejects(db.query(call(1,g,"'fasting'")),/invalid glucose/);
+ await assert.rejects(db.query(call(1,100,"'unknown'")),/invalid glucose type/);
+ for(const t of ['fasting','random']){r=(await db.query(call(1,100,`'${t}'`))).rows[0];assert.equal(r.glucose_mg_dl,100);}
+ r=(await db.query(call(1,60,"'fasting'"))).rows[0];assert.equal(r.severity,'urgent');
+ await db.exec("SET test.access='no'");await assert.rejects(db.query(call(1,'NULL',"'unknown'")),/Not authorized for this person/);
+ await db.close();console.log('SQL: known DM skips as NULL; HT-only blocked; real glucose bounds, type, hypoglycemia and authorization pass');
+})().catch(e=>{console.error(e);process.exit(1)});
