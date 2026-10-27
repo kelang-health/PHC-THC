@@ -1,8 +1,8 @@
 {
   "schema": 2,
   "hash_mode": "sha256_lf_normalized",
-  "latest_version": "20261026142142",
-  "migration_count": 266,
+  "latest_version": "20261027033855",
+  "migration_count": 267,
   "migrations": [
     {
       "version": "20260908121831",
@@ -1599,6 +1599,12 @@
       "name": "dm_optional_glucose_v2186",
       "filename": "20261026142142_dm_optional_glucose_v2186.sql",
       "sha256": "1d4a2301c684da06989fac68343102061e339d9f5793d365a4e1c1b29b108315"
+    },
+    {
+      "version": "20261027033855",
+      "name": "registry_service_community_key_v2187",
+      "filename": "20261027033855_registry_service_community_key_v2187.sql",
+      "sha256": "f593cadbe59b230dac3022a47bdca447c208b465d4f8c0aaf30154b81b0a6e33"
     }
   ]
 }
