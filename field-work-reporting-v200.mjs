@@ -142,13 +142,15 @@ async function openFollowups(){return openFollowupCenter(supabase,{scope:effecti
 
 async function exportXlsx(){
   const body=openModal('เลือกข้อมูลส่งออก Excel');
+  body.closest('.field200-modal').classList.add('field200-export-modal');
+  const card=body.closest('.field200-modal-card');card.setAttribute('role','dialog');card.setAttribute('aria-label','เลือกข้อมูลส่งออก Excel');card.querySelector('.field200-close').setAttribute('aria-label','ปิดหน้าส่งออก');
   const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Bangkok',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   const year=Number(today.slice(0,4)),fyStart=`${Number(today.slice(5,7))>=10?year:year-1}-10-01`;
-  body.innerHTML=`<form data-export-form style="display:grid;gap:14px"><p>เลือกเฉพาะงานและช่วงวันที่ที่ต้องการ รายการงานปัจจุบันรวมงานที่ยังไม่เริ่มและไม่กรองวันที่</p><fieldset style="display:grid;gap:10px"><legend>ประเภทข้อมูล</legend><label style="display:flex;gap:9px;align-items:center;min-height:44px"><input type="checkbox" name="summary" checked>สรุปแดชบอร์ดและผลงานรายพื้นที่ (ตามรอบรายงานเดิม)</label>${Object.entries(EXPORT_DATASETS).map(([k,d])=>`<label style="display:flex;gap:9px;align-items:center;min-height:44px"><input type="checkbox" name="dataset" value="${k}" ${k==='work'?'checked':''}>${esc(d.label)}</label>`).join('')}</fieldset><div class="field200-filters"><label>ตั้งแต่วันที่<input type="date" name="start" value="${esc(lastDashboard?.period_start||fyStart)}" required></label><label>ถึงวันที่<input type="date" name="end" value="${today}" required></label></div><label style="display:flex;gap:9px;align-items:center;min-height:44px"><input type="checkbox" name="details">รวมรายละเอียดรายด้าน บันทึก และรหัสอ้างอิงทั้งหมด</label><p>ผลสรุปการคัดกรองและค่าที่วัดได้ยังอยู่ในไฟล์ปกติ เลือกรายละเอียดเมื่อต้องการข้อมูลประกอบเพิ่มเติม</p><p data-export-error class="error" role="status"></p><button type="submit" class="primary">ดาวน์โหลด Excel</button></form>`;
+  body.innerHTML=`<form data-export-form style="display:grid;gap:14px"><p>เลือกเฉพาะงานและช่วงวันที่ที่ต้องการ รายการงานปัจจุบันรวมงานที่ยังไม่เริ่มและไม่กรองวันที่</p><fieldset style="display:grid;gap:10px"><legend>ประเภทข้อมูล</legend><label style="display:flex;gap:9px;align-items:center;min-height:44px"><input type="checkbox" name="summary" checked>สรุปแดชบอร์ดและผลงานรายพื้นที่ (ตามรอบรายงานเดิม)</label>${Object.entries(EXPORT_DATASETS).map(([k,d])=>`<label style="display:flex;gap:9px;align-items:center;min-height:44px"><input type="checkbox" name="dataset" value="${k}" ${k==='work'?'checked':''}>${esc(d.label)}</label>`).join('')}</fieldset><div class="field200-filters"><label>ตั้งแต่วันที่<input type="date" name="start" value="${esc(lastDashboard?.period_start||fyStart)}" required></label><label>ถึงวันที่<input type="date" name="end" value="${today}" required></label></div><label style="display:flex;gap:9px;align-items:center;min-height:44px"><input type="checkbox" name="details">รวมรายละเอียดรายด้าน บันทึก และรหัสอ้างอิงทั้งหมด</label><p>ผลสรุปการคัดกรองและค่าที่วัดได้ยังอยู่ในไฟล์ปกติ เลือกรายละเอียดเมื่อต้องการข้อมูลประกอบเพิ่มเติม</p><p data-export-error class="field200-export-status" role="status"></p><button type="submit" class="primary">ดาวน์โหลด Excel</button></form>`;
   const form=body.querySelector('[data-export-form]'),button=form.querySelector('[type="submit"]'),status=form.querySelector('[data-export-error]');
   const signature=()=>JSON.stringify([profile?.user_id,profile?.active,effectiveScope(),ownerPid,profile?.community,profile?.volunteer_pid]);
   form.onsubmit=async event=>{
-    event.preventDefault();status.textContent='';
+    event.preventDefault();status.textContent='';status.dataset.tone='error';
     const options={keys:[...form.querySelectorAll('[name="dataset"]:checked')].map(e=>e.value),start:form.elements.start.value,end:form.elements.end.value,details:form.elements.details.checked};
     if((!options.keys.length&&!form.elements.summary.checked)||!validExportRange(options.start,options.end)){status.textContent='กรุณาเลือกประเภทข้อมูลและช่วงวันที่ให้ถูกต้อง';return;}
     const wantSummary=form.elements.summary.checked,dashboard=lastDashboard;
@@ -173,8 +175,8 @@ async function exportXlsx(){
         XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(clean),name);
       }
       XLSX.writeFile(wb,`OSM-PHC_Field_Report_${options.start}_${options.end}.xlsx`);
-      status.textContent=`ส่งออกแล้ว ${num(sheets.reduce((n,[,rows])=>n+rows.length,0))} รายการ`;
-    }catch(e){status.textContent='สร้าง Excel ไม่สำเร็จ: '+e.message;}
+      status.textContent=`ส่งออกแล้ว ${num(sheets.reduce((n,[,rows])=>n+rows.length,0))} รายการ`;status.dataset.tone='success';
+    }catch(e){status.textContent='สร้าง Excel ไม่สำเร็จ: '+e.message;status.dataset.tone='error';}
     finally{button.disabled=false;button.textContent='ดาวน์โหลด Excel';}
   };
 }

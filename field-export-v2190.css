@@ -1,0 +1,19 @@
+/* Keep the export picker inside the viewport and isolate it from portal inputs. */
+.field200-modal.field200-export-modal{display:flex;align-items:center;justify-content:center;padding:16px;overflow:hidden}
+.field200-export-modal .field200-modal-card{box-sizing:border-box;width:min(720px,100%);max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);min-height:0;display:flex;flex-direction:column;overflow:hidden;margin:0;padding:16px}
+.field200-export-modal .field200-modal-head{position:static;flex:0 0 auto;padding:0 0 12px;gap:12px}
+.field200-export-modal .field200-modal-head h2{font-size:1.25rem;line-height:1.4;margin:0}
+.field200-export-modal [data-field-modal-body]{min-height:0;overflow-y:auto;overflow-x:hidden;padding:2px}
+.field200-export-modal [data-export-form]{gap:12px!important}
+.field200-export-modal [data-export-form] p{margin:0;line-height:1.5}
+.field200-export-modal fieldset{box-sizing:border-box;min-width:0;min-inline-size:0;width:100%;padding:12px;border:1px solid #cfe0d9;border-radius:12px;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important}
+.field200-export-modal legend{padding:0 6px;font-weight:800}
+.field200-export-modal label{min-width:0;justify-content:flex-start;text-align:left;line-height:1.5}
+.field200-export-modal input[type=checkbox]{box-sizing:border-box;width:20px!important;min-width:20px!important;height:20px!important;min-height:20px!important;flex:0 0 20px;margin:0}
+.field200-export-modal .field200-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0}
+.field200-export-modal .field200-filters label{display:grid;gap:6px}
+.field200-export-modal input[type=date]{box-sizing:border-box;min-width:0;width:100%;min-height:48px}
+.field200-export-status{padding:10px 12px;border:1px solid #e6b4ad;border-radius:12px;background:#fff0ee;color:#8b3028;font-weight:750}
+.field200-export-status:empty{display:none}
+.field200-export-status[data-tone=success]{border-color:#add6c4;background:#edf8f1;color:#176547}
+@media(max-width:520px){.field200-export-modal fieldset{grid-template-columns:1fr}.field200-modal.field200-export-modal{padding:10px}.field200-export-modal .field200-modal-card{padding:12px;max-height:calc(100vh - 20px);max-height:calc(100dvh - 20px)}}

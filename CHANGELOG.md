@@ -1,3 +1,10 @@
+## Cloud v2.0.190 — Keep the export picker readable on screen
+
+- Fix oversized checkboxes and labels pushed to the right by portal-wide input styles.
+- Keep the export heading/close control within the viewport and scroll the form body on smaller screens.
+- Show successful exports in green; reserve the error treatment for failed validation or export.
+- Export data, permissions and date filters are unchanged.
+
 ## Cloud v2.0.189 — Scoped exports and paginated care lists
 
 - Choose export datasets, service dates and optional detailed fields before downloading Excel; only selected datasets are fetched. Current work items keep incomplete tasks independently of the service-date filter.
