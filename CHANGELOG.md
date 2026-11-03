@@ -1,3 +1,10 @@
+## Cloud v2.0.188 — Reduce repeated map data reads
+
+- Cache display boundaries in memory for 10 minutes per signed-in account and exact query; simultaneous reads share one request. Failed requests remain retryable.
+- Align portal household caching with the existing five-minute mobile household cache; existing write invalidation remains in place.
+- Coordinate validation and save RPCs remain live. No data/schema changes.
+- This reduces repeated requests; monthly Egress savings still require measurement after release.
+
 ## Cloud v2.0.151 — Elderly 9-domain fiscal-year status
 
 - แยกสถานะคัดกรองผู้สูงอายุ 9 ด้านออกจากสถานะ NCD โดยใช้สถานะปีงบประมาณ: ยังไม่เริ่ม / ทำค้าง / ครบแล้ว พร้อมจำนวนด้านและวันที่ล่าสุด

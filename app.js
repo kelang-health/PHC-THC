@@ -1,4 +1,4 @@
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.187';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.188';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 import { getSharedSupabase, setSharedSession, setSharedProfile, clearSharedAuth, sharedCall, invalidateShared, ensureSharedSession, refreshSharedSession, isSharedAuthError } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
 
@@ -63,7 +63,7 @@ const PORTAL_DEFAULT_VIEW_V2059 = 'overview';
 const HEALTH_PAGE_SIZE_V2033 = 50;
 const HEALTH_WORKLIST_CACHE_MS_V2039 = 120000;
 const STAFF_SCOPE_CACHE_MS_V2039 = 300000;
-const HOUSEHOLD_CACHE_MS_V2039 = 30000;
+const HOUSEHOLD_CACHE_MS_V2039 = 300000;
 const HEALTH_COORD_TRACE_MAX_V2040 = 40;
 const CLOUD_RELEASE_VERSION = document.querySelector('meta[name="phc-release"]')?.content || '2.0.59';
 function traceHealthCoordV2040(event,args={},trigger=''){
