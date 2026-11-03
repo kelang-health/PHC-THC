@@ -1,3 +1,10 @@
+## Cloud v2.0.191 — Retry summaries without replaying completed deliveries
+
+- Retry noon/evening summaries at five-minute intervals within the existing 20-minute window; skip outbound HTTP after a recorded success.
+- Preserve the existing NCD integrity guard, Edge Function claim and per-recipient deduplication.
+- Move stale Telegram deliveries to an explicit failed/manual-review state with original state retained privately; do not replay uncertain deliveries.
+- Verify retry, time-window, quarantine and permission behavior using a synthetic PostgreSQL fixture with stubbed HTTP.
+
 ## Cloud v2.0.190 — Keep the export picker readable on screen
 
 - Fix oversized checkboxes and labels pushed to the right by portal-wide input styles.

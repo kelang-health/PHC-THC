@@ -1,8 +1,8 @@
 {
   "schema": 2,
   "hash_mode": "sha256_lf_normalized",
-  "latest_version": "20261103041223",
-  "migration_count": 268,
+  "latest_version": "20261103070226",
+  "migration_count": 269,
   "migrations": [
     {
       "version": "20260908121831",
@@ -1611,6 +1611,12 @@
       "name": "egress_scoped_special_people_v2189",
       "filename": "20261103041223_egress_scoped_special_people_v2189.sql",
       "sha256": "3fb613eac9a575a03cdfe3b842bb8fc10a48c4fa60132247eaf9d1ce826fcefe"
+    },
+    {
+      "version": "20261103070226",
+      "name": "notification_summary_retry_v2191",
+      "filename": "20261103070226_notification_summary_retry_v2191.sql",
+      "sha256": "a79155aa0ddc461580fff279aa769f8fc45cbd5157763c2714aa94271e9aab3a"
     }
   ]
 }
