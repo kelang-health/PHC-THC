@@ -1,3 +1,4 @@
+import { EXPORT_DATASETS, validExportRange, fetchExportDatasets } from './field-export-v2189.mjs?v=2.0.189';
 import { openFollowupCenter } from './screening-followup-center-v2213.mjs?v=2214';
 import { getSharedSupabase, getSharedProfile, sharedCall, bindPortalActivation, isPortalViewActive } from './shared-runtime-v2035.mjs?v=2.0.35';
 const VERSION='2.0.59';
@@ -139,16 +140,44 @@ async function openWorkList(filter={}){
 
 async function openFollowups(){return openFollowupCenter(supabase,{scope:effectiveScope(),ownerPid:effectiveScope()==='volunteer'?ownerPid:null});}
 
-async function fetchAll(table,columns='*',extra=null){const rows=[];for(let from=0;;from+=1000){let q=supabase.from(table).select(columns).range(from,from+999);const s=effectiveScope();if(s==='self'&&profile.volunteer_pid!=null&&['field_work_items_v200','field_export_ncd_v200','field_export_growth_v200','field_export_child_dev_v200','field_export_elderly9_v200','field_export_followup_v200'].includes(table))q=q.eq('volunteer_pid',profile.volunteer_pid);if(s==='volunteer'&&ownerPid!=null)q=q.eq('volunteer_pid',ownerPid);if(s==='community'&&profile.community)q=q.eq('community',profile.community);if(extra)q=extra(q);const {data,error}=await q;if(error)throw error;rows.push(...(data||[]));if(!data||data.length<1000)break}return rows}
-function cleanRows(rows){return rows.map(r=>Object.fromEntries(Object.entries(r).map(([k,v])=>[k,(v&&typeof v==='object')?JSON.stringify(v):v])))}
-async function exportXlsx(){const button=$('[data-field-export]');if(button){button.disabled=true;button.textContent='กำลังสร้าง Excel…'}try{const XLSX=await import('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm');const d=lastDashboard||await (async()=>{const rs=effectiveScope(),op=ownerPid??null;let {data,error}=await sharedCall(`report-snapshot:field:${rs}:${op??''}`,()=>supabase.rpc('report_snapshot_v2033',{p_report_key:'field',p_scope:rs,p_owner_pid:op}),30000);if((error||!data)&&effectiveScope()!=='volunteer'){const legacy=await supabase.rpc('report_snapshot_v2031',{p_report_key:'field',p_scope:effectiveScope()});data=legacy.data;error=legacy.error;}if((error||!data)&&effectiveScope()!=='volunteer'){const live=await supabase.rpc('field_work_dashboard_v200',{p_scope:effectiveScope()});data=live.data;error=live.error;}if(error)throw error;return data})();const start=d.period_start;const [work,ncd,growth,child,elder,follow]=await Promise.all([
-fetchAll('field_work_items_v200','source_pcucode,source_pid,display_name,age_years,hcode,house_no,moo,community,volunteer_pid,task_type,task_label,status,progress_percent,priority,last_activity_at,completed_at,period_start,period_mode'),
-fetchAll('field_export_ncd_v200','*',q=>q.gte('screened_on',start)),
-fetchAll('field_export_growth_v200','*',q=>q.gte('screened_at',start+'T00:00:00')),
-fetchAll('field_export_child_dev_v200','*',q=>q.gte('screened_at',start+'T00:00:00')),
-fetchAll('field_export_elderly9_v200','*',q=>q.gte('screening_date',start)),
-fetchAll('field_export_followup_v200','*',q=>q.gte('created_at',start+'T00:00:00'))]);
-const wb=XLSX.utils.book_new();const summary=[{version:VERSION,generated_at:new Date().toISOString(),scope:d.scope_label,period_start:d.period_start,period_mode:d.period_mode,target_tasks:d.target_tasks,complete_tasks:d.complete_tasks,partial_tasks:d.partial_tasks,due_tasks:d.due_tasks,coverage_percent:d.coverage_percent,followup_open:d.followup_open,followup_done:d.followup_done,note:d.metric_note}];const sheets=[['01_Summary',summary],['02_Community',d.communities||[]],['03_VHV_Progress',d.volunteers||[]],['04_Work_Items',work],['05_NCD',ncd],['06_Growth',growth],['07_Child_Dev',child],['08_Elderly9',elder],['09_Followup',follow]];for(const [name,rows] of sheets){const ws=XLSX.utils.json_to_sheet(cleanRows(rows));XLSX.utils.book_append_sheet(wb,ws,name)}XLSX.writeFile(wb,`OSM-PHC_Field_Report_${new Date().toISOString().slice(0,10)}.xlsx`)}catch(e){alert('สร้าง Excel ไม่สำเร็จ: '+e.message)}finally{if(button){button.disabled=false;button.textContent='ส่งออก Excel'}}}
+async function exportXlsx(){
+  const body=openModal('เลือกข้อมูลส่งออก Excel');
+  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Bangkok',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  const year=Number(today.slice(0,4)),fyStart=`${Number(today.slice(5,7))>=10?year:year-1}-10-01`;
+  body.innerHTML=`<form data-export-form style="display:grid;gap:14px"><p>เลือกเฉพาะงานและช่วงวันที่ที่ต้องการ รายการงานปัจจุบันรวมงานที่ยังไม่เริ่มและไม่กรองวันที่</p><fieldset style="display:grid;gap:10px"><legend>ประเภทข้อมูล</legend><label style="display:flex;gap:9px;align-items:center;min-height:44px"><input type="checkbox" name="summary" checked>สรุปแดชบอร์ดและผลงานรายพื้นที่ (ตามรอบรายงานเดิม)</label>${Object.entries(EXPORT_DATASETS).map(([k,d])=>`<label style="display:flex;gap:9px;align-items:center;min-height:44px"><input type="checkbox" name="dataset" value="${k}" ${k==='work'?'checked':''}>${esc(d.label)}</label>`).join('')}</fieldset><div class="field200-filters"><label>ตั้งแต่วันที่<input type="date" name="start" value="${esc(lastDashboard?.period_start||fyStart)}" required></label><label>ถึงวันที่<input type="date" name="end" value="${today}" required></label></div><label style="display:flex;gap:9px;align-items:center;min-height:44px"><input type="checkbox" name="details">รวมรายละเอียดรายด้าน บันทึก และรหัสอ้างอิงทั้งหมด</label><p>ผลสรุปการคัดกรองและค่าที่วัดได้ยังอยู่ในไฟล์ปกติ เลือกรายละเอียดเมื่อต้องการข้อมูลประกอบเพิ่มเติม</p><p data-export-error class="error" role="status"></p><button type="submit" class="primary">ดาวน์โหลด Excel</button></form>`;
+  const form=body.querySelector('[data-export-form]'),button=form.querySelector('[type="submit"]'),status=form.querySelector('[data-export-error]');
+  const signature=()=>JSON.stringify([profile?.user_id,profile?.active,effectiveScope(),ownerPid,profile?.community,profile?.volunteer_pid]);
+  form.onsubmit=async event=>{
+    event.preventDefault();status.textContent='';
+    const options={keys:[...form.querySelectorAll('[name="dataset"]:checked')].map(e=>e.value),start:form.elements.start.value,end:form.elements.end.value,details:form.elements.details.checked};
+    if((!options.keys.length&&!form.elements.summary.checked)||!validExportRange(options.start,options.end)){status.textContent='กรุณาเลือกประเภทข้อมูลและช่วงวันที่ให้ถูกต้อง';return;}
+    const wantSummary=form.elements.summary.checked,dashboard=lastDashboard;
+    if(wantSummary&&!dashboard){status.textContent='กรุณาโหลดหน้ารายงานก่อนส่งออกสรุป';return;}
+    const captured=signature(),actor=await getSharedProfile(supabase);
+    if(!actor?.active||actor.user_id!==profile?.user_id){status.textContent='กรุณาเข้าสู่ระบบใหม่';return;}
+    const exportScope={userId:actor.user_id,role:actor.role,mode:effectiveScope(),ownerPid,community:actor.community,volunteerPid:actor.volunteer_pid};
+    const isCurrent=()=>body.isConnected&&signature()===captured;
+    button.disabled=true;button.textContent='กำลังสร้าง Excel…';
+    try{
+      const sheets=options.keys.length?await fetchExportDatasets(supabase,options,exportScope,isCurrent):[];
+      if(wantSummary){
+        sheets.unshift(['02_Community',dashboard.communities||[]],['03_VHV_Progress',dashboard.volunteers||[]]);
+        sheets.unshift(['01_Dashboard',[{period_start:dashboard.period_start,period_mode:dashboard.period_mode,scope:dashboard.scope_label,target_tasks:dashboard.target_tasks,complete_tasks:dashboard.complete_tasks,partial_tasks:dashboard.partial_tasks,due_tasks:dashboard.due_tasks,coverage_percent:dashboard.coverage_percent,followup_open:dashboard.followup_open,followup_done:dashboard.followup_done,note:'ยอดสรุปตามรอบแดชบอร์ดเดิม ไม่ใช่ยอดเฉพาะช่วงวันที่ส่งออก'}]]);
+      }
+      const XLSX=await import('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm');
+      if(!isCurrent())throw new Error('บัญชีหรือขอบเขตเปลี่ยนแล้ว กรุณาส่งออกใหม่');
+      const wb=XLSX.utils.book_new();
+      const metadata=[{version:document.querySelector('meta[name="phc-release"]')?.content||VERSION,generated_at:new Date().toISOString(),scope:exportScope.mode,community:exportScope.community,owner_pid:exportScope.ownerPid,start:options.start,end:options.end,details:options.details,work_items_note:options.keys.includes('work')?'รายการงานปัจจุบันไม่กรองวันที่':'',date_timezone:'Asia/Bangkok'}];
+      for(const [name,rows] of [['01_Export_Info',metadata],...sheets]){
+        const clean=rows.map(r=>Object.fromEntries(Object.entries(r).map(([k,v])=>[k,v&&typeof v==='object'?JSON.stringify(v):v])));
+        XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(clean),name);
+      }
+      XLSX.writeFile(wb,`OSM-PHC_Field_Report_${options.start}_${options.end}.xlsx`);
+      status.textContent=`ส่งออกแล้ว ${num(sheets.reduce((n,[,rows])=>n+rows.length,0))} รายการ`;
+    }catch(e){status.textContent='สร้าง Excel ไม่สำเร็จ: '+e.message;}
+    finally{button.disabled=false;button.textContent='ดาวน์โหลด Excel';}
+  };
+}
 
 function ownsFieldLoadV2040(epoch){return epoch===loadEpochV2040&&isPortalViewActive('work');}
 async function load(){

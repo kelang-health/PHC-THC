@@ -1,3 +1,9 @@
+## Cloud v2.0.189 — Scoped exports and paginated care lists
+
+- Choose export datasets, service dates and optional detailed fields before downloading Excel; only selected datasets are fetched. Current work items keep incomplete tasks independently of the service-date filter.
+- Special-care lists join houses/persons on the server under caller RLS, search the full allowed scope and load 30 people per page.
+- No population/target/history changes. Monthly Egress savings require measurement after release.
+
 ## Cloud v2.0.188 — Reduce repeated map data reads
 
 - Cache display boundaries in memory for 10 minutes per signed-in account and exact query; simultaneous reads share one request. Failed requests remain retryable.

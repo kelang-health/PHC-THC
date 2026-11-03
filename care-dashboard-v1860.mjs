@@ -31,63 +31,40 @@ function currentScopeLabelV20135(){
   }
   return'บ้านที่ฉันรับผิดชอบ';
 }
-async function scopedHouseMapV20135(){
-  const rs=roleScope();
-  let targetPid=null;
-  if(profile?.role==='user')targetPid=Number(profile.volunteer_pid)||null;
-  else if(profile?.role==='staff'&&rs==='self')targetPid=Number(profile.volunteer_pid)||null;
-  else if(profile?.role==='staff'&&rs==='volunteer')targetPid=Number(ownerPid)||null;
-  if((profile?.role==='user'||(profile?.role==='staff'&&rs!=='community'))&&!targetPid)return new Map();
-  const out=new Map();let from=0;
-  while(true){
-    let q=supabase.from('houses').select('source_pcucode,hcode,house_no,moo,community,volunteer_pid')
-      .eq('verification_status','verified_jhcis').is('superseded_by',null).order('hcode').range(from,from+999);
-    if(targetPid)q=q.eq('volunteer_pid',targetPid);
-    const {data,error}=await q;if(error)throw error;
-    for(const h of data||[])out.set(houseKeyV20135(h.source_pcucode,h.hcode),h);
-    if(!data||data.length<1000)break;from+=1000;if(from>=10000)break;
-  }
-  return out;
-}
-async function specialPeopleV20135(group){
-  const cfg=SPECIAL_GROUP_V20135[group];if(!cfg)throw new Error('SPECIAL_GROUP_INVALID');
-  const houses=await scopedHouseMapV20135();if(!houses.size)return[];
-  const people=[];let from=0;
-  while(true){
-    let q=supabase.from('health_persons')
-      .select('source_pcucode,source_pid,house_pcucode,hcode,display_name,birth_date,is_disabled,adl_group_code,adl_assessed_on,service_population_eligible')
-      .eq('active',true).eq('service_population_eligible',true).order('display_name').range(from,from+999);
-    q=group==='disabled'?q.eq('is_disabled',true):q.eq('adl_group_code',cfg.adl);
-    const {data,error}=await q;if(error)throw error;
-    for(const p of data||[]){
-      const h=houses.get(houseKeyV20135(p.house_pcucode,p.hcode));if(!h)continue;
-      const age=ageYearsV20135(p.birth_date);
-      if(group!=='disabled'&&(age==null||age<60))continue;
-      people.push({...p,age_years:age,house_no:h.house_no,moo:h.moo,community:h.community});
-    }
-    if(!data||data.length<1000)break;from+=1000;if(from>=10000)break;
-  }
-  people.sort((a,b)=>String(a.display_name||'').localeCompare(String(b.display_name||''),'th'));
-  return people;
+async function specialPeopleV20135(group,{search='',offset=0}={}){
+  if(!SPECIAL_GROUP_V20135[group])throw new Error('SPECIAL_GROUP_INVALID');
+  const {data,error}=await supabase.rpc('care_special_people_page_v2189',{
+    p_group:group,p_scope:roleScope(),p_owner_pid:ownerPid??null,p_search:search,p_limit:31,p_offset:offset
+  });
+  if(error)throw error;return data||[];
 }
 function closeSpecialPeopleV20135(){document.querySelector('[data-care60-special-overlay]')?.remove();}
 async function openSpecialPeopleV20135(group){
   const cfg=SPECIAL_GROUP_V20135[group];if(!cfg)return;
   closeSpecialPeopleV20135();
   const overlay=document.createElement('div');overlay.className='care60-special-overlay';overlay.dataset.care60SpecialOverlay='1';
-  overlay.innerHTML=`<section class="care60-special-modal" role="dialog" aria-modal="true" aria-label="${esc(cfg.label)}"><div class="care60-special-modal-head"><div><small>${esc(currentScopeLabelV20135())}</small><h3>${cfg.icon} ${esc(cfg.label)}</h3></div><button type="button" data-care60-special-close aria-label="ปิด">×</button></div><div class="care60-special-loading">กำลังโหลดรายชื่อ…</div></section>`;
+  overlay.innerHTML=`<section class="care60-special-modal" role="dialog" aria-modal="true" aria-label="${esc(cfg.label)}"><div class="care60-special-modal-head"><div><small>${esc(currentScopeLabelV20135())}</small><h3>${cfg.icon} ${esc(cfg.label)}</h3><small data-special-count>กำลังโหลด…</small></div><button type="button" data-care60-special-close aria-label="ปิด">×</button></div><input class="care60-special-search" data-special-search type="search" placeholder="ค้นหาชื่อ / บ้าน / ชุมชน"><div class="care60-special-list" data-special-list></div><p data-special-error role="status"></p><button type="button" class="secondary" data-special-more hidden>โหลดอีก 30 คน</button><div class="care60-note">โหลดครั้งละ 30 คนตามสิทธิ์บัญชีและขอบเขตที่เลือก ค้นหาจากรายชื่อทั้งหมดในขอบเขต</div></section>`;
   overlay.addEventListener('click',e=>{if(e.target===overlay)closeSpecialPeopleV20135()});overlay.querySelector('[data-care60-special-close]').onclick=closeSpecialPeopleV20135;document.body.appendChild(overlay);
-  try{
-    const rows=await specialPeopleV20135(group);
-    if(!document.body.contains(overlay))return;
-    const box=overlay.querySelector('.care60-special-modal');
-    const list=rows.map((p,i)=>`<article class="care60-special-person" data-care60-person-row data-search="${esc((p.display_name||'')+' '+(p.house_no||'')+' '+(p.community||''))}"><b>${i+1}. ${esc(p.display_name||'ไม่ระบุชื่อ')}</b><small>บ้าน ${esc(p.house_no||'—')} · หมู่ ${esc(p.moo||'—')} · ${esc(p.community||'—')}</small><small>${p.age_years!=null?'อายุ '+num(p.age_years)+' ปี · ':''}${group==='disabled'?'ทะเบียนผู้พิการ':'ADL ล่าสุด '+esc(p.adl_assessed_on||'ไม่ระบุวันที่')}</small></article>`).join('');
-    box.innerHTML=`<div class="care60-special-modal-head"><div><small>${esc(currentScopeLabelV20135())}</small><h3>${cfg.icon} ${esc(cfg.label)} <span>${num(rows.length)} คน</span></h3></div><button type="button" data-care60-special-close aria-label="ปิด">×</button></div>${rows.length>8?'<input class="care60-special-search" data-care60-special-search type="search" placeholder="ค้นหาชื่อ / บ้าน / ชุมชน">':''}<div class="care60-special-list">${list||'<div class="care60-special-empty">ไม่พบรายชื่อในขอบเขตสิทธิ์ปัจจุบัน</div>'}</div><div class="care60-note">รายชื่อแสดงตามสิทธิ์บัญชีและขอบเขตที่เลือกอยู่ในหน้า Dashboard · ไม่เปิดข้อมูลข้ามสิทธิ์</div>`;
-    box.querySelector('[data-care60-special-close]').onclick=closeSpecialPeopleV20135;
-    const search=box.querySelector('[data-care60-special-search]');if(search)search.oninput=()=>{const q=search.value.trim().toLocaleLowerCase('th');box.querySelectorAll('[data-care60-person-row]').forEach(el=>{el.hidden=!!q&&!String(el.dataset.search||'').toLocaleLowerCase('th').includes(q)})};
-  }catch(e){
-    const loading=overlay.querySelector('.care60-special-loading');if(loading)loading.innerHTML='<strong>โหลดรายชื่อไม่สำเร็จ</strong><br><small>'+esc(e.message||e)+'</small>';
+  const search=overlay.querySelector('[data-special-search]'),list=overlay.querySelector('[data-special-list]'),more=overlay.querySelector('[data-special-more]'),count=overlay.querySelector('[data-special-count]'),error=overlay.querySelector('[data-special-error]');
+  const signature=()=>JSON.stringify([profile?.user_id,profile?.active,roleScope(),ownerPid]);
+  const captured=signature();let rows=[],epoch=0,timer,loading=false;
+  const current=ticket=>overlay.isConnected&&ticket===epoch&&signature()===captured;
+  async function load(reset=false){
+    if(!reset&&loading)return;
+    const ticket=reset?++epoch:epoch;loading=true;more.disabled=true;error.textContent='';
+    if(reset){rows=[];list.innerHTML='';count.textContent='กำลังโหลด…';more.hidden=true;}
+    try{
+      if(signature()!==captured)throw new Error('ขอบเขตเปลี่ยนแล้ว กรุณาปิดและเปิดรายชื่อใหม่');
+      const page=await specialPeopleV20135(group,{search:search.value.trim(),offset:rows.length});
+      if(!current(ticket))return;
+      rows.push(...page.slice(0,30));more.hidden=page.length<=30;
+      list.innerHTML=rows.map((p,i)=>`<article class="care60-special-person"><b>${i+1}. ${esc(p.display_name||'ไม่ระบุชื่อ')}</b><small>บ้าน ${esc(p.house_no||'—')} · หมู่ ${esc(p.moo||'—')} · ${esc(p.community||'—')}</small><small>${p.age_years!=null?'อายุ '+num(p.age_years)+' ปี · ':''}${group==='disabled'?'ทะเบียนผู้พิการ':'ADL ล่าสุด '+esc(p.adl_assessed_on||'ไม่ระบุวันที่')}</small></article>`).join('')||'<div class="care60-special-empty">ไม่พบรายชื่อในขอบเขตสิทธิ์ปัจจุบัน</div>';
+      count.textContent=`แสดง ${num(rows.length)} คน${page.length>30?' · ยังมีรายการเพิ่มเติม':''}`;more.textContent='โหลดอีก 30 คน';
+    }catch(e){if(overlay.isConnected&&ticket===epoch){error.textContent='โหลดรายชื่อไม่สำเร็จ: '+e.message;count.textContent=`แสดง ${num(rows.length)} คน`;more.hidden=false;more.textContent='ลองโหลดอีกครั้ง';}}
+    finally{if(overlay.isConnected&&ticket===epoch){loading=false;more.disabled=false;}}
   }
+  search.oninput=()=>{clearTimeout(timer);epoch++;loading=false;more.disabled=true;timer=setTimeout(()=>load(true),350);};
+  more.onclick=()=>load();await load(true);
 }
 
 function injectStyle(){if($('#care-dashboard-v1860-style'))return;const s=document.createElement('style');s.id='care-dashboard-v1860-style';s.textContent=`

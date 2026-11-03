@@ -1,8 +1,8 @@
 {
   "schema": 2,
   "hash_mode": "sha256_lf_normalized",
-  "latest_version": "20261027033855",
-  "migration_count": 267,
+  "latest_version": "20261103041223",
+  "migration_count": 268,
   "migrations": [
     {
       "version": "20260908121831",
@@ -1605,6 +1605,12 @@
       "name": "registry_service_community_key_v2187",
       "filename": "20261027033855_registry_service_community_key_v2187.sql",
       "sha256": "f593cadbe59b230dac3022a47bdca447c208b465d4f8c0aaf30154b81b0a6e33"
+    },
+    {
+      "version": "20261103041223",
+      "name": "egress_scoped_special_people_v2189",
+      "filename": "20261103041223_egress_scoped_special_people_v2189.sql",
+      "sha256": "3fb613eac9a575a03cdfe3b842bb8fc10a48c4fa60132247eaf9d1ce826fcefe"
     }
   ]
 }
