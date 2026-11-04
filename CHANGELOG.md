@@ -1,3 +1,7 @@
+## Cloud v2.0.194 — Keep autofilled fields green
+
+- Match browser-filled inputs to the green sign-in theme.
+
 ## Cloud v2.0.193 — Green sign-in theme
 
 - Tint the community photo green and use a pale green form with forest-green headings and controls.

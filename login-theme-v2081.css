@@ -1,4 +1,4 @@
-/* Cloud v2.0.193: green palette and Thai typography for the login page.
+/* Cloud v2.0.194: green palette and Thai typography for the login page.
    Scoped to the visible login form, and loaded after the shared stylesheet. */
 .phc-login-brand,.phc-login-footer{display:none}
 body:has(#login-card:not([hidden])){
@@ -122,6 +122,11 @@ body:has(#login-card:not([hidden])) #login-card .password-field .phc-login-field
 }
 body:has(#login-card:not([hidden])) #login-card #login-form input:focus-visible{
   outline:3px solid #3a8250;outline-offset:1px;
+}
+body:has(#login-card:not([hidden])) #login-card #login-form input:is(:autofill,:-webkit-autofill){
+  box-shadow:0 0 0 100px #f5faf3 inset;
+  -webkit-text-fill-color:#173b26;
+  caret-color:#173b26;
 }
 body:has(#login-card:not([hidden])) #login-card #login-form .password-field input{
   padding-right:62px!important;
