@@ -757,9 +757,83 @@ async function renderElderlyRoute(root,s,personName){
     }
   });
 }
+const ELDERLY_PROGRESS_REUSE_MS = 120_000;
+
 async function loadElderlyWizardV207(root,s,preferredIndex=null){
-  const {data,error}=await supabase.rpc('elderly9_progress_v190',{p_session_id:s.session_id});const progress=root.querySelector('[data-elderly-progress]'),host=root.querySelector('[data-elderly-wizard]');if(error){progress.textContent=friendlyError(error);return}const saved=new Map((data.results||[]).map(x=>[x.domain_code,x]));progress.textContent=`คัดกรองผู้สูงอายุ 9 ด้าน · ทำแล้ว ${data.completed}/9 · เหลือ ${data.remaining} · พบความเสี่ยง ${data.observations} ด้าน`;let index=preferredIndex;if(index===null||index===undefined){index=ELDER_V207.findIndex(d=>!saved.has(d.code)||!['normal','observation'].includes(saved.get(d.code)?.status));if(index<0)index=9}if(index>=9){renderElderlySummaryV207(host,s,saved,data);return}index=Math.max(0,Math.min(8,index));const def=ELDER_V207[index],r=saved.get(def.code);host.innerHTML=`<div class="phc207-wizard"><div class="phc207-stepbar"><div class="phc207-step-tabs">${ELDER_V207.map((d,i)=>`<button type="button" class="phc207-step-tab ${i===index?'current':''} ${elderRiskClassV207(saved.get(d.code))}" data-elder-step="${i}" aria-label="ด้าน ${i+1} ${esc(d.label)}">${i+1}</button>`).join('')}</div></div><div class="phc207-step-title"><span class="icon">${def.icon}</span><div><h3>${index+1}. ${esc(def.label)}</h3><small>${esc(def.tool)} · อสม.ตอบคำถาม/ทดสอบ ระบบแปลผลอัตโนมัติ</small></div></div>${elderlyQuestionHtmlV207(def,r)}<label>หมายเหตุเพิ่มเติม (ไม่บังคับ)<textarea data-elder-note maxlength="500">${esc(r?.note||'')}</textarea></label><div class="phc190-error" data-elder-error></div>${r?`<div class="phc207-result ${r.status==='observation'?(r.checklist?.priority==='red'?'urgent':'risk'):''}">ผลที่บันทึกไว้: ${r.status==='normal'?'ปกติ':'พบความเสี่ยง'}${r.checklist?.score!==undefined?` · ${r.checklist.score}/5 คะแนน`:''}${r.status==='observation'?' · ส่งงานให้เจ้าหน้าที่ติดตามแล้ว':''}</div>`:''}<div class="phc207-nav"><button type="button" class="phc190-secondary" data-elder-prev ${index===0?'disabled':''}>← ก่อนหน้า</button><button type="button" class="phc190-primary" data-elder-next>${index===8?'บันทึกและสรุป':'บันทึก · ถัดไป →'}</button></div></div>`;const step=host.querySelector('.phc207-wizard');bindElderlyChoiceControlsV207(step);host.querySelectorAll('[data-elder-step]').forEach(b=>b.onclick=()=>loadElderlyWizardV207(root,s,Number(b.dataset.elderStep)));host.querySelector('[data-elder-prev]').onclick=()=>loadElderlyWizardV207(root,s,index-1);host.querySelector('[data-elder-next]').onclick=async()=>{const out=collectElderlyAnswersV207(step,def.code),err=step.querySelector('[data-elder-error]');err.textContent='';if(!out.ok){err.textContent=out.error;return}const btn=host.querySelector('[data-elder-next]');btn.disabled=true;try{const {data:res,error:e}=await supabase.rpc('save_elderly9_community_v207',{p_session_id:s.session_id,p_domain_code:def.code,p_answers:out.answers,p_note:step.querySelector('[data-elder-note]').value.trim()});if(e)throw e;if(res?.urgent){showPhcToast('พบความเสี่ยงเร่งด่วน · ส่งงานให้เจ้าหน้าที่แล้ว','warn',4000)}else if(res?.status==='observation'){showPhcToast('บันทึกแล้ว · ส่งงานให้เจ้าหน้าที่ติดตาม','warn',2400)}else showPhcToast('บันทึกด้านนี้แล้ว');await loadElderlyWizardV207(root,s,index+1)}catch(e){err.textContent=friendlyError(e);btn.disabled=false}};
+  const progress=root.querySelector('[data-elderly-progress]');
+  const host=root.querySelector('[data-elderly-wizard]');
+  if(!root.isConnected||!progress||!host)return;
+  const sessionId=s.session_id;
+  for(const button of host.querySelectorAll('button'))button.disabled=true;
+  try{
+    const {data,error}=await supabase.rpc('elderly9_progress_v190',{p_session_id:sessionId});
+    if(!host.isConnected||s.session_id!==sessionId)return;
+    if(error)throw error;
+    renderElderlyWizardV207(root,s,preferredIndex,data,Date.now());
+  }catch(error){
+    if(!host.isConnected||s.session_id!==sessionId)return;
+    progress.textContent=friendlyError(error);
+    const retry=document.createElement('button');
+    retry.type='button';
+    retry.className='phc190-secondary';
+    retry.textContent='อ่านผลที่บันทึกอีกครั้ง';
+    retry.onclick=()=>loadElderlyWizardV207(root,s,preferredIndex);
+    host.replaceChildren(retry);
+  }
 }
+
+function mergeElderlySavedDomainV192(data,domain,answers,note,result){
+  if(result?.ok!==true||result.domain_code!==domain||
+    !['normal','observation'].includes(result.status)||
+    !['normal','orange','red'].includes(result.priority))return null;
+  const checklist={...answers,priority:result.priority};
+  if(result.score!=null)checklist.score=result.score;
+  const results=[...(data.results||[]).filter(row=>row.domain_code!==domain),
+    {domain_code:domain,status:result.status,checklist,note}];
+  const completed=results.filter(row=>['normal','observation'].includes(row.status)).length;
+  const observations=results.filter(row=>row.status==='observation').length;
+  if(result.completed!==completed||result.observations!==observations||
+    result.remaining!==Math.max(9-completed,0))return null;
+  return {...data,results,completed,observations,remaining:result.remaining};
+}
+
+function renderElderlyWizardV207(root,s,preferredIndex,data,loadedAt){
+  const progress=root.querySelector('[data-elderly-progress]'),host=root.querySelector('[data-elderly-wizard]');
+  const canReuse=()=>Date.now()-loadedAt<ELDERLY_PROGRESS_REUSE_MS;
+  const goTo=index=>canReuse()
+    ?renderElderlyWizardV207(root,s,index,data,loadedAt)
+    :loadElderlyWizardV207(root,s,index);
+  const saved=new Map((data.results||[]).map(x=>[x.domain_code,x]));progress.textContent=`คัดกรองผู้สูงอายุ 9 ด้าน · ทำแล้ว ${data.completed}/9 · เหลือ ${data.remaining} · พบความเสี่ยง ${data.observations} ด้าน`;let index=preferredIndex;if(index===null||index===undefined){index=ELDER_V207.findIndex(d=>!saved.has(d.code)||!['normal','observation'].includes(saved.get(d.code)?.status));if(index<0)index=9}if(index>=9){renderElderlySummaryV207(host,s,saved,data);return}index=Math.max(0,Math.min(8,index));const def=ELDER_V207[index],r=saved.get(def.code);host.innerHTML=`<div class="phc207-wizard"><div class="phc207-stepbar"><div class="phc207-step-tabs">${ELDER_V207.map((d,i)=>`<button type="button" class="phc207-step-tab ${i===index?'current':''} ${elderRiskClassV207(saved.get(d.code))}" data-elder-step="${i}" aria-label="ด้าน ${i+1} ${esc(d.label)}">${i+1}</button>`).join('')}</div></div><div class="phc207-step-title"><span class="icon">${def.icon}</span><div><h3>${index+1}. ${esc(def.label)}</h3><small>${esc(def.tool)} · อสม.ตอบคำถาม/ทดสอบ ระบบแปลผลอัตโนมัติ</small></div></div>${elderlyQuestionHtmlV207(def,r)}<label>หมายเหตุเพิ่มเติม (ไม่บังคับ)<textarea data-elder-note maxlength="500">${esc(r?.note||'')}</textarea></label><div class="phc190-error" data-elder-error></div>${r?`<div class="phc207-result ${r.status==='observation'?(r.checklist?.priority==='red'?'urgent':'risk'):''}">ผลที่บันทึกไว้: ${r.status==='normal'?'ปกติ':'พบความเสี่ยง'}${r.checklist?.score!==undefined?` · ${r.checklist.score}/5 คะแนน`:''}${r.status==='observation'?' · ส่งงานให้เจ้าหน้าที่ติดตามแล้ว':''}</div>`:''}<div class="phc207-nav"><button type="button" class="phc190-secondary" data-elder-prev ${index===0?'disabled':''}>← ก่อนหน้า</button><button type="button" class="phc190-primary" data-elder-next>${index===8?'บันทึกและสรุป':'บันทึก · ถัดไป →'}</button></div></div>`;const step=host.querySelector('.phc207-wizard');bindElderlyChoiceControlsV207(step);host.querySelectorAll('[data-elder-step]').forEach(b=>b.onclick=()=>goTo(Number(b.dataset.elderStep)));host.querySelector('[data-elder-prev]').onclick=()=>goTo(index-1);host.querySelector('[data-elder-next]').onclick=async()=>{
+    const out=collectElderlyAnswersV207(step,def.code);
+    const err=step.querySelector('[data-elder-error]');
+    err.textContent='';
+    if(!out.ok){err.textContent=out.error;return;}
+    const note=step.querySelector('[data-elder-note]').value.trim();
+    const buttons=[...step.querySelectorAll('button')].filter(button=>!button.disabled);
+    for(const button of buttons)button.disabled=true;
+    try{
+      const {data:res,error}=await supabase.rpc('save_elderly9_community_v207',{
+        p_session_id:s.session_id,p_domain_code:def.code,p_answers:out.answers,p_note:note
+      });
+      if(!step.isConnected)return;
+      if(error)throw error;
+      if(res?.urgent)showPhcToast('พบความเสี่ยงเร่งด่วน · ส่งงานให้เจ้าหน้าที่แล้ว','warn',4000);
+      else if(res?.status==='observation')showPhcToast('บันทึกแล้ว · ส่งงานให้เจ้าหน้าที่ติดตาม','warn',2400);
+      else showPhcToast('บันทึกด้านนี้แล้ว');
+      // Refresh before the final summary, on stale data, or when server totals
+      // indicate another change to the session.
+      const next=index+1;
+      const merged=next<9&&canReuse()?mergeElderlySavedDomainV192(data,def.code,out.answers,note,res):null;
+      if(merged)renderElderlyWizardV207(root,s,next,merged,loadedAt);
+      else await loadElderlyWizardV207(root,s,next);
+    }catch(error){
+      if(!step.isConnected)return;
+      err.textContent=friendlyError(error);
+      for(const button of buttons)button.disabled=false;
+    }
+  };
+}
+
 function renderElderlySummaryV207(host,s,saved,data){const obs=[...saved.values()].filter(r=>r.status==='observation').length;host.innerHTML=`<div class="phc207-wizard"><div class="phc207-stepbar"><div class="phc207-step-tabs">${ELDER_V207.map((d,i)=>`<button type="button" class="phc207-step-tab ${elderRiskClassV207(saved.get(d.code))}" data-elder-summary-step="${i}">${i+1}</button>`).join('')}</div></div><div class="phc207-step-title"><span class="icon">✅</span><div><h3>สรุปคัดกรองผู้สูงอายุ 9 ด้าน</h3><small>คัดกรองครบ ${data.completed}/9 ด้าน</small></div></div>${[...saved.values()].some(r=>r.checklist?.priority==='red')?'<div class="phc207-urgent-note">พบผลสุขภาพจิตเร่งด่วน ระบบสร้างงานติดตามระดับสีแดงแล้ว กรุณาแจ้งเจ้าหน้าที่/หน่วยบริการทันที</div>':''}<div class="phc207-summary">${ELDER_V207.map((d,i)=>{const r=saved.get(d.code),urgent=r?.checklist?.priority==='red';return `<div class="phc207-summary-row ${r?.status==='normal'?'normal':urgent?'urgent':'risk'}"><strong>${i+1}. ${esc(d.label)}</strong><span>${r?.status==='normal'?'ปกติ':urgent?'เร่งด่วน':'เสี่ยง'}</span></div>`}).join('')}</div><div class="phc190-note">${obs?`พบความเสี่ยง ${obs} ด้าน · ระบบส่งงานติดตามให้ Staff/Admin แล้ว อสม.ไม่ต้องปิดเคสเอง`:'ผลเบื้องต้นปกติครบ 9 ด้าน'}</div><div class="phc207-source">อ้างอิง Community Screening กระทรวงสาธารณสุข / กรมอนามัย / กรมการแพทย์ / กรมสุขภาพจิต · ผลนี้เป็นการคัดกรอง ไม่ใช่การวินิจฉัยโรค</div><div class="phc190-actions"><button type="button" class="phc190-secondary" data-elder-edit>แก้ไขรายด้าน</button><button type="button" class="phc190-primary" data-elder-close>เสร็จสิ้น</button></div></div>`;host.querySelector('[data-elder-edit]').onclick=()=>loadElderlyWizardV207(host.closest('[data-route]'),s,0);host.querySelector('[data-elder-close]').onclick=()=>{closeModal();const refresh=window.PHCRefreshHealthWorklistV2194?.();refresh?.catch?.(()=>{});};host.querySelectorAll('[data-elder-summary-step]').forEach(b=>b.onclick=()=>loadElderlyWizardV207(host.closest('[data-route]'),s,Number(b.dataset.elderSummaryStep)))}
 
 function appointmentResponseLabelV205(value){return ({accepted:'ตอบรับแล้ว',declined:'ไม่สะดวก',acknowledged:'รับทราบแล้ว'})[value]||''}

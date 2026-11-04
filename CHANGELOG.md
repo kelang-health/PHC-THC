@@ -1,3 +1,9 @@
+## Cloud v2.0.192 — Reduce repeated elderly screening reads
+
+- Reuse confirmed results while navigating the current screening form for up to two minutes.
+- Fetch current results before the final summary, when the snapshot ages out, or when the server counts differ.
+- Retry a failed read without resubmitting a saved screening.
+
 ## Cloud v2.0.191 — Retry summaries without replaying completed deliveries
 
 - Retry noon/evening summaries at five-minute intervals within the existing 20-minute window; skip outbound HTTP after a recorded success.
