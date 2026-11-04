@@ -1,4 +1,4 @@
-/* Cloud v2.0.194: green palette and Thai typography for the login page.
+/* Cloud v2.0.195: green palette and Thai typography for the login page.
    Scoped to the visible login form, and loaded after the shared stylesheet. */
 .phc-login-brand,.phc-login-footer{display:none}
 body:has(#login-card:not([hidden])){
@@ -7,12 +7,10 @@ body:has(#login-card:not([hidden])){
   font-family:"Noto Sans Thai","Leelawadee UI",Tahoma,system-ui,sans-serif;
   background-color:#dbeedd;
   background-image:
-    linear-gradient(180deg,#e8f6e9f7 0%,#e0f1e0e8 26%,#b3d8b5bf 63%,#32654557 100%),
-    url("./phc-login-community.webp"),
-    linear-gradient(180deg,#c5e4c6 0%,#a4cbab 100%);
-  background-blend-mode:normal,luminosity,normal;
+    radial-gradient(ellipse at 16% 8%,#f2faf0 0%,transparent 52%),
+    linear-gradient(155deg,#e7f4e5 0%,#d4e9d4 50%,#a8c9ae 100%);
   background-repeat:no-repeat;
-  background-position:center,center bottom,center;
+  background-position:center;
   background-size:cover;
 }
 body:has(#login-card:not([hidden])) .topbar{display:none!important}
@@ -356,12 +354,6 @@ body:has(#login-card:not([hidden])) .phc-login-footer{
   }
   .phc-login-values svg{height:20px;width:20px}
   .phc-login-values>span{font-size:.7rem}
-}
-@media(prefers-reduced-data:reduce){
-  body:has(#login-card:not([hidden])){
-    background-image:linear-gradient(180deg,#e8f6e9,#cde6ce 68%,#a4cbab);
-    background-blend-mode:normal;
-  }
 }
 @media(prefers-reduced-motion:reduce){
   body:has(#login-card:not([hidden])) #login-card *,

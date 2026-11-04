@@ -35,7 +35,7 @@ const root=process.env.PHC_TEST_BASE||'http://127.0.0.1:8766/';
     };
    });
    results.push({width,height,...value});
-   assert.equal(value.photo,true,'building photo on login '+width);
+   assert.equal(value.photo,false,'no decorative photo on login '+width);
    assert.ok(value.brand?.visible&&value.card?.visible&&value.footer?.visible,'three structural sections '+width);
    assert.ok(value.logo?.visible,'municipal logo '+width);
    assert.ok(value.documentWidth<=width+2,'no horizontal overflow '+width);

@@ -14,7 +14,14 @@ for(const [start,end] of [['function healthElderlyStateV2194(', 'function health
  const last=await context.loadElderly9DuePage({...args,p_offset:150},fetch);
  assert.equal(last.data.rows.length,10);assert.equal(last.data.has_more,false);
  assert.ok(last.data.rows.every(r=>!first.data.rows.some(f=>f.source_pid===r.source_pid)));
- assert.ok(calls.every(c=>c.p_filter==='field_targets'&&c.p_stage==='ผู้สูงอายุ'&&c.p_scope==='self'&&c.p_owner_pid===17161&&c.p_community==='test-community'));
+ assert.ok(calls.every(c=>['elderly_due','field_targets'].includes(c.p_filter)&&c.p_stage==='ผู้สูงอายุ'&&c.p_scope==='self'&&c.p_owner_pid===17161&&c.p_community==='test-community'));
+ const nativeCalls=[];
+ const direct=await context.loadElderly9DuePage({...args,p_offset:150},async params=>{
+   nativeCalls.push({...params});
+   return {data:{filter:'elderly_due',rows:last.data.rows,has_more:false}};
+ });
+ assert.deepEqual(nativeCalls,[{...args,p_offset:150,p_filter:'elderly_due',p_stage:'ผู้สูงอายุ'}]);
+ assert.deepEqual(direct.data.rows,last.data.rows);
  const empty=await context.loadElderly9DuePage(args,async()=>({data:{rows:rows.filter(r=>r.elderly9_completed_current_fy).slice(0,80),has_more:false}}));
  assert.equal(empty.data.rows.length,0);assert.equal(empty.data.has_more,false);
  await assert.rejects(context.loadElderly9DuePage(args,async()=>({error:new Error('offline')})),/offline/);

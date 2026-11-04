@@ -1,7 +1,5 @@
 const assert=require('node:assert/strict');
 const puppeteer=require(process.env.PHC_PUPPETEER_PATH||'puppeteer');
-const fs=require('node:fs');
-const path=require('node:path');
 const base=process.env.PHC_TEST_BASE||'http://127.0.0.1:8766/';
 (async()=>{
  const browser=await puppeteer.launch({
@@ -19,14 +17,14 @@ const base=process.env.PHC_TEST_BASE||'http://127.0.0.1:8766/';
     const card=document.querySelector('#login-card'),brand=document.querySelector('.phc-login-brand');
     const f=document.querySelector('#login-form');
     const rec=e=>{const r=e.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,height:r.height,width:r.width};};
-    const image=new Image();image.src='/phc-login-community.webp';
     const brandRect=rec(brand),cardRect=rec(card);
     return {
      viewport:innerWidth,documentWidth:document.documentElement.scrollWidth,
      loginVisible:!card.hidden && getComputedStyle(card).display!=='none',
      brandVisible:getComputedStyle(brand).display!=='none',
      landscapeAbsent:!document.querySelector('.phc-login-landscape'),
-     backgroundSizing:getComputedStyle(document.body).backgroundSize,
+     greenGradient:getComputedStyle(document.body).backgroundImage.includes('linear-gradient'),
+     photoRequested:performance.getEntriesByType('resource').some(entry=>entry.name.includes('phc-login-community.webp')),
      lineReadyButtons:card.querySelectorAll('.line-login-ready .line-login-button,.line-login-ready .line-login-web,.line-login-ready .line-login-legacy').length,
      brandRect,cardRect,
      photoBackground:getComputedStyle(document.body).backgroundImage.includes('phc-login-community.webp'),
@@ -43,10 +41,11 @@ const base=process.env.PHC_TEST_BASE||'http://127.0.0.1:8766/';
    assert.equal(r.loginVisible,true,'login visible '+width);
    assert.equal(r.brandVisible,true,'brand visible '+width);
    assert.equal(r.landscapeAbsent,true,'no separate landscape panel '+width);
-   assert.ok(r.backgroundSizing.includes('cover'),'photo background is responsive '+width);
+   assert.equal(r.greenGradient,true,'login has a green gradient '+width);
+   assert.equal(r.photoRequested,false,'no background photo downloaded '+width);
    assert.ok(r.cardRect.top>=r.brandRect.bottom && r.cardRect.top-r.brandRect.bottom<=36,'header is directly above login card '+width);
    if(width>=1024)assert.ok(r.cardRect.width>=550,'desktop login card not miniature '+width);
-   assert.equal(r.photoBackground,true,'photo background '+width);
+   assert.equal(r.photoBackground,false,'no photo background '+width);
    assert.equal(r.topbarHidden,true,'topbar hidden '+width);
    assert.equal(r.logo,true,'brand logo '+width);
    assert.equal(r.staffMode,true,'existing login mode '+width);
@@ -120,23 +119,6 @@ const base=process.env.PHC_TEST_BASE||'http://127.0.0.1:8766/';
    hasPhotoBackground:getComputedStyle(document.body).backgroundImage.includes('phc-login-community.webp'),
   }));
   assert.deepEqual(signedIn,{brandHidden:true,landscapeAbsent:true,hasPhotoBackground:false});
-  const asset=fs.statSync(path.join('D:/Github/osm-phc-phase2','phc-login-community.webp')).size;
-  assert.ok(asset<10000,'building background under 10 KB');
-  const fallback=await browser.newPage();
-  await fallback.setRequestInterception(true);
-  fallback.on('request',request=>{
-   if(request.url().includes('phc-login-community.webp'))request.abort();
-   else request.continue();
-  });
-  await fallback.setViewport({width:390,height:844,isMobile:true,hasTouch:true,deviceScaleFactor:3});
-  await fallback.goto(base+'?no-photo=1',{waitUntil:'domcontentloaded',timeout:25000});
-  const off=await fallback.evaluate(()=>({
-   usable:!document.querySelector('#login-card').hidden && !!document.querySelector('#login-submit, .login-submit'),
-   hasGradient:getComputedStyle(document.body).backgroundImage.includes('linear-gradient'),
-  }));
-  assert.equal(off.usable,true,'login remains usable without photo');
-  assert.equal(off.hasGradient,true,'fallback gradient remains');
-  await fallback.close();
-  console.log(JSON.stringify({result:'PASS',photoBytes:asset,checks,lineLayout,zoomed,controls,signedIn,fallback:off}));
+  console.log(JSON.stringify({result:'PASS',checks,lineLayout,zoomed,controls,signedIn}));
  }finally{await browser.close();}
 })().catch(e=>{console.error(e.stack||e);process.exitCode=1});

@@ -1,4 +1,4 @@
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.194';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './config.js?v=2.0.195';
 import { evaluateMental2Q, mental2QLabel } from './health-2q.mjs?v=1.8.28';
 import { getSharedSupabase, setSharedSession, setSharedProfile, clearSharedAuth, sharedCall, invalidateShared, ensureSharedSession, refreshSharedSession, isSharedAuthError } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
 
@@ -500,6 +500,10 @@ function healthFieldQueuePendingV2042(row){
   return !latest||latest!==localDate();
 }
 async function loadElderly9DuePage(args,fetchPage){
+  const response=await fetchPage({...args,p_filter:'elderly_due',p_stage:'ผู้สูงอายุ'});
+  if(response?.error)throw response.error;
+  if(response?.data?.filter==='elderly_due')return response;
+  // Compatibility when the server is still on the previous worklist release.
   const limit=Number(args.p_limit)||50,offset=Number(args.p_offset)||0,needed=offset+limit+1;
   const matches=[];
   for(let scan=0;scan<10000;scan+=100){

@@ -1,3 +1,8 @@
+## Cloud v2.0.195 — Fetch only the visible elderly worklist page
+
+- Filter incomplete elderly screenings on the server before paging, with the existing access and assignment rules.
+- Use a green gradient on sign-in without downloading the decorative background photo.
+
 ## Cloud v2.0.194 — Keep autofilled fields green
 
 - Match browser-filled inputs to the green sign-in theme.
