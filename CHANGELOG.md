@@ -1,3 +1,8 @@
+## Cloud v2.0.193 — Green sign-in theme
+
+- Tint the community photo green and use a pale green form with forest-green headings and controls.
+- Improve Thai text contrast and readability across screen sizes.
+
 ## Cloud v2.0.192 — Reduce repeated elderly screening reads
 
 - Reuse confirmed results while navigating the current screening form for up to two minutes.
