@@ -1,3 +1,8 @@
+## Cloud v2.0.196 — Reduce Home BP / DTX list traffic
+
+- Search and page through 50 scoped cases at a time. Open a case to load its measurements.
+- Update the case status in the current list after a successful save.
+
 ## Cloud v2.0.195 — Fetch only the visible elderly worklist page
 
 - Filter incomplete elderly screenings on the server before paging, with the existing access and assignment rules.

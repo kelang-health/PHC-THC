@@ -1,5 +1,5 @@
 import { getSharedProfile, invalidateShared } from './shared-runtime-v2035.mjs?v=2.0.126-log-usage';
-import { mountNcdFollowupList } from './ncd-field-followup-v2203.mjs?v=2213';
+import { mountNcdFollowupList } from './ncd-field-followup-v2203.mjs?v=2.0.196';
 export const domains={cognition:'ความคิดความจำ',mobility:'การเคลื่อนไหวร่างกาย',nutrition:'การขาดสารอาหาร',vision:'การมองเห็น',hearing:'การได้ยิน',depression:'ซึมเศร้า/ความเสี่ยงฆ่าตัวตาย',urinary:'การกลั้นปัสสาวะ',adl:'กิจวัตรประจำวัน',oral:'สุขภาพช่องปาก'};
 export const escapeHtml=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function groupAlerts(rows){const groups=new Map();for(const r of rows){const key=`${r.source_pcucode}:${r.source_pid}`;if(!groups.has(key))groups.set(key,{...r,alerts:[]});groups.get(key).alerts.push(r);}return [...groups.values()].sort((a,b)=>Number(b.alerts.some(x=>x.priority==='red'))-Number(a.alerts.some(x=>x.priority==='red')));}
