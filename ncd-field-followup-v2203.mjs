@@ -25,14 +25,14 @@ async function loadPage(client,kind,search,offset){
   return data;
 }
 function render(root,items){
-  root.querySelector('[data-nf-list]').innerHTML=items.map(r=>`<article class="nf-card ${complete(r)?'done':''}"><strong>${esc(r.display_name)} · ${r.kind==='bp'?'Home BP':'DTX ซ้ำ'}</strong><small>บ้าน ${esc(r.house_no)} · ${esc(r.community)} · คัดกรอง ${esc(r.screened_on)}</small><small>ค่าเดิม ${r.kind==='bp'?esc(r.sbp)+'/'+esc(r.dbp):esc(r.glucose_mg_dl)+' mg/dL · '+(r.glucose_type==='fasting'?'อดอาหาร':'ไม่อดอาหาร')}</small><p>${esc(caseState(r))}</p><button data-nf-open="${esc(r.source_screen_id)}:${r.kind}">บันทึก / ดูประวัติ</button></article>`).join('')||'<p>ไม่มีรายการตามตัวกรองนี้</p>';
+  root.querySelector('[data-nf-list]').innerHTML=items.map(r=>`<article class="nf-card ${complete(r)?'done':''}"><strong>${esc(r.display_name)} · ${r.kind==='bp'?'Home BP':'DTX ซ้ำ'}</strong><small>บ้าน ${esc(r.house_no)} · ${esc(r.community)} · คัดกรอง ${esc(r.screened_on)}${r.due_on?` · ครบกำหนด ${esc(r.due_on)}`:''}</small><small>ค่าเดิม ${r.kind==='bp'?esc(r.sbp)+'/'+esc(r.dbp):esc(r.glucose_mg_dl)+' mg/dL · '+(r.glucose_type==='fasting'?'อดอาหาร':'ไม่อดอาหาร')}</small><p>${esc(caseState(r))}</p><button data-nf-open="${esc(r.source_screen_id)}:${r.kind}">บันทึก / ดูประวัติ</button></article>`).join('')||'<p>ไม่มีรายการตามตัวกรองนี้</p>';
 }
 async function mount(parent,client){
   if(parent.querySelector('[data-nf-root]'))return;
   const root=document.createElement('section');
   root.className='nf-wrap';
   root.dataset.nfRoot='';
-  root.innerHTML=`<h3>ติดตาม NCD ภาคสนาม</h3><div class="nf-row"><button data-nf-filter="all" aria-pressed="true">ทั้งหมด</button><button data-nf-filter="bp" aria-pressed="false">Home BP</button><button data-nf-filter="dtx" aria-pressed="false">DTX ซ้ำ</button><button data-nf-staff>ส่วนเจ้าหน้าที่/FPG</button><button data-nf-refresh>↻ อัปเดต</button></div><p data-nf-staff-note hidden>เจ้าหน้าที่ตรวจประวัติภาคสนามและดำเนินการยืนยันใน JHCIS · การบันทึก DTX หรือ Home BP ครบยังไม่ถือว่าจบผลงาน HDC</p><label>ค้นชื่อ / บ้าน / ชุมชน<input type="search" data-nf-search maxlength="160"></label><p data-nf-count role="status">กำลังอ่านข้อมูล…</p><p data-nf-detail-error role="alert" class="nf-error"></p><div data-nf-list></div><div class="nf-row" data-nf-pages hidden><button data-nf-prev>หน้าก่อน</button><button data-nf-next>หน้าถัดไป</button></div>`;
+  root.innerHTML=`<h3>ติดตามกลุ่มเสี่ยง</h3><p>รายชื่อ «ยังอยู่ในกำหนด» จาก J-Report (NCDSCREEN บน JHCIS Main): ยังไม่พบผลตรวจติดตามที่เข้าเกณฑ์ และยังไม่พ้นกำหนด</p><div class="nf-row"><button data-nf-filter="all" aria-pressed="true">ทั้งหมด</button><button data-nf-filter="bp" aria-pressed="false">ความดัน (Home BP)</button><button data-nf-filter="dtx" aria-pressed="false">เบาหวาน (DTX ซ้ำ)</button><button data-nf-staff>ส่วนเจ้าหน้าที่/FPG</button><button data-nf-refresh>↻ อัปเดต</button></div><p data-nf-staff-note hidden>เจ้าหน้าที่ตรวจประวัติภาคสนามและดำเนินการยืนยันใน JHCIS · การบันทึก DTX หรือ Home BP ครบยังไม่ถือว่าจบผลงาน HDC</p><label>ค้นชื่อ / บ้าน / ชุมชน<input type="search" data-nf-search maxlength="160"></label><p data-nf-count role="status">กำลังอ่านข้อมูล…</p><p data-nf-detail-error role="alert" class="nf-error"></p><div data-nf-list></div><div class="nf-row" data-nf-pages hidden><button data-nf-prev>หน้าก่อน</button><button data-nf-next>หน้าถัดไป</button></div>`;
   parent.append(root);
   const get=selector=>root.querySelector(selector);
   const count=get('[data-nf-count]'),list=get('[data-nf-list]'),pages=get('[data-nf-pages]');
@@ -131,14 +131,35 @@ async function mount(parent,client){
   return reload();
 }
 function open(r,client,onSaved){if(!r)return;document.querySelector('.nf-entry-overlay')?.remove();const overlay=document.createElement('div');overlay.className='nf-overlay nf-entry-overlay';const bp=r.kind==='bp';let requestId=crypto.randomUUID(),saving=false,warningKey='';
- overlay.innerHTML=`<section class="nf-dialog" role="dialog" aria-modal="true" aria-label="บันทึกติดตาม NCD"><button type="button" data-nf-close style="float:right">ปิด</button><h3>${esc(r.display_name)} · ${bp?'Home BP':'DTX ซ้ำ'}</h3><p>${esc(caseState(r))}</p><small>ค่าเดิม ${bp?esc(r.sbp)+'/'+esc(r.dbp):esc(r.glucose_mg_dl)+' mg/dL'} · ${esc(r.screened_on)} · ช่องใหม่ไม่เติมผลเดิม</small><form><label>วันที่วัดจริง<input name="day" type="date" value="${today()}" min="${new Date(Date.parse(r.screened_on+'T00:00:00Z')+86400000).toISOString().slice(0,10)}" max="${today()}" required></label>${bp?`<div class="nf-row"><label><input type="radio" name="period" value="morning" required> เช้า</label><label><input type="radio" name="period" value="evening"> เย็น</label></div><p data-nf-slot>เลือกช่วงวัด · ครั้งที่ 1 และ 2 กรอกทีละครั้ง</p><div class="nf-grid"><label>ความดันบน<input name="sbp" type="number" min="70" max="260" required inputmode="numeric"></label><label>ความดันล่าง<input name="dbp" type="number" min="40" max="180" required inputmode="numeric"></label></div><label>ชีพจร ครั้ง/นาที<input name="pulse" type="number" min="20" max="250" required inputmode="numeric"></label>`:`<label>DTX mg/dL<input name="dtx" type="number" min="20" max="700" required inputmode="numeric"></label><div class="nf-row"><label><input type="radio" name="fasting" value="yes" required> งดอาหารแล้วอย่างน้อย 8 ชม.</label><label><input type="radio" name="fasting" value="no"> ไม่ได้งดอาหาร</label></div><small>ผลนี้เป็น DTX ภาคสนาม · FPG ให้เจ้าหน้าที่ดำเนินการต่อ</small>`}<p class="nf-warn" data-nf-warning hidden></p><p class="nf-error" data-nf-error role="alert"></p><div class="nf-actions"><label><input type="checkbox" name="confirm" required> ตรวจสอบผลที่วัดจริงแล้ว</label><button type="submit" class="nf-primary">บันทึกและกลับรายชื่อ</button></div></form><details class="nf-history"><summary>ประวัติภาคสนาม (${r.measurements.length} ครั้ง)</summary>${r.measurements.map(m=>`<p>${esc(m.measured_on)} · ${bp?(m.period==='morning'?'เช้า':'เย็น')+' ครั้งที่ '+esc(m.sequence)+' · '+esc(m.sbp)+'/'+esc(m.dbp)+' · ชีพจร '+esc(m.pulse):'DTX '+esc(m.dtx)+' · '+(m.fasting?'งดอาหาร':'ไม่งดอาหาร')}</p>`).join('')||'<p>ยังไม่มีผลติดตาม</p>'}</details></section>`;document.body.append(overlay);const f=overlay.querySelector('form'),error=overlay.querySelector('[data-nf-error]'),warn=overlay.querySelector('[data-nf-warning]'),button=f.querySelector('[type=submit]');overlay.querySelector('[data-nf-close]').onclick=()=>{if(!saving)overlay.remove()};
+ overlay.innerHTML=`<section class="nf-dialog" role="dialog" aria-modal="true" aria-label="บันทึกติดตาม NCD"><button type="button" data-nf-close style="float:right">ปิด</button><h3>${esc(r.display_name)} · ${bp?'Home BP':'DTX ซ้ำ'}</h3><p>${esc(caseState(r))}</p><small>ค่าเดิม ${bp?esc(r.sbp)+'/'+esc(r.dbp):esc(r.glucose_mg_dl)+' mg/dL'} · ${esc(r.screened_on)} · ช่องใหม่ไม่เติมผลเดิม</small><form><label>วันที่วัดจริง<input name="day" type="date" value="${today()}" min="${new Date(Date.parse(r.screened_on+'T00:00:00Z')+86400000).toISOString().slice(0,10)}" max="${today()}" required></label>${bp?`<div class="nf-row"><label><input type="radio" name="period" value="morning" required> เช้า</label><label><input type="radio" name="period" value="evening"> เย็น</label></div><p data-nf-slot>เลือกช่วงวัด · ครั้งที่ 1 และ 2 กรอกทีละครั้ง</p><div class="nf-grid"><label>ความดันบน<input name="sbp" type="number" min="70" max="260" required inputmode="numeric"></label><label>ความดันล่าง<input name="dbp" type="number" min="40" max="180" required inputmode="numeric"></label></div><label>ชีพจร ครั้ง/นาที<input name="pulse" type="number" min="20" max="250" required inputmode="numeric"></label>`:`<label>DTX mg/dL<input name="dtx" type="number" min="20" max="700" required inputmode="numeric"></label><div class="nf-row"><label><input type="radio" name="fasting" value="yes" required> งดอาหารแล้วอย่างน้อย 8 ชม.</label><label><input type="radio" name="fasting" value="no"> ไม่ได้งดอาหาร</label></div><small>ผลนี้เป็น DTX ภาคสนาม · FPG ให้เจ้าหน้าที่ดำเนินการต่อ</small>`}<p class="nf-warn" data-nf-warning hidden></p><p class="nf-error" data-nf-error role="alert"></p><div class="nf-actions"><button type="submit" class="nf-primary">ตรวจทานผล</button></div></form><section data-nf-review hidden><h4>ตรวจทานก่อนยืนยัน</h4><p data-nf-review-values></p><label><input type="checkbox" data-nf-confirm> ตรวจเทียบกับผลที่วัดจริงแล้ว</label><p class="nf-error" data-nf-review-error role="alert"></p><div class="nf-row"><button type="button" data-nf-edit>กลับไปแก้ไข</button><button type="button" class="nf-primary" data-nf-save disabled>ยืนยันและบันทึก</button></div></section><details class="nf-history"><summary>ประวัติภาคสนาม (${r.measurements.length} ครั้ง)</summary>${r.measurements.map(m=>`<p>${esc(m.measured_on)} · ${bp?(m.period==='morning'?'เช้า':'เย็น')+' ครั้งที่ '+esc(m.sequence)+' · '+esc(m.sbp)+'/'+esc(m.dbp)+' · ชีพจร '+esc(m.pulse):'DTX '+esc(m.dtx)+' · '+(m.fasting?'งดอาหาร':'ไม่งดอาหาร')}</p>`).join('')||'<p>ยังไม่มีผลติดตาม</p>'}</details></section>`;document.body.append(overlay);const f=overlay.querySelector('form'),error=overlay.querySelector('[data-nf-error]'),warn=overlay.querySelector('[data-nf-warning]'),review=overlay.querySelector('[data-nf-review]'),button=review.querySelector('[data-nf-save]'),verified=review.querySelector('[data-nf-confirm]'),edit=review.querySelector('[data-nf-edit]'),reviewError=review.querySelector('[data-nf-review-error]');
+ let payload;overlay.querySelector('[data-nf-close]').onclick=()=>{if(!saving)overlay.remove()};
  const sequence=()=>{const filled=new Set(r.measurements.filter(m=>m.measured_on===f.elements.day.value&&m.period===f.elements.period?.value).map(m=>m.sequence));return !filled.has(1)?1:!filled.has(2)?2:0;};
  f.oninput=()=>{if(!saving)requestId=crypto.randomUUID();warningKey='';warn.hidden=true;if(bp){const slot=sequence();overlay.querySelector('[data-nf-slot]').textContent=slot?'กำลังบันทึกครั้งที่ '+slot+' ของช่วงนี้':'ช่วงนี้ครบ 2 ครั้งแล้ว กรุณาตรวจประวัติ';}};
  f.onsubmit=async e=>{e.preventDefault();if(saving||!f.reportValidity())return;error.textContent='';const n=name=>Number(f.elements[name].value),seq=bp?sequence():null;if(bp&&(n('sbp')<=n('dbp')||!seq)){error.textContent=!seq?'ช่วงนี้บันทึกครบแล้ว':'ความดันบนต้องมากกว่าความดันล่าง';return;}
- const abnormal=bp?(n('sbp')>=180||n('dbp')>=110||n('sbp')<90||n('dbp')<60||n('pulse')<50||n('pulse')>120):(n('dtx')<70||n('dtx')>=200||(f.elements.fasting.value==='yes'&&n('dtx')>=126));const signature=JSON.stringify([...new FormData(f)]);if(abnormal&&warningKey!==signature){warn.hidden=false;warn.textContent='ค่าผิดปกติ กรุณาตรวจวัดซ้ำและประสานเจ้าหน้าที่ หากตรวจค่าถูกต้องแล้วให้กดบันทึกอีกครั้ง';warningKey=signature;return;}
- saving=true;button.disabled=true;button.textContent='กำลังบันทึก…';const payload={p_source_screen_id:r.source_screen_id,p_kind:r.kind,p_measured_on:f.elements.day.value,p_request_id:requestId,...(bp?{p_sbp:n('sbp'),p_dbp:n('dbp'),p_pulse:n('pulse'),p_period:f.elements.period.value,p_sequence:seq}:{p_dtx:n('dtx'),p_fasting:f.elements.fasting.value==='yes'})};
- const inputs=[...f.querySelectorAll('input')];
- inputs.forEach(input=>{input.disabled=true;});
+ const abnormal=bp?(n('sbp')>=180||n('dbp')>=110||n('sbp')<90||n('dbp')<60||n('pulse')<50||n('pulse')>120):(n('dtx')<70||n('dtx')>=200||(f.elements.fasting.value==='yes'&&n('dtx')>=126));const signature=JSON.stringify([...new FormData(f)]);if(abnormal&&warningKey!==signature){warn.hidden=false;warn.textContent='ค่าผิดปกติ กรุณาตรวจวัดซ้ำและประสานเจ้าหน้าที่ หากตรวจค่าถูกต้องแล้วให้กดตรวจทานผลอีกครั้ง';warningKey=signature;return;}
+ payload={p_source_screen_id:r.source_screen_id,p_kind:r.kind,p_measured_on:f.elements.day.value,p_request_id:requestId,
+   ...(bp?{p_sbp:n('sbp'),p_dbp:n('dbp'),p_pulse:n('pulse'),p_period:f.elements.period.value,p_sequence:seq}:{p_dtx:n('dtx'),p_fasting:f.elements.fasting.value==='yes'})};
+ const details=bp
+   ? `${payload.p_period==='morning'?'เช้า':'เย็น'} ครั้งที่ ${seq} · ${payload.p_sbp}/${payload.p_dbp} mmHg · ชีพจร ${payload.p_pulse}`
+   : `${payload.p_dtx} mg/dL · ${payload.p_fasting?'งดอาหาร':'ไม่ได้งดอาหาร'}`;
+ review.querySelector('[data-nf-review-values]').textContent=`บ้าน ${r.house_no||'—'} · ${payload.p_measured_on} · ${details}`;
+ f.hidden=true;
+ review.hidden=false;
+ verified.checked=false;
+ button.disabled=true;
+ reviewError.textContent='';
+ verified.focus();
+ };
+ edit.onclick=()=>{review.hidden=true;f.hidden=false;f.elements.day.focus();};
+ verified.onchange=()=>{button.disabled=!verified.checked;};
+ button.onclick=async()=>{
+ if(saving||!verified.checked||!payload)return;
+ saving=true;
+ button.disabled=true;
+ button.textContent='กำลังบันทึก…';
+ verified.disabled=true;
+ edit.disabled=true;
+ reviewError.textContent='';
  try{
    const result=await client.rpc('save_ncd_field_result_v2203',payload);
    if(result.error)throw result.error;
@@ -150,16 +171,63 @@ function open(r,client,onSaved){if(!r)return;document.querySelector('.nf-entry-o
    overlay.remove();
    onSaved([...r.measurements,measurement]);
  }catch(err){
-   error.textContent=String(err.code)==='23505'?'มีผลวัน/ช่วงนี้แล้ว กรุณาปิดแล้วเปิดรายการนี้ใหม่':String(err.message||'').includes('DATE_INVALID')?'ผลติดตามต้องเป็นวันถัดจากคัดกรอง และไม่เกินวันนี้':'บันทึกไม่สำเร็จ ข้อมูลที่กรอกยังอยู่ กดอีกครั้งเพื่อทดลองใหม่';
+   reviewError.textContent=String(err.code)==='23505'?'มีผลวัน/ช่วงนี้แล้ว กรุณาปิดแล้วเปิดรายการนี้ใหม่':String(err.message||'').includes('DATE_INVALID')?'ผลติดตามต้องเป็นวันถัดจากคัดกรอง และไม่เกินวันนี้':'บันทึกไม่สำเร็จ ข้อมูลที่กรอกยังอยู่ กดอีกครั้งเพื่อทดลองใหม่';
  }finally{
    saving=false;
-   inputs.forEach(input=>{input.disabled=false;});
-   button.disabled=false;
-   button.textContent='บันทึกและกลับรายชื่อ';
+   verified.disabled=false;
+   edit.disabled=false;
+   button.disabled=!verified.checked;
+   button.textContent='ยืนยันและบันทึก';
  }};
 
 }
-export async function initNcdFieldFollowup2203(url,key){if(started)return;started=true;client=await getSharedSupabase(url,key);styles();const activate=()=>{const stats=document.querySelector('#stats');if(stats&&!stats.querySelector('[data-nf-launch]')){const b=document.createElement('button');b.dataset.nfLaunch='';b.className='nf-primary';b.textContent='ติดตาม Home BP / DTX ภาคสนาม';b.onclick=()=>{const modal=document.createElement('div');modal.className='nf-overlay';modal.innerHTML='<section class="nf-dialog"><button data-nf-list-close>ปิด / กลับหน้าหลัก</button><div data-nf-container></div></section>';document.body.append(modal);modal.querySelector('[data-nf-list-close]').onclick=()=>modal.remove();mount(modal.querySelector('[data-nf-container]'),client);};stats.prepend(b);}};bindPortalActivation('overview',activate);let pending=false;new MutationObserver(()=>{if(pending)return;pending=true;queueMicrotask(()=>{pending=false;activate();});}).observe(document.body,{childList:true,subtree:true});client.auth?.onAuthStateChange?.(e=>{if(e==='SIGNED_OUT'){invalidateShared('ncd-field-page:');document.querySelectorAll('.nf-overlay').forEach(n=>n.remove());}});}
+async function openRiskFollowup(trigger){
+  const viewer=await getSharedProfile(client);
+  if(!viewer?.active||document.querySelector('.nf-list-overlay'))return;
+  const modal=document.createElement('div');
+  modal.className='nf-overlay nf-list-overlay';
+  modal.innerHTML='<section class="nf-dialog" role="dialog" aria-modal="true" aria-label="ติดตามกลุ่มเสี่ยง"><button type="button" data-nf-list-close>ปิด / กลับ</button><div data-nf-container></div></section>';
+  document.body.append(modal);
+  const closeButton=modal.querySelector('[data-nf-list-close]');
+  const close=()=>{modal.remove();trigger?.focus();};
+  closeButton.onclick=close;
+  modal.addEventListener('keydown',event=>{
+    if(event.key==='Escape'){event.stopPropagation();close();}
+  });
+  closeButton.focus();
+  await mount(modal.querySelector('[data-nf-container]'),client);
+}
 
+export async function initNcdFieldFollowup2203(url,key){
+  if(started)return;
+  started=true;
+  client=await getSharedSupabase(url,key);
+  styles();
+  const healthButton=document.querySelector('#health-view-risk-followup');
+  if(healthButton)healthButton.onclick=()=>openRiskFollowup(healthButton);
+  const activate=()=>{
+    const stats=document.querySelector('#stats');
+    if(!stats||stats.querySelector('[data-nf-launch]'))return;
+    const button=document.createElement('button');
+    button.dataset.nfLaunch='';
+    button.className='nf-primary';
+    button.textContent='ติดตามกลุ่มเสี่ยง';
+    button.onclick=()=>openRiskFollowup(button);
+    stats.prepend(button);
+  };
+  bindPortalActivation('overview',activate);
+  let pending=false;
+  new MutationObserver(()=>{
+    if(pending)return;
+    pending=true;
+    queueMicrotask(()=>{pending=false;activate();});
+  }).observe(document.body,{childList:true,subtree:true});
+  client.auth?.onAuthStateChange?.(event=>{
+    if(event==='SIGNED_OUT'){
+      invalidateShared('ncd-field-page:');
+      document.querySelectorAll('.nf-overlay').forEach(node=>node.remove());
+    }
+  });
+}
 
 export async function mountNcdFollowupList(parent,supabaseClient){styles();return mount(parent,supabaseClient);}

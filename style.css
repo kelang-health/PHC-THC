@@ -411,3 +411,6 @@ tr.staff-assignment-row--direct>td:first-child{box-shadow:inset 4px 0 #5b9c72}
 .health-child-action>span:first-child{font-size:1.7rem}.health-child-action>span:nth-child(2){display:grid;gap:3px;flex:1}.health-child-action strong{font-size:1.05rem}.health-child-action small{color:#e9f7f1;font-size:.85rem;font-weight:500}.health-child-action>span:last-child{font-size:1.8rem;line-height:1}
 .health-target-actions .health-child-action.active{background:#175d51;border-color:#175d51}.health-secondary-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.health-secondary-actions button{min-height:52px;font-size:.9rem}.health-target-actions button:focus-visible{outline:3px solid #e49a27;outline-offset:3px}
 @media(max-width:400px){.health-secondary-actions button{font-size:.8rem;padding:8px 5px}}
+
+.health-target-actions .health-risk-action{background:#fff3dd;border-color:#d7ae69;color:#67420a}
+.health-target-actions .health-risk-action small{color:#67420a}
