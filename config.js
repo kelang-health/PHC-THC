@@ -45,4 +45,4 @@ if(typeof window!=="undefined") import("./house-registration-review-v2202.mjs?v=
 if(typeof window!=="undefined") import("./ncd-field-followup-v2203.mjs?v=2.0.196").then(m=>m.initNcdFieldFollowup2203(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY)).catch(()=>{});
 
 // House groups are isolated from health target calculations.
-if(typeof window!=="undefined") import("./house-groups-v2225.mjs?v=2.0.185").then(m=>m.initHouseGroupsV2225(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY)).catch(error=>{document.querySelector('[data-portal-panel="houses"]')?.removeAttribute('data-house-groups-mode');document.dispatchEvent(new CustomEvent('phc:portal-view-changed',{detail:{view:'houses'}}));console.error("House groups unavailable",error);});
+if(typeof window!=="undefined") import("./house-groups-v2225.mjs?v=2.0.198").then(m=>m.initHouseGroupsV2225(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY)).catch(error=>{document.querySelector('[data-portal-panel="houses"]')?.removeAttribute('data-house-groups-mode');document.dispatchEvent(new CustomEvent('phc:portal-view-changed',{detail:{view:'houses'}}));console.error("House groups unavailable",error);});

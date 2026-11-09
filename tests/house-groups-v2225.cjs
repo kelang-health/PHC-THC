@@ -29,6 +29,25 @@ const css=fs.readFileSync(path.join(__dirname,'..','style.css'),'utf8');
    initHouseGroupsV2225('','');
   })();`});
   await page.waitForSelector('[data-hg-count="care"]:has-text("35")');
+  if(role==='user'){
+   const assigned=page.locator('[data-group="assigned"]');
+   assert.equal(await assigned.getAttribute('aria-pressed'),'true');
+   assert.match(await assigned.textContent(),/39 หลัง/);
+   await page.click('[data-hg-more]');
+   assert.equal(await page.locator('[data-hg-list] [data-hg-open]').count(),39);
+   for(const [id,label] of [['c0','บ้านดูแล'],['r','รอตรวจสอบ'],['e','บ้านว่าง'],['s','ทะเบียนบ้านพิเศษ']]){
+    assert.equal(await page.locator('[data-hg-list] [data-hg-open="'+id+'"] .hg25-group-label').textContent(),label);
+   }
+   assert.equal(await page.locator('[data-hg-special]').isVisible(),false);
+   await page.fill('[data-hg-search]','162');
+   assert.equal(await page.locator('[data-hg-list] [data-hg-open]').count(),1);
+   await page.click('[data-hg-open="r"]');
+   assert.equal((await page.evaluate(()=>test.events.at(-1))).name,'phc:open-house-registration-review');
+   await page.fill('[data-hg-search]','');
+   await page.click('[data-group="care"]');
+  }else{
+   assert.equal(await page.locator('[data-group="assigned"]').count(),0);
+  }
   assert.equal(await page.locator('[data-hg-scope-note]').isVisible(),role==='staff');
   if(role==='staff')assert.ok((await page.locator('[data-hg-scope-note]').textContent()).includes('บ้านที่ผูกกับคุณโดยตรง'));
   assert.equal(await page.locator('[data-hg-open]:visible').count(),30);
