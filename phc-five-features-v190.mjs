@@ -470,7 +470,9 @@ async function renderScreenRoute(body,s,personName){
       root.innerHTML=`<div class="phc190-error">${esc(friendlyError(e))}</div>`;
       return;
     }
-    root.innerHTML=growthHtml()+developmentHtml(s.dspm_target_months);bindGrowth(root,s);bindDevelopment(root,s)
+    root.innerHTML=growthHtml(false)+developmentHtml(s.dspm_target_months);
+    bindGrowth(root,s);
+    bindChildScreening(root,s);
   }
   else if(s.route==='school_6_14'){root.innerHTML=growthHtml();bindGrowth(root,s)}
   else if(s.route==='youth_15_34'){await renderYouthRouteV206(root,s,personName)}
@@ -511,7 +513,7 @@ async function openYouthCampaignSettingsV206(){
   const f=body.querySelector('[data-youth-campaign-form]');f.onsubmit=async e=>{e.preventDefault();const d=new FormData(f),enabled=f.elements.enabled.checked,ncd=f.elements.ncd.checked,mental=f.elements.mental.checked,err=f.querySelector('[data-err]');err.textContent='';if(enabled&&(!d.get('start')||!d.get('end'))){err.textContent='เมื่อเปิดใช้งาน ต้องกำหนดวันเริ่มและวันสิ้นสุด';return}if(enabled&&!ncd&&!mental){err.textContent='เลือกอย่างน้อย 1 เครื่องมือ';return}const btn=f.querySelector('button');btn.disabled=true;try{const {error}=await supabase.rpc('admin_set_youth_campaign_v206',{p_enabled:enabled,p_start_date:d.get('start')||null,p_end_date:d.get('end')||null,p_ncd_enabled:ncd,p_mental_2q_enabled:mental,p_note:d.get('note')||''});if(error)throw error;showPhcToast('บันทึกช่วงคัดกรองเสริมแล้ว');closeModal();await renderOverview()}catch(x){err.textContent=friendlyError(x)}finally{btn.disabled=false}};
 }
 
-function growthHtml(){return `<section class="phc190-step"><h3>น้ำหนัก / ส่วนสูง</h3><div class="phc190-note" data-growth-latest>กำลังโหลดประวัติน้ำหนัก/ส่วนสูงล่าสุด…</div><div class="phc190-grow"><label>น้ำหนัก (กก.)<input data-growth-weight type="number" inputmode="decimal" min="0.1" max="300" step="0.1"></label><label>ส่วนสูง (ซม.)<input data-growth-height type="number" inputmode="decimal" min="30" max="250" step="0.1"></label></div><div class="phc190-error" data-growth-error></div><button class="phc190-primary" data-growth-save>บันทึกและแปลผล</button><div class="phc190-note phc190-save-result" data-growth-result hidden></div><div class="phc190-note">แปลผลตามเกณฑ์กรมอนามัยที่ใช้ใน JHCIS/HDC · อายุ 0–5 ปีใช้ น้ำหนักตามอายุ + ส่วนสูงตามอายุ + น้ำหนักตามส่วนสูง · อายุ 6–14 ปีใช้ ส่วนสูงตามอายุ + น้ำหนักตามส่วนสูง ตามเกณฑ์ 6–19 ปี พ.ศ. 2564</div><div class="phc190-timeline" data-growth-timeline></div></section>`}
+function growthHtml(showSave=true){return `<section class="phc190-step"><h3>น้ำหนัก / ส่วนสูง</h3><div class="phc190-note" data-growth-latest>กำลังโหลดประวัติน้ำหนัก/ส่วนสูงล่าสุด…</div><div class="phc190-grow"><label>น้ำหนัก (กก.)<input data-growth-weight type="number" inputmode="decimal" min="0.1" max="300" step="0.1"></label><label>ส่วนสูง (ซม.)<input data-growth-height type="number" inputmode="decimal" min="30" max="250" step="0.1"></label></div><div class="phc190-error" data-growth-error></div>${showSave?`<button class="phc190-primary" data-growth-save>บันทึกและแปลผล</button><div class="phc190-note phc190-save-result" data-growth-result hidden></div>`:''}<div class="phc190-note">แปลผลตามเกณฑ์กรมอนามัยที่ใช้ใน JHCIS/HDC · อายุ 0–5 ปีใช้ น้ำหนักตามอายุ + ส่วนสูงตามอายุ + น้ำหนักตามส่วนสูง · อายุ 6–14 ปีใช้ ส่วนสูงตามอายุ + น้ำหนักตามส่วนสูง ตามเกณฑ์ 6–19 ปี พ.ศ. 2564</div><div class="phc190-timeline" data-growth-timeline></div></section>`}
 function nutritionMetricV204(label,item){return `<article class="phc190-kpi"><small>${esc(label)}</small><strong>${esc(item?.label||'แปลผลไม่ได้')}</strong></article>`}
 function renderGrowthNutritionV204(result,nutrition,s){if(!result)return;const n=nutrition||{},cards=[];if(Number(s.age_months)<72)cards.push(nutritionMetricV204('น้ำหนักตามอายุ',n.weight_for_age));cards.push(nutritionMetricV204('ส่วนสูงตามอายุ',n.height_for_age),nutritionMetricV204('น้ำหนักตามส่วนสูง',n.weight_for_height));const refLabel=Number(s.age_months)<72?'กรมอนามัย / เกณฑ์เด็ก 0–5 ปี':'กรมอนามัย พ.ศ. 2564 / เกณฑ์เด็ก 6–19 ปี';result.innerHTML=`<strong>ผลภาวะโภชนาการ: ${esc(n.overall_label||'บันทึกค่าแล้ว')}</strong><div class="phc190-kpis" style="margin-top:8px">${cards.join('')}</div><small style="display:block;margin-top:8px">${esc(refLabel)} · ${esc(n.reference_version||'ไม่ระบุเวอร์ชัน')}</small>`;result.hidden=false}
 function bindGrowth(root,s){
@@ -524,12 +526,13 @@ function bindGrowth(root,s){
       if(latest){
         const source=latest.id?'พระบาท พลัส':'JHCIS';
         latestBox.innerHTML=`<strong>ประวัติล่าสุด ${esc(fmt(latest.screened_at))}</strong><br>น้ำหนัก ${esc(latest.weight_kg)} กก. · ส่วนสูง ${esc(latest.height_cm)} ซม. · ที่มา ${esc(source)}<button type="button" class="phc190-secondary" data-growth-use-latest style="width:100%;margin-top:8px">ใช้ค่าล่าสุดเป็นค่าเริ่มต้น</button>`;
-        latestBox.querySelector('[data-growth-use-latest]')?.addEventListener('click',()=>{weightInput.value=latest.weight_kg??'';heightInput.value=latest.height_cm??'';showPhcToast('นำค่าล่าสุดมาใส่แล้ว กรุณาตรวจวัดและแก้ไขก่อนบันทึก','warn',2800)});
+        latestBox.querySelector('[data-growth-use-latest]')?.addEventListener('click',()=>{if(weightInput.disabled||weightInput.readOnly)return;weightInput.value=latest.weight_kg??'';heightInput.value=latest.height_cm??'';showPhcToast('นำค่าล่าสุดมาใส่แล้ว กรุณาตรวจวัดและแก้ไขก่อนบันทึก','warn',2800)});
       }else latestBox.textContent='ยังไม่มีประวัติน้ำหนัก/ส่วนสูงจาก JHCIS หรือ พระบาท พลัส';
     }
     if(box)box.innerHTML=rows.slice(0,5).map(x=>`<div>${esc(fmt(x.screened_at))} · ${x.weight_kg} กก. · ${x.height_cm} ซม. · อายุ ${x.age_months??'—'} เดือน${x.interpretation_label?`<br><strong>${esc(x.interpretation_label)}</strong>`:''}${x.id?'':'<br><small>ที่มา: JHCIS</small>'}</div>`).join('')||'<div>ยังไม่มีประวัติ</div>';
   };
-  root.querySelector('[data-growth-save]').onclick=async()=>{
+  const save=root.querySelector('[data-growth-save]');
+  if(save)save.onclick=async()=>{
     const w=Number(weightInput.value),h=Number(heightInput.value),err=root.querySelector('[data-growth-error]');err.textContent='';if(result)result.hidden=true;
     try{await ensureScreeningSessionV2023(s);const {data,error}=await supabase.rpc('save_growth_screening_v190',{p_session_id:s.session_id,p_weight_kg:w,p_height_cm:h});if(error)throw error;if(data?.nutrition)renderGrowthNutritionV204(result,data.nutrition,s);else if(result){result.textContent=String(data?.interpretation||'บันทึกผลแล้ว');result.hidden=false}showPhcToast('บันทึกผลการเจริญเติบโตแล้ว');load().catch(()=>{})}catch(e){err.textContent=friendlyError(e)}
   };
@@ -537,9 +540,98 @@ function bindGrowth(root,s){
   load().catch(()=>{if(latestBox)latestBox.textContent='โหลดประวัติเดิมไม่ได้ แต่ยังบันทึกผลใหม่ได้';if(box)box.innerHTML='<div>ยังโหลดประวัติไม่ได้</div>'});
 }
 const DEV=[['gross_motor','การเคลื่อนไหว','การเดิน วิ่ง ทรงตัว และใช้กล้ามเนื้อใหญ่ตามวัย',['เดิน/วิ่ง/ทรงตัวน้อยกว่าที่คาด','ใช้แขนขาไม่สมดุล','เปลี่ยนท่าหรือลุกนั่งลำบาก']],['fine_motor_intelligence','กล้ามเนื้อมัดเล็ก/สติปัญญา','การหยิบจับ ประสานมือ และแก้ปัญหาง่าย ๆ',['หยิบจับของชิ้นเล็กไม่คล่อง','ใช้มือประสานกันยาก','ทำกิจกรรมแก้ปัญหาง่าย ๆ ไม่ได้']],['receptive_language','การเข้าใจภาษา','การฟังและเข้าใจคำพูดหรือคำสั่งตามวัย',['ไม่ทำตามคำสั่งง่าย ๆ','ไม่ตอบสนองเมื่อเรียกหรือสื่อสาร','เข้าใจคำพูดน้อยกว่าที่คาด']],['expressive_language','การใช้ภาษา','การพูดหรือสื่อความต้องการตามวัย',['พูดน้อยกว่าที่คาด','สื่อความต้องการไม่ได้','พูดไม่ชัด/เข้าใจยาก','ไม่ตอบสนองต่อการสื่อสาร']],['personal_social','การช่วยเหลือตนเอง/สังคม','การช่วยตนเอง เล่น และมีปฏิสัมพันธ์ตามวัย',['ช่วยเหลือตนเองตามวัยได้ยาก','เล่นหรือมีปฏิสัมพันธ์กับผู้อื่นน้อย','ปรับตัวกับกิจวัตรได้ยาก']]];
-function developmentHtml(target){return `<section class="phc190-step" data-dev><h3>พัฒนาการเบื้องต้น 5 ด้าน</h3><div class="phc190-note">อายุจริงใช้คำนวณทุกครั้ง · ช่วงอ้างอิงที่ใกล้เคียง ${target||'—'} เดือน · ใช้เพื่อคัดกรองเบื้องต้น ไม่ใช้คำว่า “พัฒนาการล่าช้า” อัตโนมัติ</div><button class="phc190-secondary" data-all-normal>✓ ทุกด้านปกติ</button><div class="phc190-domain-grid">${DEV.map(([k,l,tip,items])=>`<article class="phc190-domain" data-dev-domain="${k}" data-status="not_assessed"><h4>${l}</h4><p>${tip}</p><div class="phc190-state-row"><button class="phc190-state normal" type="button" data-state="normal">✓ ปกติ</button><button class="phc190-state observation" type="button" data-state="observation">พบข้อสังเกต</button><button class="phc190-state not_assessed active" type="button" data-state="not_assessed">ไม่ได้ประเมิน</button></div><div class="phc190-observe">${items.map(x=>`<label><input type="checkbox" value="${esc(x)}">${esc(x)}</label>`).join('')}</div></article>`).join('')}</div><label>หมายเหตุสั้น<textarea data-dev-note maxlength="500"></textarea></label><div class="phc190-note phc190-save-result" data-dev-result hidden></div><div class="phc190-error" data-dev-error></div><button class="phc190-primary" data-dev-save>บันทึกพัฒนาการ</button></section>`}
+function developmentHtml(target){return `<section class="phc190-step" data-dev><h3>พัฒนาการเบื้องต้น 5 ด้าน</h3><div class="phc190-note">อายุจริงใช้คำนวณทุกครั้ง · ช่วงอ้างอิงที่ใกล้เคียง ${target||'—'} เดือน · ใช้เพื่อคัดกรองเบื้องต้น ไม่ใช้คำว่า “พัฒนาการล่าช้า” อัตโนมัติ</div><button class="phc190-secondary" data-all-normal>✓ ทุกด้านปกติ</button><div class="phc190-domain-grid">${DEV.map(([k,l,tip,items])=>`<article class="phc190-domain" data-dev-domain="${k}" data-status="not_assessed"><h4>${l}</h4><p>${tip}</p><div class="phc190-state-row"><button class="phc190-state normal" type="button" data-state="normal">✓ ปกติ</button><button class="phc190-state observation" type="button" data-state="observation">พบข้อสังเกต</button><button class="phc190-state not_assessed active" type="button" data-state="not_assessed">ไม่ได้ประเมิน</button></div><div class="phc190-observe">${items.map(x=>`<label><input type="checkbox" value="${esc(x)}">${esc(x)}</label>`).join('')}</div></article>`).join('')}</div><label>หมายเหตุสั้น<textarea data-dev-note maxlength="500"></textarea></label><div class="phc190-error" data-dev-error role="alert"></div><button type="button" class="phc190-primary" data-child-save>บันทึกน้ำหนัก ส่วนสูง และพัฒนาการ</button></section>`}
 function setDomainState(card,state){card.dataset.status=state;card.querySelectorAll('.phc190-state').forEach(b=>b.classList.toggle('active',b.dataset.state===state))}
-function bindDevelopment(root,s){const dev=$('[data-dev]',root),result=dev.querySelector('[data-dev-result]');dev.querySelectorAll('[data-dev-domain]').forEach(card=>card.querySelectorAll('[data-state]').forEach(b=>b.onclick=()=>setDomainState(card,b.dataset.state)));dev.querySelector('[data-all-normal]').onclick=()=>dev.querySelectorAll('[data-dev-domain]').forEach(c=>setDomainState(c,'normal'));dev.querySelector('[data-dev-save]').onclick=async()=>{const domains={},notes=[];dev.querySelectorAll('[data-dev-domain]').forEach(card=>{domains[card.dataset.devDomain]=card.dataset.status;if(card.dataset.status==='observation'){const checked=[...card.querySelectorAll('input:checked')].map(x=>x.value);if(checked.length)notes.push(`${DEV.find(x=>x[0]===card.dataset.devDomain)?.[1]||card.dataset.devDomain}: ${checked.join(', ')}`)}});const note=[dev.querySelector('[data-dev-note]').value.trim(),...notes].filter(Boolean).join(' | ').slice(0,500),err=dev.querySelector('[data-dev-error]');err.textContent='';if(result)result.hidden=true;try{await ensureScreeningSessionV2023(s);const {data,error}=await supabase.rpc('save_child_development_v190',{p_session_id:s.session_id,p_domains:domains,p_note:note});if(error)throw error;const label=String(data?.overall_label||'บันทึกพัฒนาการแล้ว'),handoff=/ควร|เพิ่มเติม|ติดตาม/.test(label);if(result){result.textContent=`บันทึกแล้ว · ${label}${handoff?' · ส่งงานติดตามให้เจ้าหน้าที่แล้ว':''}`;result.className=`phc190-note phc190-save-result ${/ควร|เพิ่มเติม|ติดตาม|ไม่ครบ/.test(label)?'phc190-warning':''}`;result.hidden=false}showPhcToast('บันทึกพัฒนาการแล้ว',/ควร|เพิ่มเติม|ติดตาม|ไม่ครบ/.test(label)?'warn':'success')}catch(e){err.textContent=friendlyError(e)}}}
+function bindChildScreening(root,s){
+  const weight=$('[data-growth-weight]',root),height=$('[data-growth-height]',root);
+  const cards=[...root.querySelectorAll('[data-dev-domain]')];
+  const save=$('[data-child-save]',root),errorBox=$('[data-dev-error]',root);
+  const buttonLabel=save.textContent;
+  let growthResult=null;
+
+  for(const card of cards){
+    for(const button of card.querySelectorAll('[data-state]')){
+      button.onclick=()=>setDomainState(card,button.dataset.state);
+    }
+  }
+  $('[data-all-normal]',root).onclick=()=>{
+    for(const card of cards)setDomainState(card,'normal');
+  };
+
+  function showMissing(message,input){
+    errorBox.textContent=message;
+    showPhcToast(message,'warn',3500);
+    input.focus();
+  }
+
+  save.onclick=async()=>{
+    if(save.disabled)return;
+    errorBox.textContent='';
+    const weightKg=weight.valueAsNumber,heightCm=height.valueAsNumber;
+    if(!Number.isFinite(weightKg)||weightKg<0.1||weightKg>300){
+      showMissing('กรุณากรอกน้ำหนักระหว่าง 0.1 ถึง 300 กก.',weight);
+      return;
+    }
+    if(!Number.isFinite(heightCm)||heightCm<30||heightCm>250){
+      showMissing('กรุณากรอกส่วนสูงระหว่าง 30 ถึง 250 ซม.',height);
+      return;
+    }
+    const incomplete=cards.find(card=>!['normal','observation'].includes(card.dataset.status));
+    if(incomplete){
+      const label=$('h4',incomplete).textContent;
+      showMissing(`กรุณาประเมินพัฒนาการให้ครบ 5 ด้าน · ยังขาดด้าน${label}`,$('[data-state="normal"]',incomplete));
+      return;
+    }
+
+    const domains={},notes=[];
+    for(const card of cards){
+      domains[card.dataset.devDomain]=card.dataset.status;
+      if(card.dataset.status==='observation'){
+        const selected=[...card.querySelectorAll('input:checked')].map(input=>input.value);
+        if(selected.length)notes.push(`${$('h4',card).textContent}: ${selected.join(', ')}`);
+      }
+    }
+    const note=[$('[data-dev-note]',root).value.trim(),...notes].filter(Boolean).join(' | ').slice(0,500);
+    const controls=[...root.querySelectorAll('button:enabled,input:enabled,textarea:enabled')];
+    for(const control of controls)control.disabled=true;
+    save.textContent='กำลังบันทึก…';
+
+    try{
+      await ensureScreeningSessionV2023(s);
+      if(!growthResult){
+        const {data,error}=await supabase.rpc('save_growth_screening_v190',{
+          p_session_id:s.session_id,p_weight_kg:weightKg,p_height_cm:heightCm
+        });
+        if(error)throw error;
+        if(data?.ok!==true)throw Error('ยังยืนยันการบันทึกน้ำหนักและส่วนสูงไม่ได้');
+        // Keep the confirmed measurement when retrying a failed development save.
+        growthResult=data;
+        weight.readOnly=true;
+        height.readOnly=true;
+      }
+
+      const {data,error}=await supabase.rpc('save_child_development_v190',{
+        p_session_id:s.session_id,p_domains:domains,p_note:note
+      });
+      if(error)throw error;
+      if(data?.ok!==true)throw Error('ยังยืนยันการบันทึกพัฒนาการไม่ได้');
+      if(activeOverlay?.contains(root)){
+        closeModal();
+        const results=[growthResult.interpretation,data.overall_label].filter(Boolean);
+        showPhcToast(['บันทึกน้ำหนัก ส่วนสูง และพัฒนาการแล้ว',...results].join(' · '),
+          data.overall_status==='needs_further_assessment'?'warn':'success',5000);
+      }
+    }catch(error){
+      const message=friendlyError(error);
+      errorBox.textContent=growthResult
+        ? `บันทึกน้ำหนักและส่วนสูงแล้ว · บันทึกพัฒนาการไม่สำเร็จ กรุณาลองอีกครั้ง (${message})`
+        : `บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง (${message})`;
+    }finally{
+      for(const control of controls)control.disabled=false;
+      save.textContent=growthResult?'บันทึกพัฒนาการอีกครั้ง':buttonLabel;
+    }
+  };
+}
 const ELDER_V207=[
   {code:'cognition',label:'ความคิดความจำ',icon:'🧠',tool:'Mini-Cog'},
   {code:'mobility',label:'การเคลื่อนไหวร่างกาย',icon:'🚶',tool:'Timed Up and Go + ประวัติหกล้ม'},
