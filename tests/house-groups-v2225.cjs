@@ -23,7 +23,7 @@ const css=fs.readFileSync(path.join(__dirname,'..','style.css'),'utf8');
     if(name==='house_type2_names_v2225'){if(delayNames)return new Promise(r=>resolveNames=()=>r({data:[{display_name:'LATE PRIVATE NAME'}]}));return {data:[{display_name:'ชื่อสมมติ <script>bad()</script>',jhcis_typelive:2,counted_as_target:false}]};}
    }};
    const getSharedSupabase=async()=>mock,getSharedProfile=async()=>testProfile,sharedCall=async(k,f)=>f(),invalidateShared=()=>{},bindPortalActivation=(v,f)=>queueMicrotask(f);
-   for(const name of ['phc:open-field-house','phc:open-house-registration-review','phc:open-house-detail'])document.addEventListener(name,e=>events.push({name,detail:e.detail}));
+   for(const name of ['phc:open-field-house','phc:open-house-registration-review','phc:open-house-detail'])document.addEventListener(name,e=>{if(name==='phc:open-house-detail')e.detail.handled=true;events.push({name,detail:e.detail});});
    ${source}
    window.test={calls,events,auth:event=>authCallback(event),setFail:v=>fail=v,setDelay:v=>delayNames=v,resolve:()=>resolveNames?.(),reload:()=>load(true)};
    initHouseGroupsV2225('','');
@@ -71,9 +71,13 @@ const css=fs.readFileSync(path.join(__dirname,'..','style.css'),'utf8');
    assert.equal(await page.locator('[data-hg-name-list] script').count(),0,'escape names');
    await page.click('[data-hg-names]');assert.equal(await page.locator('[data-hg-name-list]').textContent(),'','clear hidden names');
   }
+  await page.click('[data-hg-pin]');let action=await page.evaluate(()=>test.events.at(-1));assert.equal(action.name,'phc:open-field-house');assert.equal(action.detail.houseId,'e');
+  await page.click('[data-hg-open="e"]');await page.waitForSelector('[data-hg-member]');await page.click('[data-hg-member]');action=await page.evaluate(()=>test.events.at(-1));assert.equal(action.name,'phc:open-house-detail');assert.equal(action.detail.houseId,'e');assert.equal(action.detail.openAdd,true);
+  await page.click('[data-hg-open="e"]');await page.waitForSelector('[data-hg-pin]');
   await page.keyboard.press('Escape');assert.equal(await page.locator('.hg25-overlay').count(),0);
   assert.equal(await page.locator('[data-group="empty"]').getAttribute('aria-pressed'),'true');assert.equal(await page.locator('[data-hg-search]').inputValue(),'250');
   await page.fill('[data-hg-search]','');await page.click('[data-hg-open="z"]');await page.waitForSelector('[data-hg-notice]:has-text("ยังไม่ยืนยัน")');assert.equal(await page.locator('[data-hg-names]').count(),0);assert.equal(await page.locator('[data-hg-contact-chair]').count(),0);await page.click('[data-hg-close]');
+  await page.locator('.hg25-special summary').click();await page.click('[data-hg-special] [data-hg-open="s"]');await page.waitForSelector('[data-hg-pin]');assert.equal(await page.locator('[data-hg-member]').count(),0,'school house cannot request members');await page.click('[data-hg-close]');
   if(role!=='user'){
    await page.evaluate(()=>test.setDelay(true));await page.click('[data-hg-open="e"]');await page.waitForSelector('[data-hg-names]');await page.click('[data-hg-names]');await page.click('[data-hg-close]');await page.evaluate(()=>test.resolve());assert.equal(await page.locator('body').textContent().then(t=>t.includes('LATE PRIVATE NAME')),false);
   }
