@@ -403,3 +403,11 @@ tr.staff-assignment-row--direct>td:first-child{box-shadow:inset 4px 0 #5b9c72}
 /* Three field-work shortcuts; keep readable on small screens. */
 .health-target-actions{grid-template-columns:repeat(3,minmax(0,1fr));min-width:min(100%,540px)}
 @media(max-width:760px){.health-target-actions{width:100%;min-width:0}.health-target-actions button{padding:10px 7px;font-size:.85rem;white-space:normal}}
+
+/* Quick access to child growth entry, with screening choices below. */
+.health-target-shortcuts{align-items:stretch;flex-direction:column}
+.health-target-actions{display:grid;grid-template-columns:1fr;width:100%;min-width:0;gap:10px}
+.health-target-actions .health-child-action{display:flex;align-items:center;gap:12px;width:100%;min-height:76px;padding:13px 16px;text-align:left;background:#277b6b;color:#fff;border:2px solid #277b6b;border-radius:14px}
+.health-child-action>span:first-child{font-size:1.7rem}.health-child-action>span:nth-child(2){display:grid;gap:3px;flex:1}.health-child-action strong{font-size:1.05rem}.health-child-action small{color:#e9f7f1;font-size:.85rem;font-weight:500}.health-child-action>span:last-child{font-size:1.8rem;line-height:1}
+.health-target-actions .health-child-action.active{background:#175d51;border-color:#175d51}.health-secondary-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.health-secondary-actions button{min-height:52px;font-size:.9rem}.health-target-actions button:focus-visible{outline:3px solid #e49a27;outline-offset:3px}
+@media(max-width:400px){.health-secondary-actions button{font-size:.8rem;padding:8px 5px}}

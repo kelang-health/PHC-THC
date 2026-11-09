@@ -387,7 +387,10 @@ async function loadHealthSummary(){
   $('#life-stage-stats').innerHTML=[['เด็กปฐมวัย',x.early_child],['เด็กวัยเรียน',x.school_age],['วัยรุ่นและเยาวชน',x.youth],['วัยทำงาน',x.working_age],['ผู้สูงอายุ',x.older_people]].map(([l,v])=>`<div class="life-chip"><span>${esc(l)}</span><strong>${num(v)}</strong></div>`).join('');
 }
 function syncHealthTargetButtons(){
-  const filter=$('#health-filter').value;
+  const filter=$('#health-filter').value, stage=$('#health-stage').value;
+  const child=filter==='all'&&stage==='เด็กปฐมวัย';
+  $('#health-view-child-growth')?.classList.toggle('active',child);
+  $('#health-view-child-growth')?.setAttribute('aria-pressed',String(child));
   $('#health-view-linked-targets').classList.toggle('active',filter==='field_targets');
   $('#health-view-all-targets').classList.toggle('active',filter==='targets');
   $('#health-view-elderly9-targets')?.classList.toggle('active',filter==='elderly_due');
@@ -395,7 +398,8 @@ function syncHealthTargetButtons(){
 async function setHealthTargetFilter(filter){
   const select=$('#health-filter');
   if(!select)return;
-  if(select.value===filter&&!healthCommunityFocus&&filter!=='elderly_due')return;
+  if(select.value===filter&&!healthCommunityFocus&&filter!=='elderly_due'&&!$('#health-stage').value)return;
+  if(filter!=='elderly_due')$('#health-stage').value='';
   if(filter==='elderly_due'){$('#health-stage').value='ผู้สูงอายุ';$('#health-search').value='';healthAssignmentFilter='all';const assignment=$('#health-assignment');if(assignment)assignment.value='all';}
   healthCommunityFocus='';
   const focus=$('#health-community-focus');if(focus)focus.hidden=true;
@@ -403,6 +407,13 @@ async function setHealthTargetFilter(filter){
   // Coalesce quick repeated taps before an RPC starts; keep the button visual
   // state immediate and let the existing request-generation guard discard stale data.
   return scheduleHealthPeopleLoad(110,'filter');
+}
+async function showChildGrowthTargets(){
+  const filter=$('#health-filter'),stage=$('#health-stage');
+  filter.value='all';stage.value='เด็กปฐมวัย';$('#health-search').value='';
+  healthCommunityFocus='';const focus=$('#health-community-focus');if(focus)focus.hidden=true;
+  healthAssignmentFilter='all';const assignment=$('#health-assignment');if(assignment)assignment.value='all';
+  syncHealthTargetButtons();return scheduleHealthPeopleLoad(110,'child-growth');
 }
 async function loadFastHealthTargetsV2030(stage,raw){
   const term=String(raw||'').replace(/[%_,()]/g,'').slice(0,60).trim();
@@ -453,6 +464,7 @@ function healthElderlyStateV2194(row){
 }
 function healthNcdActionLabelV2117(row){
   const x=healthNcdTargetStateV2117(row),e=healthElderlyStateV2194(row),route=e.route;
+  if(row?.life_stage==='เด็กปฐมวัย')return 'บันทึกน้ำหนัก / ส่วนสูง';
   if(x.dmDue&&x.htDue)return 'คัดกรอง DM/HT';
   if(x.dmDue)return 'คัดกรอง DM';
   if(x.htDue)return 'คัดกรอง HT';
@@ -582,10 +594,10 @@ async function loadHealthPeople(options={}){
   const pageRows=filter==='field_targets'?rawPageRows.filter(healthFieldQueuePendingV2042):rawPageRows;
   healthPeople=append?[...healthPeople,...pageRows]:pageRows;healthPageOffset=usedAssignmentRpc?(Number(requestArgs.p_offset||0)+rawPageRows.length):healthPeople.length;healthHasMore=usedAssignmentRpc?Boolean(pageResult?.has_more):false;
   $('#health-person-body').innerHTML=healthPeople.map((p,i)=>{
-    const status=healthNcdStatusLabelV2117(p),action=healthNcdActionLabelV2117(p);
+    const child=p.life_stage==='เด็กปฐมวัย',status=child?'ข้อมูลการเจริญเติบโต':healthNcdStatusLabelV2117(p),action=healthNcdActionLabelV2117(p);
     const fallback=p.assignment_status==='staff_fallback';
     const assignment=fallback?`<small class="assignment-fallback">${esc(p.assignment_label||'ยังไม่มีผู้รับผิดชอบ · Staff ดูแลชั่วคราว')}</small>`:(currentProfile?.role==='staff'&&careScopeMode==='community'&&p.assignment_status==='assigned'?'<small class="assignment-ok">มีผู้รับผิดชอบ</small>':'');
-    return `<tr><td><button type="button" class="health-person-name" data-health-person="${i}">${esc(p.display_name)}</button><small>${p.known_ncd?`โรคเดิม: ${p.has_ht?'HT ':''}${p.has_dm?'DM':''}`:'ยังไม่พบ DM/HT ใน personchronic'}</small></td><td>${esc(p.age_years??'—')} ปี<small>${esc(p.life_stage||'—')}</small></td><td>บ้าน ${esc(p.house_no||p.hcode)}<small>หมู่ ${esc(p.moo||'—')} · ${esc(p.community||'—')}</small>${assignment}</td><td class="${healthClass(p.latest_severity)}">${esc(status)}<small>${healthStatusDateV2194(p)?esc(healthDateLabel(healthStatusDateV2194(p))):''}</small></td><td><button type="button" class="row-open" data-phc190-screen data-pcucode="${esc(p.source_pcucode)}" data-pid="${esc(p.source_pid)}" data-name="${esc(p.display_name)}" data-plan-date="${esc(p.screening_plan_date||'')}" data-age-years="${esc(p.age_years??'')}" data-age-months="${esc(p.screening_age_months??'')}" data-screen-route="${esc(p.screening_route||'')}" data-route-label="${esc(p.screening_route_label||'')}" data-dspm-target="${esc(p.screening_dspm_target_months??'')}" data-latest-screened="${esc(p.latest_screened_on||'')}" data-has-dm="${Boolean(p.has_dm)}" data-has-ht="${Boolean(p.has_ht)}" data-dm-target="${Boolean(healthNcdTargetStateV2117(p).dmTarget)}" data-ht-target="${Boolean(healthNcdTargetStateV2117(p).htTarget)}">${esc(action)}</button></td></tr>`;
+    return `<tr><td><button type="button" class="health-person-name" data-health-person="${i}">${esc(p.display_name)}</button><small>${child?'เด็ก 0–5 ปี':p.known_ncd?`โรคเดิม: ${p.has_ht?'HT ':''}${p.has_dm?'DM':''}`:'ยังไม่พบ DM/HT ใน personchronic'}</small></td><td>${esc(p.age_years??'—')} ปี<small>${esc(p.life_stage||'—')}</small></td><td>บ้าน ${esc(p.house_no||p.hcode)}<small>หมู่ ${esc(p.moo||'—')} · ${esc(p.community||'—')}</small>${assignment}</td><td class="${healthClass(p.latest_severity)}">${esc(status)}<small>${!child&&healthStatusDateV2194(p)?esc(healthDateLabel(healthStatusDateV2194(p))):''}</small></td><td><button type="button" class="row-open" data-phc190-screen data-pcucode="${esc(p.source_pcucode)}" data-pid="${esc(p.source_pid)}" data-name="${esc(p.display_name)}" data-plan-date="${esc(p.screening_plan_date||'')}" data-age-years="${esc(p.age_years??'')}" data-age-months="${esc(p.screening_age_months??'')}" data-screen-route="${esc(p.screening_route||'')}" data-route-label="${esc(p.screening_route_label||'')}" data-dspm-target="${esc(p.screening_dspm_target_months??'')}" data-latest-screened="${esc(p.latest_screened_on||'')}" data-has-dm="${Boolean(p.has_dm)}" data-has-ht="${Boolean(p.has_ht)}" data-dm-target="${Boolean(healthNcdTargetStateV2117(p).dmTarget)}" data-ht-target="${Boolean(healthNcdTargetStateV2117(p).htTarget)}">${esc(action)}</button></td></tr>`;
   }).join('')||'<tr><td colspan="5">ไม่พบประชาชนตามตัวกรอง</td></tr>';
   const fallbackNote=healthAssignmentFilter==='fallback'?' · แสดงเฉพาะประชาชนที่ Staff ต้องดูแลแทน':healthAssignmentFilter==='unresolved'?' · คิวไม่ทราบชุมชนสำหรับ Admin ตรวจสอบ':'';
   const queueNote=filter==='all'?' · รายชื่อทั้งหมดในขอบเขตสิทธิ์ รวมผู้ที่คัดกรองแล้ว':filter==='elderly_due'?' · ผู้สูงอายุที่ยังคัดกรอง 9 ด้านไม่ครบปีงบฯ นี้ รวมผู้มี DM/HT เดิม':filter==='field_targets'?' · แสดงผู้ที่ยังไม่ได้คัดกรองในรอบงานก่อน':'';
@@ -1138,9 +1150,10 @@ async function loadHealthModule(){
   $('#health-feedback-share').onclick=shareHealthFeedback;$('#health-feedback-close').onclick=closeHealthFeedbackCard;
   bindHealthPerformanceControls();
   $('#health-clear-community').onclick=async()=>{healthCommunityFocus='';focus.hidden=true;await scheduleHealthPeopleLoad(160,'community-focus');};
+  $('#health-view-child-growth').onclick=showChildGrowthTargets;
   $('#health-view-linked-targets').onclick=()=>setHealthTargetFilter('field_targets'); $('#health-view-all-targets').onclick=()=>setHealthTargetFilter('targets'); $('#health-view-elderly9-targets').onclick=()=>setHealthTargetFilter('elderly_due');
   $('#health-view-history')?.addEventListener('click',()=>setHealthTargetFilter('all'));
-  $('#health-filter').onchange=()=>{syncHealthTargetButtons();return scheduleHealthPeopleLoad(160,'filter');}; $('#health-stage').onchange=()=>scheduleHealthPeopleLoad(160,'stage');
+  $('#health-filter').onchange=()=>{syncHealthTargetButtons();return scheduleHealthPeopleLoad(160,'filter');}; $('#health-stage').onchange=()=>{syncHealthTargetButtons();return scheduleHealthPeopleLoad(160,'stage');};
   const assignmentSelect=$('#health-assignment');if(assignmentSelect)assignmentSelect.onchange=()=>{healthAssignmentFilter=assignmentSelect.value||'all';return scheduleHealthPeopleLoad(160,'assignment');};
   const loadMore=$('#health-load-more');if(loadMore)loadMore.onclick=async()=>{loadMore.disabled=true;loadMore.textContent='กำลังโหลด…';try{await loadHealthPeople({append:true,trigger:'pagination'});}catch(e){$('#health-list-note').textContent=e.message;loadMore.disabled=false;}};
   $('#health-search').oninput=()=>{clearTimeout(healthSearchTimer);healthSearchTimer=setTimeout(()=>loadHealthPeople({trigger:'search'}).catch(e=>$('#health-list-note').textContent=e.message),300);};
