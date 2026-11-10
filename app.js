@@ -306,6 +306,9 @@ function syncPerformanceScopeUI(){
     else note.textContent='แสดงผลงานทุกพื้นที่ตามขอบเขตสิทธิ์เจ้าหน้าที่';
   }
   syncHealthAssignmentControl();
+  const quick=$('#health-staff-scope'),scopeNote=$('#health-target-scope-note');
+  if(quick){quick.hidden=currentProfile?.role!=='staff';quick.querySelectorAll('[data-health-scope]').forEach(button=>{const active=button.dataset.healthScope===effectivePerformanceScope();button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});}
+  if(scopeNote)scopeNote.textContent=currentProfile?.role==='staff'?(careScopeMode==='community'?`ชุมชน ${currentProfile.community||'ที่ได้รับมอบหมาย'} · รวมประชาชนในชุมชนตามสิทธิ์`:careScopeMode==='volunteer'?'งานของ อสม. ที่เลือกในชุมชนเดียวกัน':'บ้านและประชาชนที่ฉันรับผิดชอบ'):currentProfile?.role==='user'?'บ้านในความรับผิดชอบ · แสดงงานที่ผูกไว้ก่อน':'ทุกพื้นที่ · เลือกดูเป้าหมายทั้งหมดได้';
 }
 async function setPerformanceScope(next){
   if(currentProfile?.role!=='staff')return;
@@ -1149,6 +1152,8 @@ async function loadHealthModule(){
   const saveConfirmation=$('#ncd-save-confirmation');$('#ncd-save-confirmation-ok').onclick=()=>{closeNcdSaveConfirmation(false);viewHealthFeedback();};$('#ncd-save-confirmation-close').onclick=()=>closeNcdSaveConfirmation();saveConfirmation.onclick=e=>{if(e.target===saveConfirmation)closeNcdSaveConfirmation();};saveConfirmation.onkeydown=e=>{if(e.key==='Escape')closeNcdSaveConfirmation();};
   $('#health-feedback-share').onclick=shareHealthFeedback;$('#health-feedback-close').onclick=closeHealthFeedbackCard;
   bindHealthPerformanceControls();
+  $('#health-staff-scope')?.querySelectorAll('[data-health-scope]').forEach(button=>button.onclick=()=>setPerformanceScope(button.dataset.healthScope));
+  syncPerformanceScopeUI();
   $('#health-clear-community').onclick=async()=>{healthCommunityFocus='';focus.hidden=true;await scheduleHealthPeopleLoad(160,'community-focus');};
   $('#health-view-child-growth').onclick=showChildGrowthTargets;
   $('#health-view-linked-targets').onclick=()=>setHealthTargetFilter('field_targets'); $('#health-view-all-targets').onclick=()=>setHealthTargetFilter('targets'); $('#health-view-elderly9-targets').onclick=()=>setHealthTargetFilter('elderly_due');
