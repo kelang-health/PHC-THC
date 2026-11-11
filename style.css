@@ -416,3 +416,6 @@ tr.staff-assignment-row--direct>td:first-child{box-shadow:inset 4px 0 #5b9c72}
 .health-target-actions .health-risk-action small{color:#67420a}
 
 .health-staff-scope:not([hidden]){display:flex;align-items:center;gap:8px;flex-wrap:wrap}.health-staff-scope span{font-weight:700;color:#315c51}.health-staff-scope button{min-height:44px;border:1px solid #a9cbbd;border-radius:10px;padding:8px 12px;background:#fff;color:#245547;font:inherit;font-weight:700}.health-staff-scope button.active{background:#176e5e;color:white;border-color:#176e5e}
+
+.health-table td.health-screened-fy{background:#e3f4eb;color:#126543;font-weight:700}
+.health-table td.health-recorded-fy{background:#e5f2f7;color:#164f69;font-weight:700}
