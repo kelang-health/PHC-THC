@@ -1,0 +1,147 @@
+# Phase 5C.1 sanitized baseline metadata validation added 2026-09-25.
+name: Data API offline security checks (synthetic, no deployment)
+on:
+  pull_request:
+    paths:
+      - 'database/phase2/**'
+      - 'database/phase5/**'
+      - 'tests/data-api-readiness-phase3.cjs'
+      - 'tests/data-api-frontend-unchanged.cjs'
+      - 'tests/data-api-cloud-local-retention-safety.cjs'
+      - 'tests/data-api-cloud-local-card-projection.cjs'
+      - 'tests/phase4-migration-inventory.cjs'
+      - 'tests/phase5-release-contract.cjs'
+      - 'tests/phase4-postgres-grant-rls.sql'
+      - 'tests/phase4-cloud-local-fk-safety.sql'
+      - 'tests/phase4-cloud-local-scoped-http.sql'
+      - 'tests/phase4-cloud-local-scoped-http.cjs'
+      - 'tests/phase4-moo-community-role-rls.sql'
+      - 'tests/phase4-moo-community-role-http.cjs'
+      - 'tests/phase4-postgrest-http.cjs'
+      - 'tests/phase4-booking-grant-rls.sql'
+      - 'tests/phase4-booking-http.cjs'
+      - '.github/workflows/data-api-phase3-grants.yml'
+      - '.github/workflows/data-api-deployment-readiness.yml'
+      - 'supabase/migrations/**'
+  workflow_dispatch:
+jobs:
+  static-sql-check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify path firewall unit fixtures
+        run: node tests/data-api-frontend-unchanged.cjs --self-test
+      - name: Verify Cloud-to-Local planning never grants automatic Cloud deletion
+        run: node tests/data-api-cloud-local-retention-safety.cjs
+      - name: Verify synthetic scoped house/member card projection and Local-offline fallback
+        run: node tests/data-api-cloud-local-card-projection.cjs
+      - name: Confirm PR modifies no released frontend, runtime, real migrations or deployment
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node tests/data-api-frontend-unchanged.cjs "$BASE_SHA" "$HEAD_SHA"
+      - name: Validate safe SQL candidate and audit queries
+        run: node tests/data-api-readiness-phase3.cjs
+      - name: Validate recorded migration inventory format and local comparison logic
+        run: node tests/phase4-migration-inventory.cjs --self-test
+      - name: Validate Phase 5 Production metadata release contract
+        run: node tests/phase5-release-contract.cjs
+  isolated-postgres-grant-rls:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: phase4_fixture
+          POSTGRES_PASSWORD: phase4-disposable-fixture-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d phase4_fixture"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGPASSWORD: phase4-disposable-fixture-only
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client if required
+        run: command -v psql >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client)
+      - name: Exercise real PostgreSQL GRANT and RLS with only synthetic rows
+        run: psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -f tests/phase4-postgres-grant-rls.sql
+      - name: Create isolated synthetic booking table and test role grants
+        run: psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -f tests/phase4-booking-grant-rls.sql
+      - name: Verify archived Cloud FK restrictions and cascade data-loss hazard with rollback-only synthetic rows
+        run: psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -f tests/phase4-cloud-local-fk-safety.sql
+  isolated-postgrest-http:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: phase4_fixture
+          POSTGRES_PASSWORD: phase4-disposable-fixture-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d phase4_fixture"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGPASSWORD: phase4-disposable-fixture-only
+      PHASE4_JWT_SECRET: phase4-isolated-jwt-secret-not-production-123456789
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install PostgreSQL client if required
+        run: command -v psql >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client)
+      - name: Create synthetic fixture in disposable database
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -f tests/phase4-postgres-grant-rls.sql
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -f tests/phase4-booking-grant-rls.sql
+          psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -c "CREATE ROLE authenticator WITH LOGIN NOINHERIT PASSWORD 'phase4-disposable-fixture-only'; GRANT anon, authenticated, service_role TO authenticator;"
+      - name: Seed isolated house and member read-card scope fixtures
+        run: psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -f tests/phase4-cloud-local-scoped-http.sql
+      - name: Seed synthetic same-moo staff and volunteer assignment fixture
+        run: psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d phase4_fixture -f tests/phase4-moo-community-role-rls.sql
+      - name: Start disposable PostgREST Data API
+        run: |
+          docker run --rm -d --network host --name phase4-grant-postgrest \
+            -e PGRST_DB_URI='postgres://authenticator:phase4-disposable-fixture-only@127.0.0.1:5432/phase4_fixture' \
+            -e PGRST_DB_SCHEMAS=public \
+            -e PGRST_DB_ANON_ROLE=anon \
+            -e PGRST_JWT_SECRET="$PHASE4_JWT_SECRET" \
+            -e PGRST_SERVER_PORT=3000 \
+            postgrest/postgrest:latest
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/ >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          docker logs phase4-grant-postgrest
+          exit 1
+      - name: Verify HTTP access control with synthetic users
+        run: node tests/phase4-postgrest-http.cjs
+      - name: Verify synthetic booking access and paused direct writes
+        run: node tests/phase4-booking-http.cjs
+      - name: Verify role-scoped synthetic house/member responses under repeated HTTP calls
+        run: node tests/phase4-cloud-local-scoped-http.cjs
+      - name: Verify synthetic same-moo staff sibling read-only, own edit, USER assignment and member FK over HTTP
+        run: node tests/phase4-moo-community-role-http.cjs
+# These synthetic/offline jobs never validate migration replay or authorize deployment.

@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "phase": "5C.2",
+  "status": "COMPLETE_ISOLATED_REPLAY_PASS",
+  "generated_date": "2026-09-25",
+  "postgres": "17.11",
+  "postgis": "3.6.2",
+  "replay_runs": 2,
+  "replay_exit_codes": [
+    0,
+    0
+  ],
+  "source_phase5c1_sha256": "03d4e8486230c0c0699fe24b860cf055b45ee5625179f1a8bb1846ca256d9fc0",
+  "replay_candidate_v10_sha256": "56ee7231ef3280bd476d29a8e2facd18adc0c4f20bd4f34d4dbfd35686af1fb4",
+  "compatibility_prelude_sha256": "36eea8cdb9504beec2296a401c7317019ab21b082d6742c6a6cccadb76fa63fe",
+  "missing_public_schema_sha256": "047cd8b94f0fcdf56ebfddc7ca6b141d7f2754dd40144b7709ee28675da62fb3",
+  "missing_private_schema_sha256": "459af9dc65af216ac6f8e89b706968a62a96fd6e419c9a48de87d9399b19a301",
+  "catalog_schema_recovered": {
+    "public_tables": 8,
+    "private_tables": 8,
+    "row_data_copied": 0
+  },
+  "replay_adapters": {
+    "syntax_semicolon_fix": 1,
+    "duplicate_policy_omitted": 1,
+    "ctas_with_no_data_restored": 1,
+    "reviewed_schema_functions_restored": 2,
+    "reviewed_trigger_do_blocks_restored": 1
+  },
+  "isolated_result": {
+    "public_tables": 59,
+    "private_tables": 17,
+    "public_functions": 148,
+    "private_functions": 55,
+    "policies_public_private": 39,
+    "public_rls_off": 0,
+    "approx_rows_public_private": 0,
+    "error_lines": 0,
+    "fatal_lines": 0
+  },
+  "schema_parity_checked": false,
+  "phase5c3_required": true,
+  "contains_sql_bodies": false,
+  "contains_personal_data": false,
+  "production_changed": false,
+  "jhcis_changed": false,
+  "cloud_data_deleted": false
+}
