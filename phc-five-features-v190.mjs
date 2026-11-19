@@ -470,9 +470,7 @@ async function renderScreenRoute(body,s,personName){
       root.innerHTML=`<div class="phc190-error">${esc(friendlyError(e))}</div>`;
       return;
     }
-    root.innerHTML=growthHtml(false)+developmentHtml(s.dspm_target_months);
-    bindGrowth(root,s);
-    bindChildScreening(root,s);
+    await renderChildQuarter(root,s);
   }
   else if(s.route==='school_6_14'){root.innerHTML=growthHtml();bindGrowth(root,s)}
   else if(s.route==='youth_15_34'){await renderYouthRouteV206(root,s,personName)}
@@ -542,12 +540,52 @@ function bindGrowth(root,s){
 const DEV=[['gross_motor','การเคลื่อนไหว','การเดิน วิ่ง ทรงตัว และใช้กล้ามเนื้อใหญ่ตามวัย',['เดิน/วิ่ง/ทรงตัวน้อยกว่าที่คาด','ใช้แขนขาไม่สมดุล','เปลี่ยนท่าหรือลุกนั่งลำบาก']],['fine_motor_intelligence','กล้ามเนื้อมัดเล็ก/สติปัญญา','การหยิบจับ ประสานมือ และแก้ปัญหาง่าย ๆ',['หยิบจับของชิ้นเล็กไม่คล่อง','ใช้มือประสานกันยาก','ทำกิจกรรมแก้ปัญหาง่าย ๆ ไม่ได้']],['receptive_language','การเข้าใจภาษา','การฟังและเข้าใจคำพูดหรือคำสั่งตามวัย',['ไม่ทำตามคำสั่งง่าย ๆ','ไม่ตอบสนองเมื่อเรียกหรือสื่อสาร','เข้าใจคำพูดน้อยกว่าที่คาด']],['expressive_language','การใช้ภาษา','การพูดหรือสื่อความต้องการตามวัย',['พูดน้อยกว่าที่คาด','สื่อความต้องการไม่ได้','พูดไม่ชัด/เข้าใจยาก','ไม่ตอบสนองต่อการสื่อสาร']],['personal_social','การช่วยเหลือตนเอง/สังคม','การช่วยตนเอง เล่น และมีปฏิสัมพันธ์ตามวัย',['ช่วยเหลือตนเองตามวัยได้ยาก','เล่นหรือมีปฏิสัมพันธ์กับผู้อื่นน้อย','ปรับตัวกับกิจวัตรได้ยาก']]];
 function developmentHtml(target){return `<section class="phc190-step" data-dev><h3>พัฒนาการเบื้องต้น 5 ด้าน</h3><div class="phc190-note">อายุจริงใช้คำนวณทุกครั้ง · ช่วงอ้างอิงที่ใกล้เคียง ${target||'—'} เดือน · ใช้เพื่อคัดกรองเบื้องต้น ไม่ใช้คำว่า “พัฒนาการล่าช้า” อัตโนมัติ</div><button class="phc190-secondary" data-all-normal>✓ ทุกด้านปกติ</button><div class="phc190-domain-grid">${DEV.map(([k,l,tip,items])=>`<article class="phc190-domain" data-dev-domain="${k}" data-status="not_assessed"><h4>${l}</h4><p>${tip}</p><div class="phc190-state-row"><button class="phc190-state normal" type="button" data-state="normal">✓ ปกติ</button><button class="phc190-state observation" type="button" data-state="observation">พบข้อสังเกต</button><button class="phc190-state not_assessed active" type="button" data-state="not_assessed">ไม่ได้ประเมิน</button></div><div class="phc190-observe">${items.map(x=>`<label><input type="checkbox" value="${esc(x)}">${esc(x)}</label>`).join('')}</div></article>`).join('')}</div><label>หมายเหตุสั้น<textarea data-dev-note maxlength="500"></textarea></label><div class="phc190-error" data-dev-error role="alert"></div><button type="button" class="phc190-primary" data-child-save>บันทึกน้ำหนัก ส่วนสูง และพัฒนาการ</button></section>`}
 function setDomainState(card,state){card.dataset.status=state;card.querySelectorAll('.phc190-state').forEach(b=>b.classList.toggle('active',b.dataset.state===state))}
-function bindChildScreening(root,s){
+async function renderChildQuarter(root,s){
+  root.textContent='กำลังอ่านผลไตรมาสนี้…';
+  const {data,error}=await supabase.rpc('child_quarter_result_v208',{p_pcu:s.source_pcucode,p_pid:Number(s.source_pid)});
+  if(error){root.textContent=friendlyError(error);return;}
+  showChildQuarter(root,s,data);
+}
+function showChildQuarter(root,s,quarter){
+  const growth=quarter.growth, development=quarter.development;
+  const labels={gross_motor:'การเคลื่อนไหว',fine_motor_intelligence:'กล้ามเนื้อมัดเล็กและสติปัญญา',receptive_language:'การเข้าใจภาษา',expressive_language:'การใช้ภาษา',personal_social:'การช่วยเหลือตนเองและสังคม'};
+  const edit=()=>{
+    root.innerHTML=growthHtml(false)+developmentHtml(s.dspm_target_months);
+    bindGrowth(root,s);
+    if(growth){
+      $('[data-growth-weight]',root).value=growth.weight_kg;
+      $('[data-growth-height]',root).value=growth.height_cm;
+    }
+    if(development){
+      for(const card of root.querySelectorAll('[data-dev-domain]')){
+        const status=development.domains?.[card.dataset.devDomain];
+        if(['normal','observation'].includes(status))setDomainState(card,status);
+      }
+      $('[data-dev-note]',root).value=development.note||'';
+    }
+    bindChildScreening(root,s,quarter);
+    const cancel=document.createElement('button');
+    cancel.type='button';
+    cancel.textContent='กลับไปดูผล';
+    cancel.onclick=()=>showChildQuarter(root,s,quarter);
+    root.append(cancel);
+  };
+  const heading=quarter.complete?'จบงานไตรมาสนี้':'รอบไตรมาสนี้ยังไม่ครบ';
+  root.innerHTML=`<section class="phc190-step"><h3>${heading}</h3>
+    <p>เริ่มรอบ ${esc(fmt(quarter.start))}</p>
+    <h4>โภชนาการ</h4><p>${growth?`${esc(fmt(growth.day))} · ${esc(growth.weight_kg)} กก. · ${esc(growth.height_cm)} ซม. · ${esc(growth.source)}`:'ยังไม่มีผลชั่งวัด'}</p>
+    <div data-quarter-nutrition></div>
+    <h4>พัฒนาการ</h4><p>${development?`${esc(fmt(development.day))} · ${esc(({preliminary_normal:'ปกติเบื้องต้น',needs_further_assessment:'ควรประเมินเพิ่มเติม',incomplete:'ประเมินไม่ครบ'})[development.status]||'ประเมินไม่ครบ')}`:'ยังไม่มีผลประเมิน'}</p>
+    ${development?`<ul>${Object.entries(labels).map(([key,label])=>`<li>${esc(label)} · ${development.domains?.[key]==='normal'?'ปกติเบื้องต้น':development.domains?.[key]==='observation'?'ควรสังเกตเพิ่มเติม':'ยังไม่ได้ประเมิน'}</li>`).join('')}</ul><p>${esc(development.note||'')}</p>`:''}
+    <button type="button" class="phc190-primary" data-quarter-edit>${quarter.complete?'แก้ไขผลในไตรมาสนี้':'บันทึกผลให้ครบ'}</button></section>`;
+  if(growth)renderGrowthNutritionV204($('[data-quarter-nutrition]',root),growth.nutrition,s);
+  $('[data-quarter-edit]',root).onclick=edit;
+}
+function bindChildScreening(root,s,quarter){
   const weight=$('[data-growth-weight]',root),height=$('[data-growth-height]',root);
   const cards=[...root.querySelectorAll('[data-dev-domain]')];
   const save=$('[data-child-save]',root),errorBox=$('[data-dev-error]',root);
   const buttonLabel=save.textContent;
-  let growthResult=null;
 
   for(const card of cards){
     for(const button of card.querySelectorAll('[data-state]')){
@@ -598,37 +636,21 @@ function bindChildScreening(root,s){
 
     try{
       await ensureScreeningSessionV2023(s);
-      if(!growthResult){
-        const {data,error}=await supabase.rpc('save_growth_screening_v190',{
-          p_session_id:s.session_id,p_weight_kg:weightKg,p_height_cm:heightCm
-        });
-        if(error)throw error;
-        if(data?.ok!==true)throw Error('ยังยืนยันการบันทึกน้ำหนักและส่วนสูงไม่ได้');
-        // Keep the confirmed measurement when retrying a failed development save.
-        growthResult=data;
-        weight.readOnly=true;
-        height.readOnly=true;
-      }
-
-      const {data,error}=await supabase.rpc('save_child_development_v190',{
-        p_session_id:s.session_id,p_domains:domains,p_note:note
+      const {data,error}=await supabase.rpc('save_child_quarter_v208',{
+        p_session:s.session_id,p_weight:weightKg,p_height:heightCm,p_domains:domains,p_note:note,p_expected:quarter
       });
       if(error)throw error;
-      if(data?.ok!==true)throw Error('ยังยืนยันการบันทึกพัฒนาการไม่ได้');
       if(activeOverlay?.contains(root)){
-        closeModal();
-        const results=[growthResult.interpretation,data.overall_label].filter(Boolean);
-        showPhcToast(['บันทึกน้ำหนัก ส่วนสูง และพัฒนาการแล้ว',...results].join(' · '),
-          data.overall_status==='needs_further_assessment'?'warn':'success',5000);
+        showChildQuarter(root,s,data);
+        showPhcToast('บันทึกผลไตรมาสนี้แล้ว');
       }
     }catch(error){
-      const message=friendlyError(error);
-      errorBox.textContent=growthResult
-        ? `บันทึกน้ำหนักและส่วนสูงแล้ว · บันทึกพัฒนาการไม่สำเร็จ กรุณาลองอีกครั้ง (${message})`
-        : `บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง (${message})`;
+      errorBox.textContent=String(error.message||'').includes('CHILD_QUARTER_CHANGED')
+        ? 'มีผลใหม่ในไตรมาสนี้ กรุณาปิดแล้วเปิดรายการเพื่ออ่านผลล่าสุด'
+        : friendlyError(error);
     }finally{
       for(const control of controls)control.disabled=false;
-      save.textContent=growthResult?'บันทึกพัฒนาการอีกครั้ง':buttonLabel;
+      save.textContent=buttonLabel;
     }
   };
 }

@@ -28,7 +28,7 @@ if (typeof window !== 'undefined') {
       initSystemAboutNote1829();
       const { initCommunityHouseholdQuality1831 } = await import('./community-household-quality-v1831.mjs?v=2.0.159-hide-residence-menu&p=2212');
       await initCommunityHouseholdQuality1831(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      const { initPHCFiveFeatures190 } = await import('./phc-five-features-v190.mjs?v=2.0.199');
+      const { initPHCFiveFeatures190 } = await import('./phc-five-features-v190.mjs?v=2.0.208');
       await initPHCFiveFeatures190(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
       const { initFieldWorkReportingV200 } = await import('./field-work-reporting-v200.mjs?v=2.0.202');
       await initFieldWorkReportingV200(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
@@ -42,7 +42,7 @@ if (typeof window !== 'undefined') {
 if(typeof window!=="undefined") import("./house-registration-review-v2202.mjs?v=2.0.200").then(m=>m.initHouseRegistrationReview2202(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY)).catch(()=>{});
 
 // Independent NCD field capture; overview and existing follow-up work remain usable.
-if(typeof window!=="undefined") import("./ncd-field-followup-v2203.mjs?v=2.0.207").then(m=>m.initNcdFieldFollowup2203(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY)).catch(()=>{});
+if(typeof window!=="undefined") import("./ncd-field-followup-v2203.mjs?v=2.0.208").then(m=>m.initNcdFieldFollowup2203(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY)).catch(()=>{});
 
 // House groups are isolated from health target calculations.
 if(typeof window!=="undefined") import("./house-groups-v2225.mjs?v=2.0.200").then(m=>m.initHouseGroupsV2225(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY)).catch(error=>{document.querySelector('[data-portal-panel="houses"]')?.removeAttribute('data-house-groups-mode');document.dispatchEvent(new CustomEvent('phc:portal-view-changed',{detail:{view:'houses'}}));console.error("House groups unavailable",error);});
