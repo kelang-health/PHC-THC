@@ -27,6 +27,22 @@ async function loadPage(client,kind,search,offset){
 function render(root,items){
   root.querySelector('[data-nf-list]').innerHTML=items.map(r=>`<article class="nf-card ${complete(r)?'done':''}"><strong>${esc(r.display_name)} · ${r.kind==='bp'?'Home BP':'DTX ซ้ำ'}</strong><small>บ้าน ${esc(r.house_no)} · ${esc(r.community)} · คัดกรอง ${esc(r.screened_on)}${r.due_on?` · ครบกำหนด ${esc(r.due_on)}`:''}</small><small>ค่าเดิม ${r.kind==='bp'?esc(r.sbp)+'/'+esc(r.dbp):esc(r.glucose_mg_dl)+' mg/dL · '+(r.glucose_type==='fasting'?'อดอาหาร':'ไม่อดอาหาร')}</small><p>${esc(caseState(r))}</p><button data-nf-open="${esc(r.source_screen_id)}:${r.kind}">บันทึก / ดูประวัติ</button></article>`).join('')||'<p>ไม่มีรายการตามตัวกรองนี้</p>';
 }
+const historyByClient=new WeakMap();
+function dailyHistory(client){
+  let state=historyByClient.get(client);
+  if(!state){
+    state={day:'',entries:new Map()};
+    historyByClient.set(client,state);
+    client.auth?.onAuthStateChange?.((event,session)=>{
+      const user=session?.user?.id;
+      if(event==='SIGNED_OUT'||(user&&state.user&&state.user!==user)){state.day='';state.entries=new Map();}
+      if(user||event==='SIGNED_OUT')state.user=user;
+    });
+  }
+  const day=today();
+  if(state.day!==day){state.day=day;state.entries=new Map();}
+  return state.entries;
+}
 async function mount(parent,client){
   if(parent.querySelector('[data-nf-root]'))return;
   const root=document.createElement('section');
@@ -106,15 +122,23 @@ async function mount(parent,client){
     button.disabled=true;
     detailError.textContent='';
     try{
-      const {data,error}=await client.rpc('ncd_field_case_history_v2196',{
-        p_source_screen_id:row.source_screen_id,p_kind:row.kind
-      });
-      if(error)throw error;
+      const history=dailyHistory(client), key=button.dataset.nfOpen;
+      if(!history.has(key)){
+        const request=Promise.resolve(client.rpc('ncd_field_case_history_v2196',{
+          p_source_screen_id:row.source_screen_id,p_kind:row.kind
+        })).then(({data,error})=>{
+          if(error)throw error;
+          return data;
+        }).catch(error=>{history.delete(key);throw error;});
+        history.set(key,request);
+      }
+      const data=await history.get(key);
       if(token!==version||!root.isConnected)return;
       open({...row,measurements:data},client,measurements=>{
-        if(measurements===null){invalidateShared('ncd-field-page:');offset=0;reload();return;}
+        if(measurements===null){history.delete(key);invalidateShared('ncd-field-page:');offset=0;reload();return;}
         invalidateShared('ncd-field-page:');
         if(token!==version||!root.isConnected)return;
+        if(dailyHistory(client)===history)history.set(key,Promise.resolve(measurements));
         row.fasting_dtx_count=fastingDtxCount({measurements});
         row.bp_days_consecutive=bpProgress(measurements).consecutive;
         const card=button.closest('.nf-card');
