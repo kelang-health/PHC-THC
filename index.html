@@ -16,6 +16,18 @@
   <link rel="stylesheet" href="./cloud-announcements-v2083.css?v=2.0.96">
   <link rel="stylesheet" href="./login-theme-v2081.css?v=2.0.195">
 <style>#cloud-announcements-v2083{display:none!important}</style>  <script type="module" src="./leaflet-touch-layers-v2211.mjs?v=2211"></script>
+<style id="maintenance-notice-style">
+/* Remove this maintenance block only after service recovery is verified. */
+#login-card .login-intro,#login-card #login-form,#login-card #line-login-v201{display:none!important}
+#login-card .maintenance-notice{display:grid;gap:14px;text-align:center;padding:12px 0;color:#243d33;overflow-wrap:anywhere}
+.maintenance-notice h2,.maintenance-notice p{margin:0!important;line-height:1.65!important}
+.maintenance-notice h2{font-size:clamp(21px,5.5vw,28px)!important}
+.maintenance-notice p{font-size:16px!important}
+.maintenance-date{display:grid;gap:4px;background:#fff4d6;border:1px solid #e4c779;border-radius:14px;padding:14px 10px}
+.maintenance-date strong{font-size:clamp(22px,6vw,30px);line-height:1.5;color:#624509}
+body:has(#login-card:not([hidden])) .phc-login-footer{display:none!important}
+@media(max-width:480px){body:has(#login-card:not([hidden])) .shell{min-height:100svh!important;height:auto!important;overflow:visible!important;padding:16px 12px!important}body:has(#login-card:not([hidden])) #login-card{max-height:none!important;height:auto!important;overflow:visible!important;padding:24px 18px!important}.maintenance-notice{gap:12px!important}}
+</style>
 </head>
 <body>
   <main class="shell">
@@ -42,6 +54,13 @@
     </header>
 
     <section id="login-card" class="card auth-card login-card">
+      <section class="maintenance-notice" role="status" aria-labelledby="maintenance-title">
+        <h2 id="maintenance-title">ระบบปิดปรับปรุงชั่วคราว</h2>
+        <p>อสม. ยังไม่สามารถเข้าสู่ระบบได้ในขณะนี้</p>
+        <div class="maintenance-date"><span>คาดว่าจะเปิดให้บริการอีกครั้ง</span><strong>5 ธันวาคม 2569</strong></div>
+        <p>กรุณาจดบันทึกงานไว้ก่อน<br>แล้วนำเข้าระบบเมื่อเปิดให้บริการ</p>
+        <p>ขออภัยในความไม่สะดวก</p>
+      </section>
       <div class="login-intro">
         <div class="phc-login-welcome-copy">
           <h2>ยินดีต้อนรับ</h2>
@@ -323,3 +342,4 @@
   <script type="module" src="./member-work-bridge-v2215.mjs?v=2215"></script>
 </body>
 </html>
+
